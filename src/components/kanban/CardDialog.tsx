@@ -523,7 +523,18 @@ function ChecklistBlock({ boardId, cardId, canEdit, checklist, items }: {
 
   const addItem = useMutation({
     mutationFn: (text: string) => addItemFn({ data: { checklistId: checklist.id, text } }),
-    onSuccess: inv, onError: (e) => toast.error(e.message),
+    onMutate: async (text) => {
+      await qc.cancelQueries({ queryKey: key });
+      const prev = qc.getQueryData<any>(key);
+      const tmpId = `tmp-${Math.random()}`;
+      qc.setQueryData<any>(key, (d: any) => {
+        if (!d) return d;
+        return { ...d, items: [...d.items, { id: tmpId, checklist_id: checklist.id, text, done: false, position: 9999 }] };
+      });
+      return { prev };
+    },
+    onError: (e, _v, ctx) => { if (ctx?.prev) qc.setQueryData(key, ctx.prev); toast.error(e.message); },
+    onSettled: inv,
   });
   const toggle = useMutation({
     mutationFn: (v: { id: string; done: boolean }) => toggleFn({ data: v }),
