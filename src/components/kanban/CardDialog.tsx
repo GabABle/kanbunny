@@ -872,3 +872,109 @@ function CommentRow({ comment, isOwn, onUpdate, onDelete }: {
     </div>
   );
 }
+
+function MentionTextarea({
+  value, onChange, members, placeholder, onSubmit,
+}: {
+  value: string;
+  onChange: (v: string) => void;
+  members: Member[];
+  placeholder?: string;
+  onSubmit?: () => void;
+}) {
+  const ref = useRef<HTMLTextAreaElement>(null);
+  const [open, setOpen] = useState(false);
+  const [query, setQuery] = useState("");
+  const [anchor, setAnchor] = useState<number | null>(null);
+  const [active, setActive] = useState(0);
+
+  const matches = open
+    ? members
+        .filter((m) => {
+          const n = (m.profile?.display_name ?? m.profile?.email ?? "").toLowerCase();
+          return n.includes(query.toLowerCase());
+        })
+        .slice(0, 6)
+    : [];
+
+  const handleChange = (v: string) => {
+    onChange(v);
+    const pos = ref.current?.selectionStart ?? v.length;
+    const before = v.slice(0, pos);
+    const m = before.match(/(?:^|\s)@([\w.\-]*)$/);
+    if (m) {
+      setOpen(true);
+      setAnchor(pos - m[1].length - 1);
+      setQuery(m[1]);
+      setActive(0);
+    } else {
+      setOpen(false);
+      setAnchor(null);
+    }
+  };
+
+  const insertMention = (member: Member) => {
+    if (anchor == null) return;
+    const name = (member.profile?.display_name ?? member.profile?.email ?? "user").replace(/\s+/g, "");
+    const pos = ref.current?.selectionStart ?? value.length;
+    const before = value.slice(0, anchor);
+    const after = value.slice(pos);
+    const insert = `@${name} `;
+    const next = before + insert + after;
+    onChange(next);
+    setOpen(false);
+    setAnchor(null);
+    setQuery("");
+    requestAnimationFrame(() => {
+      const newPos = (before + insert).length;
+      ref.current?.focus();
+      ref.current?.setSelectionRange(newPos, newPos);
+    });
+  };
+
+  return (
+    <div className="relative">
+      <Textarea
+        ref={ref}
+        value={value}
+        onChange={(e) => handleChange(e.target.value)}
+        onKeyDown={(e) => {
+          if (open && matches.length > 0) {
+            if (e.key === "ArrowDown") { e.preventDefault(); setActive((a) => (a + 1) % matches.length); return; }
+            if (e.key === "ArrowUp") { e.preventDefault(); setActive((a) => (a - 1 + matches.length) % matches.length); return; }
+            if (e.key === "Enter" || e.key === "Tab") { e.preventDefault(); insertMention(matches[active]); return; }
+            if (e.key === "Escape") { e.preventDefault(); setOpen(false); return; }
+          }
+          if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) {
+            e.preventDefault();
+            onSubmit?.();
+          }
+        }}
+        placeholder={placeholder}
+        className="min-h-[70px] bg-tcard text-tcard-foreground"
+      />
+      {open && matches.length > 0 && (
+        <div className="absolute left-2 top-full z-50 mt-1 w-64 overflow-hidden rounded-md border bg-popover text-popover-foreground shadow-md">
+          {matches.map((m, i) => {
+            const name = m.profile?.display_name ?? m.profile?.email ?? "User";
+            return (
+              <button
+                key={m.user_id}
+                type="button"
+                onMouseDown={(e) => { e.preventDefault(); insertMention(m); }}
+                onMouseEnter={() => setActive(i)}
+                className={cn("flex w-full items-center gap-2 px-2 py-1.5 text-sm text-left", i === active && "bg-accent text-accent-foreground")}
+              >
+                <Avatar member={m} />
+                <div className="min-w-0">
+                  <div className="truncate font-medium">{name}</div>
+                  {m.profile?.email && <div className="truncate text-xs text-muted-foreground">{m.profile.email}</div>}
+                </div>
+              </button>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+}
