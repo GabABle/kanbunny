@@ -530,10 +530,15 @@ function ChecklistBlock({ boardId, cardId, canEdit, checklist, items }: {
         if (!d) return d;
         return { ...d, items: [...d.items, { id: tmpId, checklist_id: checklist.id, text, done: false, position: 9999 }] };
       });
-      return { prev };
+      return { prev, tmpId };
     },
     onError: (e, _v, ctx) => { if (ctx?.prev) qc.setQueryData(key, ctx.prev); toast.error(e.message); },
-    onSettled: inv,
+    onSuccess: (real: any, _v, ctx) => {
+      qc.setQueryData<any>(key, (d: any) => {
+        if (!d) return d;
+        return { ...d, items: d.items.map((i: any) => (i.id === ctx?.tmpId ? { ...i, ...real } : i)) };
+      });
+    },
   });
   const toggle = useMutation({
     mutationFn: (v: { id: string; done: boolean }) => toggleFn({ data: v }),
@@ -557,7 +562,20 @@ function ChecklistBlock({ boardId, cardId, canEdit, checklist, items }: {
   });
   const delList = useMutation({
     mutationFn: () => deleteListFn({ data: { id: checklist.id } }),
-    onSuccess: inv, onError: (e) => toast.error(e.message),
+    onMutate: async () => {
+      await qc.cancelQueries({ queryKey: key });
+      const prev = qc.getQueryData<any>(key);
+      qc.setQueryData<any>(key, (d: any) => {
+        if (!d) return d;
+        return {
+          ...d,
+          checklists: d.checklists.filter((c: any) => c.id !== checklist.id),
+          items: d.items.filter((i: any) => i.checklist_id !== checklist.id),
+        };
+      });
+      return { prev };
+    },
+    onError: (e, _v, ctx) => { if (ctx?.prev) qc.setQueryData(key, ctx.prev); toast.error(e.message); },
   });
 
   const [adding, setAdding] = useState(false);
