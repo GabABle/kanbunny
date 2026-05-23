@@ -10,7 +10,7 @@ import { Plus, Trash2 } from "lucide-react";
 import { createBoard, deleteBoard, listBoards } from "@/lib/kanban.functions";
 import { toast } from "sonner";
 
-export const Route = createFileRoute("/_authenticated/boards")({
+export const Route = createFileRoute("/_authenticated/boards/")({
   head: () => ({ meta: [{ title: "Your boards — Stack" }] }),
   component: BoardsPage,
 });
