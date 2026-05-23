@@ -90,6 +90,33 @@ export type Database = {
           },
         ]
       }
+      card_comments: {
+        Row: {
+          body: string
+          card_id: string
+          created_at: string
+          id: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          body: string
+          card_id: string
+          created_at?: string
+          id?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          body?: string
+          card_id?: string
+          created_at?: string
+          id?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       card_labels: {
         Row: {
           card_id: string
