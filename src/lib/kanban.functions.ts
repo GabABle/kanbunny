@@ -234,8 +234,17 @@ export const moveCard = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d) => z.object({ id: uuid, listId: uuid, position: z.number() }).parse(d))
   .handler(async ({ data, context }) => {
-    const { error } = await context.supabase.from("cards").update({ list_id: data.listId, position: data.position }).eq("id", data.id);
+    const { supabase, userId } = context;
+    const { data: prev } = await supabase.from("cards").select("list_id").eq("id", data.id).maybeSingle();
+    const { error } = await supabase.from("cards").update({ list_id: data.listId, position: data.position }).eq("id", data.id);
     if (error) throw new Error(error.message);
+    if (prev && prev.list_id !== data.listId) {
+      const [from, to] = await Promise.all([
+        supabase.from("lists").select("title").eq("id", prev.list_id).maybeSingle(),
+        supabase.from("lists").select("title").eq("id", data.listId).maybeSingle(),
+      ]);
+      await logActivity(supabase, userId, data.id, "moved", { from: from.data?.title, to: to.data?.title });
+    }
     return { ok: true };
   });
 
@@ -253,7 +262,7 @@ export const toggleCardLabel = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d) => z.object({ cardId: uuid, labelId: uuid, on: z.boolean() }).parse(d))
   .handler(async ({ data, context }) => {
-    const { supabase } = context;
+    const { supabase, userId } = context;
     if (data.on) {
       const { error } = await supabase.from("card_labels").insert({ card_id: data.cardId, label_id: data.labelId });
       if (error && !error.message.includes("duplicate")) throw new Error(error.message);
@@ -261,6 +270,8 @@ export const toggleCardLabel = createServerFn({ method: "POST" })
       const { error } = await supabase.from("card_labels").delete().eq("card_id", data.cardId).eq("label_id", data.labelId);
       if (error) throw new Error(error.message);
     }
+    const { data: lbl } = await supabase.from("labels").select("name, color").eq("id", data.labelId).maybeSingle();
+    await logActivity(supabase, userId, data.cardId, data.on ? "label_added" : "label_removed", { name: lbl?.name, color: lbl?.color });
     return { ok: true };
   });
 
@@ -291,7 +302,7 @@ export const toggleAssignee = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d) => z.object({ cardId: uuid, userId: uuid, on: z.boolean() }).parse(d))
   .handler(async ({ data, context }) => {
-    const { supabase } = context;
+    const { supabase, userId } = context;
     if (data.on) {
       const { error } = await supabase.from("card_assignees").insert({ card_id: data.cardId, user_id: data.userId });
       if (error && !error.message.includes("duplicate")) throw new Error(error.message);
@@ -299,6 +310,8 @@ export const toggleAssignee = createServerFn({ method: "POST" })
       const { error } = await supabase.from("card_assignees").delete().eq("card_id", data.cardId).eq("user_id", data.userId);
       if (error) throw new Error(error.message);
     }
+    const { data: p } = await supabase.from("profiles").select("display_name, email").eq("id", data.userId).maybeSingle();
+    await logActivity(supabase, userId, data.cardId, data.on ? "member_added" : "member_removed", { name: p?.display_name ?? p?.email });
     return { ok: true };
   });
 
