@@ -22,6 +22,8 @@ export const createBoard = createServerFn({ method: "POST" })
   .inputValidator((d) => z.object({ title: z.string().min(1).max(120), description: z.string().max(500).optional() }).parse(d))
   .handler(async ({ data, context }) => {
     const { supabase, userId } = context;
+    const dbg = await supabase.rpc("auth_uid_dbg" as any).catch((e) => ({ error: e }));
+    console.log("[createBoard] middleware userId:", userId, "rpc:", dbg);
     const { data: board, error } = await supabase
       .from("boards")
       .insert({ title: data.title, description: data.description ?? null, owner_id: userId })
