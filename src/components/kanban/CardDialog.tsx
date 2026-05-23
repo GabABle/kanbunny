@@ -13,6 +13,7 @@ import { format } from "date-fns";
 import {
   AlignLeft, CheckSquare, Clock, Tag, Trash2, Users, X, Plus, Check, MessageSquare, Paperclip, Download, FileIcon,
 } from "lucide-react";
+import { ChevronDown, ChevronRight, Activity } from "lucide-react";
 import {
   updateCard, deleteCard,
   createLabel, toggleCardLabel, deleteLabel,
@@ -21,6 +22,7 @@ import {
   deleteChecklistItem, deleteChecklist, getCardChecklists,
   getCardComments, addCardComment, updateCardComment, deleteCardComment,
   listCardAttachments, addCardAttachment, deleteCardAttachment, getAttachmentUrl,
+  getCardActivities,
 } from "@/lib/kanban.functions";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
