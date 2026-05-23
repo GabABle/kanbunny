@@ -83,13 +83,11 @@ export function CardDialog({
   };
 
   // ---- Description ----
-  const [descEditing, setDescEditing] = useState(false);
   const [descDraft, setDescDraft] = useState(card.description ?? "");
-  useEffect(() => { setDescDraft(card.description ?? ""); setDescEditing(false); }, [card.id]);
+  useEffect(() => { setDescDraft(card.description ?? ""); }, [card.id]);
   const saveDesc = () => {
     const v = descDraft.trim();
     if (v !== (card.description ?? "")) update.mutate({ description: v || null });
-    setDescEditing(false);
   };
 
   // ---- Labels ----
@@ -170,34 +168,16 @@ export function CardDialog({
               <div className="mb-2 flex items-center gap-2">
                 <AlignLeft className="h-4 w-4" />
                 <h3 className="font-semibold">Description</h3>
-                {!descEditing && card.description && canEdit && (
-                  <Button size="sm" variant="secondary" className="ml-auto h-7" onClick={() => setDescEditing(true)}>Edit</Button>
-                )}
               </div>
-              {descEditing ? (
-                <div className="space-y-2">
-                  <Textarea
-                    autoFocus
-                    value={descDraft}
-                    onChange={(e) => setDescDraft(e.target.value)}
-                    onKeyDown={(e) => { if (e.key === "Escape") { setDescDraft(card.description ?? ""); setDescEditing(false); } }}
-                    placeholder="Add a more detailed description…"
-                    className="min-h-[120px] bg-tcard text-tcard-foreground"
-                  />
-                  <div className="flex gap-2">
-                    <Button size="sm" onClick={saveDesc}>Save</Button>
-                    <Button size="sm" variant="ghost" onClick={() => { setDescDraft(card.description ?? ""); setDescEditing(false); }}>Cancel</Button>
-                  </div>
-                </div>
-              ) : card.description ? (
-                <div className="whitespace-pre-wrap rounded bg-tcard p-3 text-sm text-tcard-foreground" onClick={() => canEdit && setDescEditing(true)}>{card.description}</div>
-              ) : (
-                <button
-                  disabled={!canEdit}
-                  onClick={() => setDescEditing(true)}
-                  className="w-full rounded bg-tcard/60 p-3 text-left text-sm text-list-muted hover:bg-tcard"
-                >Add a more detailed description…</button>
-              )}
+              <Textarea
+                value={descDraft}
+                disabled={!canEdit}
+                onChange={(e) => setDescDraft(e.target.value)}
+                onBlur={saveDesc}
+                onKeyDown={(e) => { if (e.key === "Escape") { setDescDraft(card.description ?? ""); (e.target as HTMLTextAreaElement).blur(); } }}
+                placeholder="Add a more detailed description…"
+                className="min-h-[100px] bg-tcard text-tcard-foreground"
+              />
             </div>
 
             {/* Checklists */}
@@ -213,7 +193,8 @@ export function CardDialog({
             ))}
 
             {/* Comments */}
-            <CommentsBlock cardId={card.id} canEdit={canEdit} />
+            <AttachmentsBlock cardId={card.id} canEdit={canEdit} />
+            <CommentsBlock cardId={card.id} canEdit={canEdit} members={members} />
           </div>
 
           {/* Sidebar */}
@@ -234,6 +215,7 @@ export function CardDialog({
                 dueDate={dueDate}
                 onChange={(d) => update.mutate({ due_date: d })}
               />
+              <AttachmentButton cardId={card.id} canEdit={canEdit} />
             </div>
 
             {canEdit && (
