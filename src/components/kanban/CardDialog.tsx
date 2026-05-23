@@ -1044,3 +1044,79 @@ function MentionTextarea({
     </div>
   );
 }
+
+function ActivityBlock({ cardId }: { cardId: string }) {
+  const [open, setOpen] = useState(false);
+  const getFn = useServerFn(getCardActivities);
+  const { data: activities = [] } = useQuery({
+    queryKey: ["activities", cardId],
+    queryFn: () => getFn({ data: { cardId } }),
+    enabled: open,
+  });
+  return (
+    <div>
+      <button
+        onClick={() => setOpen((o) => !o)}
+        className="flex w-full items-center gap-2 text-left font-semibold"
+      >
+        {open ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
+        <Activity className="h-4 w-4" />
+        <span>Activity</span>
+        <span className="ml-1 text-xs font-normal text-list-muted">{open ? "(hide)" : "(show)"}</span>
+      </button>
+      {open && (
+        <div className="mt-3 space-y-2">
+          {activities.length === 0 && <div className="text-xs text-list-muted">No activity yet.</div>}
+          {(activities as any[]).map((a) => (
+            <ActivityRow key={a.id} activity={a} />
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function ActivityRow({ activity }: { activity: any }) {
+  const name = activity.profile?.display_name ?? activity.profile?.email ?? "Someone";
+  const initials = name.slice(0, 2).toUpperCase();
+  const when = new Date(activity.created_at);
+  const p = activity.payload ?? {};
+  const text = describeActivity(activity.type, p);
+  return (
+    <div className="flex items-start gap-2 text-sm">
+      <div className="grid h-7 w-7 shrink-0 place-items-center rounded-full bg-primary text-[10px] font-semibold text-primary-foreground">
+        {initials}
+      </div>
+      <div className="min-w-0 flex-1">
+        <div className="text-list-foreground">
+          <span className="font-semibold">{name}</span> <span>{text}</span>
+        </div>
+        <div className="text-xs text-list-muted">
+          {when.toLocaleString(undefined, { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" })}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function describeActivity(type: string, p: any): string {
+  switch (type) {
+    case "card_created": return `created this card${p.title ? ` "${p.title}"` : ""}`;
+    case "title_changed": return `renamed the card to "${p.title}"`;
+    case "description_changed": return `updated the description`;
+    case "due_set": return `set the due date${p.due_date ? ` to ${new Date(p.due_date).toLocaleString()}` : ""}`;
+    case "due_removed": return `removed the due date`;
+    case "moved": return `moved this card${p.from ? ` from "${p.from}"` : ""}${p.to ? ` to "${p.to}"` : ""}`;
+    case "label_added": return `added label "${p.name ?? ""}"`;
+    case "label_removed": return `removed label "${p.name ?? ""}"`;
+    case "member_added": return `assigned ${p.name ?? "a member"}`;
+    case "member_removed": return `unassigned ${p.name ?? "a member"}`;
+    case "checklist_added": return `added checklist "${p.title ?? ""}"`;
+    case "checklist_item_added": return `added an item: "${p.text ?? ""}"`;
+    case "checklist_item_done": return `completed "${p.text ?? ""}"`;
+    case "checklist_item_undone": return `unchecked "${p.text ?? ""}"`;
+    case "comment_added": return `added a comment`;
+    case "comment_replied": return `replied to a comment`;
+    default: return type.replace(/_/g, " ");
+  }
+}
