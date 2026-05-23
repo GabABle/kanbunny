@@ -28,12 +28,17 @@ export const Route = createFileRoute("/_authenticated/boards/$boardId")({
   component: BoardPage,
 });
 
+type BoardData = Awaited<ReturnType<typeof getBoard>>;
+
 function BoardPage() {
   const { boardId } = Route.useParams();
   const getBoardFn = useServerFn(getBoard);
-  const { data, isLoading } = useQuery({ queryKey: ["board", boardId], queryFn: () => getBoardFn({ data: { id: boardId } }) });
   const qc = useQueryClient();
-  const invalidate = () => qc.invalidateQueries({ queryKey: ["board", boardId] });
+  const key = ["board", boardId] as const;
+  const { data, isLoading } = useQuery({ queryKey: key, queryFn: () => getBoardFn({ data: { id: boardId } }) });
+  const invalidate = () => qc.invalidateQueries({ queryKey: key });
+  const patch = (fn: (d: BoardData) => BoardData) =>
+    qc.setQueryData<BoardData>(key, (old) => (old ? fn(old) : old));
 
   const createListFn = useServerFn(createList);
   const renameListFn = useServerFn(renameList);
@@ -43,13 +48,84 @@ function BoardPage() {
   const deleteCardFn = useServerFn(deleteCard);
   const moveCardFn = useServerFn(moveCard);
 
-  const createListMut = useMutation({ mutationFn: (title: string) => createListFn({ data: { boardId, title } }), onSuccess: invalidate, onError: (e) => toast.error(e.message) });
-  const renameListMut = useMutation({ mutationFn: (v: { id: string; title: string }) => renameListFn({ data: v }), onSuccess: invalidate });
-  const deleteListMut = useMutation({ mutationFn: (id: string) => deleteListFn({ data: { id } }), onSuccess: invalidate });
-  const createCardMut = useMutation({ mutationFn: (v: { listId: string; title: string }) => createCardFn({ data: v }), onSuccess: invalidate, onError: (e) => toast.error(e.message) });
-  const updateCardMut = useMutation({ mutationFn: (v: any) => updateCardFn({ data: v }), onSuccess: invalidate });
-  const deleteCardMut = useMutation({ mutationFn: (id: string) => deleteCardFn({ data: { id } }), onSuccess: invalidate });
-  const moveCardMut = useMutation({ mutationFn: (v: { id: string; listId: string; position: number }) => moveCardFn({ data: v }), onSuccess: invalidate });
+  const tmpId = () => `tmp-${Math.random().toString(36).slice(2)}`;
+
+  const createListMut = useMutation({
+    mutationFn: (title: string) => createListFn({ data: { boardId, title } }),
+    onMutate: async (title) => {
+      await qc.cancelQueries({ queryKey: key });
+      const prev = qc.getQueryData<BoardData>(key);
+      const id = tmpId();
+      const lastPos = prev?.lists.reduce((m, l) => Math.max(m, l.position), 0) ?? 0;
+      patch((d) => ({ ...d, lists: [...d.lists, { id, board_id: boardId, title, position: lastPos + 1000 } as any] }));
+      return { prev, id };
+    },
+    onError: (e, _v, ctx) => { if (ctx?.prev) qc.setQueryData(key, ctx.prev); toast.error(e.message); },
+    onSuccess: (real, _v, ctx) => patch((d) => ({ ...d, lists: d.lists.map((l) => (l.id === ctx?.id ? real as any : l)) })),
+  });
+  const renameListMut = useMutation({
+    mutationFn: (v: { id: string; title: string }) => renameListFn({ data: v }),
+    onMutate: async (v) => {
+      await qc.cancelQueries({ queryKey: key });
+      const prev = qc.getQueryData<BoardData>(key);
+      patch((d) => ({ ...d, lists: d.lists.map((l) => (l.id === v.id ? { ...l, title: v.title } : l)) }));
+      return { prev };
+    },
+    onError: (e, _v, ctx) => { if (ctx?.prev) qc.setQueryData(key, ctx.prev); toast.error(e.message); },
+  });
+  const deleteListMut = useMutation({
+    mutationFn: (id: string) => deleteListFn({ data: { id } }),
+    onMutate: async (id) => {
+      await qc.cancelQueries({ queryKey: key });
+      const prev = qc.getQueryData<BoardData>(key);
+      patch((d) => ({ ...d, lists: d.lists.filter((l) => l.id !== id), cards: d.cards.filter((c) => c.list_id !== id) }));
+      return { prev };
+    },
+    onError: (e, _v, ctx) => { if (ctx?.prev) qc.setQueryData(key, ctx.prev); toast.error(e.message); },
+  });
+  const createCardMut = useMutation({
+    mutationFn: (v: { listId: string; title: string }) => createCardFn({ data: v }),
+    onMutate: async (v) => {
+      await qc.cancelQueries({ queryKey: key });
+      const prev = qc.getQueryData<BoardData>(key);
+      const id = tmpId();
+      const lastPos = prev?.cards.filter((c) => c.list_id === v.listId).reduce((m, c) => Math.max(m, c.position), 0) ?? 0;
+      patch((d) => ({ ...d, cards: [...d.cards, { id, list_id: v.listId, title: v.title, description: null, due_date: null, position: lastPos + 1000 } as any] }));
+      return { prev, id };
+    },
+    onError: (e, _v, ctx) => { if (ctx?.prev) qc.setQueryData(key, ctx.prev); toast.error(e.message); },
+    onSuccess: (real, _v, ctx) => patch((d) => ({ ...d, cards: d.cards.map((c) => (c.id === ctx?.id ? real as any : c)) })),
+  });
+  const updateCardMut = useMutation({
+    mutationFn: (v: any) => updateCardFn({ data: v }),
+    onMutate: async (v) => {
+      await qc.cancelQueries({ queryKey: key });
+      const prev = qc.getQueryData<BoardData>(key);
+      patch((d) => ({ ...d, cards: d.cards.map((c) => (c.id === v.id ? { ...c, ...v } : c)) }));
+      return { prev };
+    },
+    onError: (e, _v, ctx) => { if (ctx?.prev) qc.setQueryData(key, ctx.prev); toast.error(e.message); },
+  });
+  const deleteCardMut = useMutation({
+    mutationFn: (id: string) => deleteCardFn({ data: { id } }),
+    onMutate: async (id) => {
+      await qc.cancelQueries({ queryKey: key });
+      const prev = qc.getQueryData<BoardData>(key);
+      patch((d) => ({ ...d, cards: d.cards.filter((c) => c.id !== id) }));
+      return { prev };
+    },
+    onError: (e, _v, ctx) => { if (ctx?.prev) qc.setQueryData(key, ctx.prev); toast.error(e.message); },
+  });
+  const moveCardMut = useMutation({
+    mutationFn: (v: { id: string; listId: string; position: number }) => moveCardFn({ data: v }),
+    onMutate: async (v) => {
+      await qc.cancelQueries({ queryKey: key });
+      const prev = qc.getQueryData<BoardData>(key);
+      patch((d) => ({ ...d, cards: d.cards.map((c) => (c.id === v.id ? { ...c, list_id: v.listId, position: v.position } : c)) }));
+      return { prev };
+    },
+    onError: (e, _v, ctx) => { if (ctx?.prev) qc.setQueryData(key, ctx.prev); toast.error(e.message); },
+  });
 
   const [newListTitle, setNewListTitle] = useState("");
   const [openCard, setOpenCard] = useState<string | null>(null);
@@ -69,11 +145,11 @@ function BoardPage() {
   };
 
   return (
-    <div className="flex h-[calc(100vh-48px)] flex-col">
-      <div className="flex items-center justify-between border-b border-border/60 px-4 py-3">
+    <div className="flex h-[calc(100vh-48px)] flex-col bg-board text-board-foreground">
+      <div className="flex items-center justify-between bg-board-bar px-4 py-2 backdrop-blur">
         <div>
-          <h1 className="text-lg font-semibold tracking-tight">{data.board.title}</h1>
-          {data.board.description && <p className="text-xs text-muted-foreground">{data.board.description}</p>}
+          <h1 className="text-base font-semibold tracking-tight text-board-foreground">{data.board.title}</h1>
+          {data.board.description && <p className="text-xs text-board-foreground/70">{data.board.description}</p>}
         </div>
         <div className="flex items-center gap-2">
           <MembersPopover boardId={boardId} members={data.members} isOwner={data.role === "owner"} onChange={invalidate} />
@@ -83,18 +159,18 @@ function BoardPage() {
       <div className="flex-1 overflow-x-auto">
         <div className="flex h-full items-start gap-3 p-4">
           {data.lists.sort((a, b) => a.position - b.position).map((list) => (
-            <div key={list.id} className="flex w-72 flex-none flex-col rounded-lg border border-border/60 bg-card">
-              <div className="flex items-center justify-between px-3 py-2">
+            <div key={list.id} className="flex w-72 flex-none flex-col rounded-xl bg-list text-list-foreground shadow-sm max-h-full">
+              <div className="flex items-center justify-between px-3 pt-2 pb-1">
                 <InlineRename
                   value={list.title}
                   disabled={!canEdit}
                   onSave={(t) => renameListMut.mutate({ id: list.id, title: t })}
-                  className="flex-1 text-sm font-medium"
+                  className="flex-1 text-sm font-semibold"
                 />
                 {canEdit && (
                   <button
                     onClick={() => confirm("Delete this list and all its cards?") && deleteListMut.mutate(list.id)}
-                    className="rounded p-1 text-muted-foreground hover:bg-accent hover:text-foreground"
+                    className="rounded p-1 text-list-muted hover:bg-black/5 hover:text-list-foreground"
                     aria-label="Delete list"
                   >
                     <Trash2 className="h-3.5 w-3.5" />
@@ -106,17 +182,17 @@ function BoardPage() {
                   <div
                     key={card.id}
                     onClick={() => setOpenCard(card.id)}
-                    className="cursor-pointer rounded-md border border-border/60 bg-background p-2 text-sm transition hover:border-border"
+                    className="cursor-pointer rounded-md bg-tcard text-tcard-foreground p-2 text-sm shadow-sm ring-0 hover:ring-2 hover:ring-primary/40 transition"
                   >
                     <div className="font-medium">{card.title}</div>
-                    {card.description && <div className="mt-1 line-clamp-2 text-xs text-muted-foreground">{card.description}</div>}
+                    {card.description && <div className="mt-1 line-clamp-2 text-xs text-list-muted">{card.description}</div>}
                     {canEdit && data.lists.length > 1 && (
                       <div className="mt-2 flex flex-wrap gap-1" onClick={(e) => e.stopPropagation()}>
                         {data.lists.filter((l) => l.id !== list.id).map((l) => (
                           <button
                             key={l.id}
                             onClick={() => moveCardTo(card.id, l.id)}
-                            className="rounded bg-secondary px-1.5 py-0.5 text-[10px] text-muted-foreground hover:text-foreground"
+                            className="rounded bg-black/5 px-1.5 py-0.5 text-[10px] text-list-muted hover:bg-black/10 hover:text-list-foreground"
                           >
                             → {l.title}
                           </button>
@@ -132,13 +208,7 @@ function BoardPage() {
 
           {canEdit && (
             <div className="w-72 flex-none">
-              <form
-                onSubmit={(e) => { e.preventDefault(); if (newListTitle.trim()) { createListMut.mutate(newListTitle.trim()); setNewListTitle(""); } }}
-                className="flex gap-2 rounded-lg border border-dashed border-border/60 p-2"
-              >
-                <Input value={newListTitle} onChange={(e) => setNewListTitle(e.target.value)} placeholder="New list" className="h-8" />
-                <Button type="submit" size="sm" variant="secondary"><Plus className="h-4 w-4" /></Button>
-              </form>
+              <NewListForm value={newListTitle} setValue={setNewListTitle} onAdd={(t) => { createListMut.mutate(t); setNewListTitle(""); }} />
             </div>
           )}
         </div>
