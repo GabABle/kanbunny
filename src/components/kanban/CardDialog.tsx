@@ -474,10 +474,15 @@ function ChecklistAdd({ boardId, cardId, canEdit }: { boardId: string; cardId: s
         const base = d ?? { checklists: [], items: [] };
         return { ...base, checklists: [...base.checklists, { id: tmpId, title, position: 9999 }] };
       });
-      return { prev };
+      return { prev, tmpId };
     },
     onError: (e, _v, ctx) => { if (ctx?.prev) qc.setQueryData(key, ctx.prev); toast.error(e.message); },
-    onSettled: () => qc.invalidateQueries({ queryKey: key }),
+    onSuccess: (real: any, _v, ctx) => {
+      qc.setQueryData<any>(key, (d: any) => {
+        if (!d) return d;
+        return { ...d, checklists: d.checklists.map((c: any) => (c.id === ctx?.tmpId ? real : c)) };
+      });
+    },
   });
   const [open, setOpen] = useState(false);
   const [title, setTitle] = useState("Checklist");
@@ -525,10 +530,15 @@ function ChecklistBlock({ boardId, cardId, canEdit, checklist, items }: {
         if (!d) return d;
         return { ...d, items: [...d.items, { id: tmpId, checklist_id: checklist.id, text, done: false, position: 9999 }] };
       });
-      return { prev };
+      return { prev, tmpId };
     },
     onError: (e, _v, ctx) => { if (ctx?.prev) qc.setQueryData(key, ctx.prev); toast.error(e.message); },
-    onSettled: inv,
+    onSuccess: (real: any, _v, ctx) => {
+      qc.setQueryData<any>(key, (d: any) => {
+        if (!d) return d;
+        return { ...d, items: d.items.map((i: any) => (i.id === ctx?.tmpId ? { ...i, ...real } : i)) };
+      });
+    },
   });
   const toggle = useMutation({
     mutationFn: (v: { id: string; done: boolean }) => toggleFn({ data: v }),
@@ -552,7 +562,20 @@ function ChecklistBlock({ boardId, cardId, canEdit, checklist, items }: {
   });
   const delList = useMutation({
     mutationFn: () => deleteListFn({ data: { id: checklist.id } }),
-    onSuccess: inv, onError: (e) => toast.error(e.message),
+    onMutate: async () => {
+      await qc.cancelQueries({ queryKey: key });
+      const prev = qc.getQueryData<any>(key);
+      qc.setQueryData<any>(key, (d: any) => {
+        if (!d) return d;
+        return {
+          ...d,
+          checklists: d.checklists.filter((c: any) => c.id !== checklist.id),
+          items: d.items.filter((i: any) => i.checklist_id !== checklist.id),
+        };
+      });
+      return { prev };
+    },
+    onError: (e, _v, ctx) => { if (ctx?.prev) qc.setQueryData(key, ctx.prev); toast.error(e.message); },
   });
 
   const [adding, setAdding] = useState(false);
@@ -738,6 +761,7 @@ function CommentsBlock({ cardId, canEdit, members }: { cardId: string; canEdit: 
   const { data: comments = [] } = useQuery({
     queryKey: key,
     queryFn: () => getFn({ data: { cardId } }),
+    refetchOnWindowFocus: false,
   });
 
   const add = useMutation({
@@ -794,6 +818,8 @@ function CommentsBlock({ cardId, canEdit, members }: { cardId: string; canEdit: 
   });
 
   const [body, setBody] = useState("");
+  const [replyTo, setReplyTo] = useState<string | null>(null);
+  const [replyBody, setReplyBody] = useState("");
 
   // Group replies by parent
   const topLevel = (comments as any[]).filter((c) => !c.parent_id);
@@ -842,7 +868,20 @@ function CommentsBlock({ cardId, canEdit, members }: { cardId: string; canEdit: 
               members={members}
               onUpdate={(body) => update.mutate({ id: c.id, body })}
               onDelete={() => remove.mutate(c.id)}
-              onReply={(body) => add.mutate({ body, parent_id: c.id })}
+              replying={replyTo === c.id}
+              replyBody={replyBody}
+              onReplyBodyChange={setReplyBody}
+              onToggleReply={() => {
+                setReplyTo((cur) => (cur === c.id ? null : c.id));
+                setReplyBody("");
+              }}
+              onSubmitReply={() => {
+                const v = replyBody.trim();
+                if (!v) return;
+                add.mutate({ body: v, parent_id: c.id });
+                setReplyBody("");
+                setReplyTo(null);
+              }}
             />
             {(repliesByParent.get(c.id) ?? []).length > 0 && (
               <div className="ml-10 space-y-2 border-l-2 border-border/40 pl-3">
@@ -867,16 +906,21 @@ function CommentsBlock({ cardId, canEdit, members }: { cardId: string; canEdit: 
   );
 }
 
-function CommentRow({ comment, isOwn, canReply, members, onUpdate, onDelete, onReply }: {
+function CommentRow({
+  comment, isOwn, canReply, members, onUpdate, onDelete,
+  replying, replyBody, onReplyBodyChange, onToggleReply, onSubmitReply,
+}: {
   comment: any; isOwn: boolean; canReply?: boolean;
   members: Member[];
   onUpdate: (body: string) => void; onDelete: () => void;
-  onReply?: (body: string) => void;
+  replying?: boolean;
+  replyBody?: string;
+  onReplyBodyChange?: (v: string) => void;
+  onToggleReply?: () => void;
+  onSubmitReply?: () => void;
 }) {
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState(comment.body);
-  const [replying, setReplying] = useState(false);
-  const [reply, setReply] = useState("");
   const name = comment.profile?.display_name ?? comment.profile?.email ?? "User";
   const initials = name.slice(0, 2).toUpperCase();
   const when = new Date(comment.created_at);
@@ -903,8 +947,8 @@ function CommentRow({ comment, isOwn, canReply, members, onUpdate, onDelete, onR
               className="min-h-[60px] bg-tcard text-tcard-foreground"
             />
             <div className="flex gap-2">
-              <Button size="sm" onClick={() => { const v = draft.trim(); if (v) { onUpdate(v); setEditing(false); } }}>Save</Button>
-              <Button size="sm" variant="ghost" onClick={() => { setDraft(comment.body); setEditing(false); }}>Cancel</Button>
+              <Button type="button" size="sm" onClick={() => { const v = draft.trim(); if (v) { onUpdate(v); setEditing(false); } }}>Save</Button>
+              <Button type="button" size="sm" variant="ghost" onClick={() => { setDraft(comment.body); setEditing(false); }}>Cancel</Button>
             </div>
           </div>
         ) : (
@@ -912,25 +956,25 @@ function CommentRow({ comment, isOwn, canReply, members, onUpdate, onDelete, onR
         )}
         {!editing && (
           <div className="mt-1 flex gap-3 text-xs text-list-muted">
-            {canReply && onReply && (
-              <button className="hover:underline" onClick={() => setReplying((r) => !r)}>Reply</button>
+            {canReply && onToggleReply && (
+              <button type="button" className="hover:underline" onClick={onToggleReply}>Reply</button>
             )}
-            {isOwn && <button className="hover:underline" onClick={() => setEditing(true)}>Edit</button>}
-            {isOwn && <button className="hover:underline" onClick={() => { if (confirm("Delete comment?")) onDelete(); }}>Delete</button>}
+            {isOwn && <button type="button" className="hover:underline" onClick={() => setEditing(true)}>Edit</button>}
+            {isOwn && <button type="button" className="hover:underline" onClick={() => { if (confirm("Delete comment?")) onDelete(); }}>Delete</button>}
           </div>
         )}
-        {replying && onReply && (
+        {replying && onSubmitReply && onReplyBodyChange && (
           <div className="mt-2 space-y-2">
             <MentionTextarea
-              value={reply}
-              onChange={setReply}
+              value={replyBody ?? ""}
+              onChange={onReplyBodyChange}
               members={members}
               placeholder={`Reply to ${name}…`}
-              onSubmit={() => { const v = reply.trim(); if (v) { onReply(v); setReply(""); setReplying(false); } }}
+              onSubmit={onSubmitReply}
             />
             <div className="flex gap-2">
-              <Button size="sm" onClick={() => { const v = reply.trim(); if (v) { onReply(v); setReply(""); setReplying(false); } }}>Reply</Button>
-              <Button size="sm" variant="ghost" onClick={() => { setReply(""); setReplying(false); }}>Cancel</Button>
+              <Button type="button" size="sm" onClick={onSubmitReply}>Reply</Button>
+              <Button type="button" size="sm" variant="ghost" onClick={onToggleReply}>Cancel</Button>
             </div>
           </div>
         )}
