@@ -1,5 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { queryOptions, useMutation, useQueryClient, useSuspenseQuery } from "@tanstack/react-query";
+import { useMutation, useQueryClient, useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
@@ -15,12 +15,8 @@ import {
 } from "@/lib/kanban.functions";
 import { toast } from "sonner";
 
-const boardQO = (id: string) =>
-  queryOptions({ queryKey: ["board", id], queryFn: () => getBoard({ data: { id } }) });
-
 export const Route = createFileRoute("/_authenticated/boards/$boardId")({
   head: () => ({ meta: [{ title: "Board — Stack" }] }),
-  loader: ({ context, params }) => context.queryClient.ensureQueryData(boardQO(params.boardId)),
   errorComponent: ({ error }) => (
     <div className="grid min-h-[60vh] place-items-center px-4 text-center">
       <div>
@@ -34,8 +30,12 @@ export const Route = createFileRoute("/_authenticated/boards/$boardId")({
 
 function BoardPage() {
   const { boardId } = Route.useParams();
-  const { data } = useSuspenseQuery(boardQO(boardId));
+  const getBoardFn = useServerFn(getBoard);
+  const { data, isLoading } = useQuery({ queryKey: ["board", boardId], queryFn: () => getBoardFn({ data: { id: boardId } }) });
   const qc = useQueryClient();
+  if (isLoading || !data) {
+    return <div className="grid min-h-[60vh] place-items-center text-sm text-muted-foreground">Loading…</div>;
+  }
   const canEdit = data.role === "owner" || data.role === "editor";
 
   const invalidate = () => qc.invalidateQueries({ queryKey: ["board", boardId] });
