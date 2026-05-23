@@ -1,0 +1,314 @@
+import { createServerFn } from "@tanstack/react-start";
+import { z } from "zod";
+import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+
+const uuid = z.string().uuid();
+
+// ---------- Boards ----------
+export const listBoards = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    const { supabase } = context;
+    const { data, error } = await supabase
+      .from("boards")
+      .select("id, title, description, owner_id, created_at")
+      .order("created_at", { ascending: false });
+    if (error) throw new Error(error.message);
+    return data ?? [];
+  });
+
+export const createBoard = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d) => z.object({ title: z.string().min(1).max(120), description: z.string().max(500).optional() }).parse(d))
+  .handler(async ({ data, context }) => {
+    const { supabase, userId } = context;
+    const { data: board, error } = await supabase
+      .from("boards")
+      .insert({ title: data.title, description: data.description ?? null, owner_id: userId })
+      .select()
+      .single();
+    if (error) throw new Error(error.message);
+    // Seed three default lists
+    const seeds = ["To do", "In progress", "Done"].map((title, i) => ({
+      board_id: board.id,
+      title,
+      position: (i + 1) * 1000,
+    }));
+    await supabase.from("lists").insert(seeds);
+    return board;
+  });
+
+export const deleteBoard = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d) => z.object({ id: uuid }).parse(d))
+  .handler(async ({ data, context }) => {
+    const { error } = await context.supabase.from("boards").delete().eq("id", data.id);
+    if (error) throw new Error(error.message);
+    return { ok: true };
+  });
+
+export const renameBoard = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d) => z.object({ id: uuid, title: z.string().min(1).max(120) }).parse(d))
+  .handler(async ({ data, context }) => {
+    const { error } = await context.supabase.from("boards").update({ title: data.title }).eq("id", data.id);
+    if (error) throw new Error(error.message);
+    return { ok: true };
+  });
+
+// ---------- Board detail ----------
+export const getBoard = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d) => z.object({ id: uuid }).parse(d))
+  .handler(async ({ data, context }) => {
+    const { supabase, userId } = context;
+    const boardRes = await supabase.from("boards").select("id, title, description, owner_id, created_at").eq("id", data.id).maybeSingle();
+    if (boardRes.error) throw new Error(boardRes.error.message);
+    if (!boardRes.data) throw new Error("Board not found");
+
+    const [listsRes, cardsRes, labelsRes, cardLabelsRes, assigneesRes, membersRes] = await Promise.all([
+      supabase.from("lists").select("id, title, position").eq("board_id", data.id).order("position"),
+      supabase
+        .from("cards")
+        .select("id, list_id, title, description, position, due_date, created_at")
+        .in("list_id", (await supabase.from("lists").select("id").eq("board_id", data.id)).data?.map((l) => l.id) ?? [])
+        .order("position"),
+      supabase.from("labels").select("id, name, color").eq("board_id", data.id),
+      supabase.from("card_labels").select("card_id, label_id"),
+      supabase.from("card_assignees").select("card_id, user_id"),
+      supabase
+        .from("board_members")
+        .select("user_id, role, profiles:profiles!inner(id, display_name, avatar_url, email)")
+        .eq("board_id", data.id),
+    ]);
+
+    for (const r of [listsRes, cardsRes, labelsRes, cardLabelsRes, assigneesRes, membersRes]) {
+      if (r.error) throw new Error(r.error.message);
+    }
+
+    // Determine role
+    const me = (membersRes.data ?? []).find((m: any) => m.user_id === userId);
+    const role = me?.role ?? (boardRes.data.owner_id === userId ? "owner" : "viewer");
+
+    return {
+      board: boardRes.data,
+      role,
+      lists: listsRes.data ?? [],
+      cards: cardsRes.data ?? [],
+      labels: labelsRes.data ?? [],
+      cardLabels: cardLabelsRes.data ?? [],
+      assignees: assigneesRes.data ?? [],
+      members: (membersRes.data ?? []).map((m: any) => ({
+        user_id: m.user_id,
+        role: m.role,
+        profile: m.profiles,
+      })),
+    };
+  });
+
+// ---------- Lists ----------
+export const createList = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d) => z.object({ boardId: uuid, title: z.string().min(1).max(120) }).parse(d))
+  .handler(async ({ data, context }) => {
+    const { supabase } = context;
+    const { data: last } = await supabase.from("lists").select("position").eq("board_id", data.boardId).order("position", { ascending: false }).limit(1).maybeSingle();
+    const pos = (last?.position ?? 0) + 1000;
+    const { data: list, error } = await supabase.from("lists").insert({ board_id: data.boardId, title: data.title, position: pos }).select().single();
+    if (error) throw new Error(error.message);
+    return list;
+  });
+
+export const renameList = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d) => z.object({ id: uuid, title: z.string().min(1).max(120) }).parse(d))
+  .handler(async ({ data, context }) => {
+    const { error } = await context.supabase.from("lists").update({ title: data.title }).eq("id", data.id);
+    if (error) throw new Error(error.message);
+    return { ok: true };
+  });
+
+export const deleteList = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d) => z.object({ id: uuid }).parse(d))
+  .handler(async ({ data, context }) => {
+    const { error } = await context.supabase.from("lists").delete().eq("id", data.id);
+    if (error) throw new Error(error.message);
+    return { ok: true };
+  });
+
+export const moveList = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d) => z.object({ id: uuid, position: z.number() }).parse(d))
+  .handler(async ({ data, context }) => {
+    const { error } = await context.supabase.from("lists").update({ position: data.position }).eq("id", data.id);
+    if (error) throw new Error(error.message);
+    return { ok: true };
+  });
+
+// ---------- Cards ----------
+export const createCard = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d) => z.object({ listId: uuid, title: z.string().min(1).max(300) }).parse(d))
+  .handler(async ({ data, context }) => {
+    const { supabase, userId } = context;
+    const { data: last } = await supabase.from("cards").select("position").eq("list_id", data.listId).order("position", { ascending: false }).limit(1).maybeSingle();
+    const pos = (last?.position ?? 0) + 1000;
+    const { data: card, error } = await supabase
+      .from("cards")
+      .insert({ list_id: data.listId, title: data.title, position: pos, created_by: userId })
+      .select()
+      .single();
+    if (error) throw new Error(error.message);
+    return card;
+  });
+
+export const updateCard = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d) =>
+    z.object({
+      id: uuid,
+      title: z.string().min(1).max(300).optional(),
+      description: z.string().max(10000).nullable().optional(),
+      due_date: z.string().nullable().optional(),
+    }).parse(d),
+  )
+  .handler(async ({ data, context }) => {
+    const { id, ...rest } = data;
+    const { error } = await context.supabase.from("cards").update(rest).eq("id", id);
+    if (error) throw new Error(error.message);
+    return { ok: true };
+  });
+
+export const deleteCard = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d) => z.object({ id: uuid }).parse(d))
+  .handler(async ({ data, context }) => {
+    const { error } = await context.supabase.from("cards").delete().eq("id", data.id);
+    if (error) throw new Error(error.message);
+    return { ok: true };
+  });
+
+export const moveCard = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d) => z.object({ id: uuid, listId: uuid, position: z.number() }).parse(d))
+  .handler(async ({ data, context }) => {
+    const { error } = await context.supabase.from("cards").update({ list_id: data.listId, position: data.position }).eq("id", data.id);
+    if (error) throw new Error(error.message);
+    return { ok: true };
+  });
+
+// ---------- Labels ----------
+export const createLabel = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d) => z.object({ boardId: uuid, name: z.string().min(1).max(50), color: z.string().min(1).max(20) }).parse(d))
+  .handler(async ({ data, context }) => {
+    const { data: label, error } = await context.supabase.from("labels").insert({ board_id: data.boardId, name: data.name, color: data.color }).select().single();
+    if (error) throw new Error(error.message);
+    return label;
+  });
+
+export const toggleCardLabel = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d) => z.object({ cardId: uuid, labelId: uuid, on: z.boolean() }).parse(d))
+  .handler(async ({ data, context }) => {
+    const { supabase } = context;
+    if (data.on) {
+      const { error } = await supabase.from("card_labels").insert({ card_id: data.cardId, label_id: data.labelId });
+      if (error && !error.message.includes("duplicate")) throw new Error(error.message);
+    } else {
+      const { error } = await supabase.from("card_labels").delete().eq("card_id", data.cardId).eq("label_id", data.labelId);
+      if (error) throw new Error(error.message);
+    }
+    return { ok: true };
+  });
+
+// ---------- Members ----------
+export const inviteMember = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d) => z.object({ boardId: uuid, email: z.string().email(), role: z.enum(["editor", "viewer"]) }).parse(d))
+  .handler(async ({ data, context }) => {
+    const { supabase } = context;
+    const { data: profile, error: pErr } = await supabase.from("profiles").select("id").eq("email", data.email).maybeSingle();
+    if (pErr) throw new Error(pErr.message);
+    if (!profile) throw new Error("No user with that email has signed up yet.");
+    const { error } = await supabase.from("board_members").insert({ board_id: data.boardId, user_id: profile.id, role: data.role });
+    if (error) throw new Error(error.message);
+    return { ok: true };
+  });
+
+export const removeMember = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d) => z.object({ boardId: uuid, userId: uuid }).parse(d))
+  .handler(async ({ data, context }) => {
+    const { error } = await context.supabase.from("board_members").delete().eq("board_id", data.boardId).eq("user_id", data.userId);
+    if (error) throw new Error(error.message);
+    return { ok: true };
+  });
+
+export const toggleAssignee = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d) => z.object({ cardId: uuid, userId: uuid, on: z.boolean() }).parse(d))
+  .handler(async ({ data, context }) => {
+    const { supabase } = context;
+    if (data.on) {
+      const { error } = await supabase.from("card_assignees").insert({ card_id: data.cardId, user_id: data.userId });
+      if (error && !error.message.includes("duplicate")) throw new Error(error.message);
+    } else {
+      const { error } = await supabase.from("card_assignees").delete().eq("card_id", data.cardId).eq("user_id", data.userId);
+      if (error) throw new Error(error.message);
+    }
+    return { ok: true };
+  });
+
+// ---------- Checklists ----------
+export const addChecklist = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d) => z.object({ cardId: uuid, title: z.string().min(1).max(120) }).parse(d))
+  .handler(async ({ data, context }) => {
+    const { data: cl, error } = await context.supabase.from("checklists").insert({ card_id: data.cardId, title: data.title }).select().single();
+    if (error) throw new Error(error.message);
+    return cl;
+  });
+
+export const addChecklistItem = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d) => z.object({ checklistId: uuid, text: z.string().min(1).max(500) }).parse(d))
+  .handler(async ({ data, context }) => {
+    const { data: item, error } = await context.supabase.from("checklist_items").insert({ checklist_id: data.checklistId, text: data.text }).select().single();
+    if (error) throw new Error(error.message);
+    return item;
+  });
+
+export const toggleChecklistItem = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d) => z.object({ id: uuid, done: z.boolean() }).parse(d))
+  .handler(async ({ data, context }) => {
+    const { error } = await context.supabase.from("checklist_items").update({ done: data.done }).eq("id", data.id);
+    if (error) throw new Error(error.message);
+    return { ok: true };
+  });
+
+export const deleteChecklistItem = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d) => z.object({ id: uuid }).parse(d))
+  .handler(async ({ data, context }) => {
+    const { error } = await context.supabase.from("checklist_items").delete().eq("id", data.id);
+    if (error) throw new Error(error.message);
+    return { ok: true };
+  });
+
+export const getCardChecklists = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d) => z.object({ cardId: uuid }).parse(d))
+  .handler(async ({ data, context }) => {
+    const { supabase } = context;
+    const cls = await supabase.from("checklists").select("id, title, position").eq("card_id", data.cardId).order("position");
+    if (cls.error) throw new Error(cls.error.message);
+    const ids = (cls.data ?? []).map((c) => c.id);
+    const items = ids.length
+      ? await supabase.from("checklist_items").select("id, checklist_id, text, done, position").in("checklist_id", ids).order("position")
+      : { data: [], error: null as any };
+    if (items.error) throw new Error(items.error.message);
+    return { checklists: cls.data ?? [], items: items.data ?? [] };
+  });
