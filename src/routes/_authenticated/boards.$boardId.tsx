@@ -5,9 +5,8 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { Plus, Trash2, UserPlus, X, Clock, CheckSquare } from "lucide-react";
+import { Plus, Trash2, UserPlus, X, Clock } from "lucide-react";
 import {
   getBoard, createList, renameList, deleteList,
   createCard, updateCard, deleteCard, moveCard,
