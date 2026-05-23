@@ -795,18 +795,12 @@ function CommentsBlock({ cardId, canEdit, members }: { cardId: string; canEdit: 
           onSubmit={(e) => { e.preventDefault(); const v = body.trim(); if (v) { add.mutate(v); setBody(""); } }}
           className="mb-4 space-y-2"
         >
-          <Textarea
+          <MentionTextarea
             value={body}
-            onChange={(e) => setBody(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) {
-                e.preventDefault();
-                const v = body.trim();
-                if (v) { add.mutate(v); setBody(""); }
-              }
-            }}
-            placeholder="Write a comment…"
-            className="min-h-[70px] bg-tcard text-tcard-foreground"
+            onChange={setBody}
+            members={members}
+            placeholder="Write a comment… use @ to mention"
+            onSubmit={() => { const v = body.trim(); if (v) { add.mutate(v); setBody(""); } }}
           />
           <div className="flex items-center gap-2">
             <Button type="submit" size="sm" disabled={!body.trim()}>Save</Button>
