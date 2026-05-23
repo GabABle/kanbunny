@@ -741,15 +741,16 @@ function CommentsBlock({ cardId, canEdit, members }: { cardId: string; canEdit: 
   });
 
   const add = useMutation({
-    mutationFn: (body: string) => addFn({ data: { cardId, body } }),
-    onMutate: async (body) => {
+    mutationFn: (v: { body: string; parent_id?: string | null }) => addFn({ data: { cardId, body: v.body, parent_id: v.parent_id ?? null } }),
+    onMutate: async (v) => {
       await qc.cancelQueries({ queryKey: key });
       const prev = qc.getQueryData<any[]>(key);
       const tmp = {
         id: `tmp-${Math.random()}`,
         card_id: cardId,
         user_id: user?.id ?? "",
-        body,
+        body: v.body,
+        parent_id: v.parent_id ?? null,
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString(),
         profile: {
@@ -794,6 +795,19 @@ function CommentsBlock({ cardId, canEdit, members }: { cardId: string; canEdit: 
 
   const [body, setBody] = useState("");
 
+  // Group replies by parent
+  const topLevel = (comments as any[]).filter((c) => !c.parent_id);
+  const repliesByParent = new Map<string, any[]>();
+  for (const c of comments as any[]) {
+    if (c.parent_id) {
+      const arr = repliesByParent.get(c.parent_id) ?? [];
+      arr.push(c);
+      repliesByParent.set(c.parent_id, arr);
+    }
+  }
+  // Sort replies oldest first within thread
+  for (const arr of repliesByParent.values()) arr.sort((a, b) => +new Date(a.created_at) - +new Date(b.created_at));
+
   return (
     <div>
       <div className="mb-2 flex items-center gap-2">
@@ -802,7 +816,7 @@ function CommentsBlock({ cardId, canEdit, members }: { cardId: string; canEdit: 
       </div>
       {canEdit && (
         <form
-          onSubmit={(e) => { e.preventDefault(); const v = body.trim(); if (v) { add.mutate(v); setBody(""); } }}
+          onSubmit={(e) => { e.preventDefault(); const v = body.trim(); if (v) { add.mutate({ body: v }); setBody(""); } }}
           className="mb-4 space-y-2"
         >
           <MentionTextarea
@@ -810,7 +824,7 @@ function CommentsBlock({ cardId, canEdit, members }: { cardId: string; canEdit: 
             onChange={setBody}
             members={members}
             placeholder="Write a comment… use @ to mention"
-            onSubmit={() => { const v = body.trim(); if (v) { add.mutate(v); setBody(""); } }}
+            onSubmit={() => { const v = body.trim(); if (v) { add.mutate({ body: v }); setBody(""); } }}
           />
           <div className="flex items-center gap-2">
             <Button type="submit" size="sm" disabled={!body.trim()}>Save</Button>
@@ -819,14 +833,33 @@ function CommentsBlock({ cardId, canEdit, members }: { cardId: string; canEdit: 
         </form>
       )}
       <div className="space-y-3">
-        {comments.map((c: any) => (
-          <CommentRow
-            key={c.id}
-            comment={c}
-            isOwn={c.user_id === user?.id}
-            onUpdate={(body) => update.mutate({ id: c.id, body })}
-            onDelete={() => remove.mutate(c.id)}
-          />
+        {topLevel.map((c: any) => (
+          <div key={c.id} className="space-y-2">
+            <CommentRow
+              comment={c}
+              isOwn={c.user_id === user?.id}
+              canReply={canEdit}
+              members={members}
+              onUpdate={(body) => update.mutate({ id: c.id, body })}
+              onDelete={() => remove.mutate(c.id)}
+              onReply={(body) => add.mutate({ body, parent_id: c.id })}
+            />
+            {(repliesByParent.get(c.id) ?? []).length > 0 && (
+              <div className="ml-10 space-y-2 border-l-2 border-border/40 pl-3">
+                {(repliesByParent.get(c.id) ?? []).map((r: any) => (
+                  <CommentRow
+                    key={r.id}
+                    comment={r}
+                    isOwn={r.user_id === user?.id}
+                    canReply={false}
+                    members={members}
+                    onUpdate={(body) => update.mutate({ id: r.id, body })}
+                    onDelete={() => remove.mutate(r.id)}
+                  />
+                ))}
+              </div>
+            )}
+          </div>
         ))}
         {comments.length === 0 && <div className="text-xs text-list-muted">No comments yet.</div>}
       </div>
@@ -834,11 +867,16 @@ function CommentsBlock({ cardId, canEdit, members }: { cardId: string; canEdit: 
   );
 }
 
-function CommentRow({ comment, isOwn, onUpdate, onDelete }: {
-  comment: any; isOwn: boolean; onUpdate: (body: string) => void; onDelete: () => void;
+function CommentRow({ comment, isOwn, canReply, members, onUpdate, onDelete, onReply }: {
+  comment: any; isOwn: boolean; canReply?: boolean;
+  members: Member[];
+  onUpdate: (body: string) => void; onDelete: () => void;
+  onReply?: (body: string) => void;
 }) {
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState(comment.body);
+  const [replying, setReplying] = useState(false);
+  const [reply, setReply] = useState("");
   const name = comment.profile?.display_name ?? comment.profile?.email ?? "User";
   const initials = name.slice(0, 2).toUpperCase();
   const when = new Date(comment.created_at);
