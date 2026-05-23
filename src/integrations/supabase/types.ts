@@ -90,6 +90,39 @@ export type Database = {
           },
         ]
       }
+      card_attachments: {
+        Row: {
+          card_id: string
+          created_at: string
+          file_name: string
+          file_path: string
+          id: string
+          mime_type: string | null
+          size_bytes: number | null
+          user_id: string
+        }
+        Insert: {
+          card_id: string
+          created_at?: string
+          file_name: string
+          file_path: string
+          id?: string
+          mime_type?: string | null
+          size_bytes?: number | null
+          user_id: string
+        }
+        Update: {
+          card_id?: string
+          created_at?: string
+          file_name?: string
+          file_path?: string
+          id?: string
+          mime_type?: string | null
+          size_bytes?: number | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       card_comments: {
         Row: {
           body: string

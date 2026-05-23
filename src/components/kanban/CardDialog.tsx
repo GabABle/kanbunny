@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
@@ -11,7 +11,7 @@ import { Progress } from "@/components/ui/progress";
 import { Calendar } from "@/components/ui/calendar";
 import { format } from "date-fns";
 import {
-  AlignLeft, CheckSquare, Clock, Tag, Trash2, Users, X, Plus, Check, MessageSquare,
+  AlignLeft, CheckSquare, Clock, Tag, Trash2, Users, X, Plus, Check, MessageSquare, Paperclip, Download, FileIcon,
 } from "lucide-react";
 import {
   updateCard, deleteCard,
@@ -20,10 +20,12 @@ import {
   addChecklist, addChecklistItem, toggleChecklistItem,
   deleteChecklistItem, deleteChecklist, getCardChecklists,
   getCardComments, addCardComment, updateCardComment, deleteCardComment,
+  listCardAttachments, addCardAttachment, deleteCardAttachment, getAttachmentUrl,
 } from "@/lib/kanban.functions";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/hooks/use-auth";
+import { supabase } from "@/integrations/supabase/client";
 
 const LABEL_COLORS = [
   "#61bd4f", "#f2d600", "#ff9f1a", "#eb5a46", "#c377e0",
@@ -81,13 +83,11 @@ export function CardDialog({
   };
 
   // ---- Description ----
-  const [descEditing, setDescEditing] = useState(false);
   const [descDraft, setDescDraft] = useState(card.description ?? "");
-  useEffect(() => { setDescDraft(card.description ?? ""); setDescEditing(false); }, [card.id]);
+  useEffect(() => { setDescDraft(card.description ?? ""); }, [card.id]);
   const saveDesc = () => {
     const v = descDraft.trim();
     if (v !== (card.description ?? "")) update.mutate({ description: v || null });
-    setDescEditing(false);
   };
 
   // ---- Labels ----
@@ -168,34 +168,16 @@ export function CardDialog({
               <div className="mb-2 flex items-center gap-2">
                 <AlignLeft className="h-4 w-4" />
                 <h3 className="font-semibold">Description</h3>
-                {!descEditing && card.description && canEdit && (
-                  <Button size="sm" variant="secondary" className="ml-auto h-7" onClick={() => setDescEditing(true)}>Edit</Button>
-                )}
               </div>
-              {descEditing ? (
-                <div className="space-y-2">
-                  <Textarea
-                    autoFocus
-                    value={descDraft}
-                    onChange={(e) => setDescDraft(e.target.value)}
-                    onKeyDown={(e) => { if (e.key === "Escape") { setDescDraft(card.description ?? ""); setDescEditing(false); } }}
-                    placeholder="Add a more detailed description…"
-                    className="min-h-[120px] bg-tcard text-tcard-foreground"
-                  />
-                  <div className="flex gap-2">
-                    <Button size="sm" onClick={saveDesc}>Save</Button>
-                    <Button size="sm" variant="ghost" onClick={() => { setDescDraft(card.description ?? ""); setDescEditing(false); }}>Cancel</Button>
-                  </div>
-                </div>
-              ) : card.description ? (
-                <div className="whitespace-pre-wrap rounded bg-tcard p-3 text-sm text-tcard-foreground" onClick={() => canEdit && setDescEditing(true)}>{card.description}</div>
-              ) : (
-                <button
-                  disabled={!canEdit}
-                  onClick={() => setDescEditing(true)}
-                  className="w-full rounded bg-tcard/60 p-3 text-left text-sm text-list-muted hover:bg-tcard"
-                >Add a more detailed description…</button>
-              )}
+              <Textarea
+                value={descDraft}
+                disabled={!canEdit}
+                onChange={(e) => setDescDraft(e.target.value)}
+                onBlur={saveDesc}
+                onKeyDown={(e) => { if (e.key === "Escape") { setDescDraft(card.description ?? ""); (e.target as HTMLTextAreaElement).blur(); } }}
+                placeholder="Add a more detailed description…"
+                className="min-h-[100px] bg-tcard text-tcard-foreground"
+              />
             </div>
 
             {/* Checklists */}
@@ -211,7 +193,8 @@ export function CardDialog({
             ))}
 
             {/* Comments */}
-            <CommentsBlock cardId={card.id} canEdit={canEdit} />
+            <AttachmentsBlock cardId={card.id} canEdit={canEdit} />
+            <CommentsBlock cardId={card.id} canEdit={canEdit} members={members} />
           </div>
 
           {/* Sidebar */}
@@ -232,6 +215,7 @@ export function CardDialog({
                 dueDate={dueDate}
                 onChange={(d) => update.mutate({ due_date: d })}
               />
+              <AttachmentButton cardId={card.id} canEdit={canEdit} />
             </div>
 
             {canEdit && (
@@ -437,7 +421,7 @@ function DueDatePopover({ canEdit, dueDate, onChange }: { canEdit: boolean; dueD
   };
   return (
     <Popover>
-      <PopoverTrigger asChild><SidebarButton icon={Clock} disabled={!canEdit}>Dates</SidebarButton></PopoverTrigger>
+      <PopoverTrigger asChild><SidebarButton icon={Clock} disabled={!canEdit}>Due Date</SidebarButton></PopoverTrigger>
       <PopoverContent className="w-auto p-3" align="end">
         <div className="text-sm font-medium mb-2">Due date</div>
         <Calendar
@@ -622,7 +606,117 @@ function ChecklistBlock({ boardId, cardId, canEdit, checklist, items }: {
   );
 }
 
-function CommentsBlock({ cardId, canEdit }: { cardId: string; canEdit: boolean }) {
+function AttachmentButton({ cardId, canEdit }: { cardId: string; canEdit: boolean }) {
+  const ref = useRef<HTMLInputElement>(null);
+  const qc = useQueryClient();
+  const addFn = useServerFn(addCardAttachment);
+  const key = ["attachments", cardId] as const;
+  const [uploading, setUploading] = useState(false);
+
+  const onPick = async (file: File) => {
+    if (!file) return;
+    setUploading(true);
+    try {
+      const safe = file.name.replace(/[^a-zA-Z0-9._-]/g, "_");
+      const path = `${cardId}/${crypto.randomUUID()}-${safe}`;
+      const { error } = await supabase.storage.from("card-attachments").upload(path, file, {
+        contentType: file.type || undefined,
+        upsert: false,
+      });
+      if (error) throw error;
+      await addFn({ data: { cardId, file_path: path, file_name: file.name, mime_type: file.type || null, size_bytes: file.size } });
+      qc.invalidateQueries({ queryKey: key });
+    } catch (e: any) {
+      toast.error(e.message ?? "Upload failed");
+    } finally {
+      setUploading(false);
+      if (ref.current) ref.current.value = "";
+    }
+  };
+
+  return (
+    <>
+      <input
+        ref={ref}
+        type="file"
+        className="hidden"
+        onChange={(e) => e.target.files?.[0] && onPick(e.target.files[0])}
+      />
+      <SidebarButton icon={Paperclip} disabled={!canEdit || uploading} onClick={() => ref.current?.click()}>
+        {uploading ? "Uploading…" : "Attachment"}
+      </SidebarButton>
+    </>
+  );
+}
+
+function AttachmentsBlock({ cardId, canEdit }: { cardId: string; canEdit: boolean }) {
+  const { user } = useAuth();
+  const qc = useQueryClient();
+  const key = ["attachments", cardId] as const;
+  const listFn = useServerFn(listCardAttachments);
+  const delFn = useServerFn(deleteCardAttachment);
+  const urlFn = useServerFn(getAttachmentUrl);
+  const { data: attachments = [] } = useQuery({
+    queryKey: key,
+    queryFn: () => listFn({ data: { cardId } }),
+  });
+  const remove = useMutation({
+    mutationFn: (id: string) => delFn({ data: { id } }),
+    onMutate: async (id) => {
+      await qc.cancelQueries({ queryKey: key });
+      const prev = qc.getQueryData<any[]>(key);
+      qc.setQueryData<any[]>(key, (d) => (d ?? []).filter((a) => a.id !== id));
+      return { prev };
+    },
+    onError: (e, _v, ctx) => { if (ctx?.prev) qc.setQueryData(key, ctx.prev); toast.error(e.message); },
+    onSettled: () => qc.invalidateQueries({ queryKey: key }),
+  });
+  const open = async (path: string) => {
+    try {
+      const { url } = await urlFn({ data: { file_path: path } });
+      window.open(url, "_blank", "noopener,noreferrer");
+    } catch (e: any) { toast.error(e.message); }
+  };
+  if (attachments.length === 0) return null;
+  return (
+    <div>
+      <div className="mb-2 flex items-center gap-2">
+        <Paperclip className="h-4 w-4" />
+        <h3 className="font-semibold">Attachments</h3>
+      </div>
+      <div className="space-y-2">
+        {attachments.map((a: any) => (
+          <div key={a.id} className="flex items-center gap-3 rounded bg-tcard p-2 text-sm">
+            <div className="grid h-10 w-14 shrink-0 place-items-center rounded bg-list text-list-muted">
+              <FileIcon className="h-5 w-5" />
+            </div>
+            <div className="min-w-0 flex-1">
+              <button onClick={() => open(a.file_path)} className="block w-full truncate text-left font-medium hover:underline">{a.file_name}</button>
+              <div className="text-xs text-list-muted">
+                {new Date(a.created_at).toLocaleString(undefined, { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" })}
+                {a.size_bytes ? ` · ${formatBytes(a.size_bytes)}` : ""}
+              </div>
+            </div>
+            <Button size="sm" variant="ghost" onClick={() => open(a.file_path)} title="Download"><Download className="h-4 w-4" /></Button>
+            {(canEdit || a.user_id === user?.id) && (
+              <Button size="sm" variant="ghost" onClick={() => { if (confirm("Delete attachment?")) remove.mutate(a.id); }}>
+                <Trash2 className="h-4 w-4" />
+              </Button>
+            )}
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function formatBytes(n: number) {
+  if (n < 1024) return `${n} B`;
+  if (n < 1024 * 1024) return `${(n / 1024).toFixed(1)} KB`;
+  return `${(n / 1024 / 1024).toFixed(1)} MB`;
+}
+
+function CommentsBlock({ cardId, canEdit, members }: { cardId: string; canEdit: boolean; members: Member[] }) {
   const { user } = useAuth();
   const qc = useQueryClient();
   const key = ["comments", cardId] as const;
@@ -701,18 +795,12 @@ function CommentsBlock({ cardId, canEdit }: { cardId: string; canEdit: boolean }
           onSubmit={(e) => { e.preventDefault(); const v = body.trim(); if (v) { add.mutate(v); setBody(""); } }}
           className="mb-4 space-y-2"
         >
-          <Textarea
+          <MentionTextarea
             value={body}
-            onChange={(e) => setBody(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) {
-                e.preventDefault();
-                const v = body.trim();
-                if (v) { add.mutate(v); setBody(""); }
-              }
-            }}
-            placeholder="Write a comment…"
-            className="min-h-[70px] bg-tcard text-tcard-foreground"
+            onChange={setBody}
+            members={members}
+            placeholder="Write a comment… use @ to mention"
+            onSubmit={() => { const v = body.trim(); if (v) { add.mutate(v); setBody(""); } }}
           />
           <div className="flex items-center gap-2">
             <Button type="submit" size="sm" disabled={!body.trim()}>Save</Button>
@@ -781,6 +869,112 @@ function CommentRow({ comment, isOwn, onUpdate, onDelete }: {
           </div>
         )}
       </div>
+    </div>
+  );
+}
+
+function MentionTextarea({
+  value, onChange, members, placeholder, onSubmit,
+}: {
+  value: string;
+  onChange: (v: string) => void;
+  members: Member[];
+  placeholder?: string;
+  onSubmit?: () => void;
+}) {
+  const ref = useRef<HTMLTextAreaElement>(null);
+  const [open, setOpen] = useState(false);
+  const [query, setQuery] = useState("");
+  const [anchor, setAnchor] = useState<number | null>(null);
+  const [active, setActive] = useState(0);
+
+  const matches = open
+    ? members
+        .filter((m) => {
+          const n = (m.profile?.display_name ?? m.profile?.email ?? "").toLowerCase();
+          return n.includes(query.toLowerCase());
+        })
+        .slice(0, 6)
+    : [];
+
+  const handleChange = (v: string) => {
+    onChange(v);
+    const pos = ref.current?.selectionStart ?? v.length;
+    const before = v.slice(0, pos);
+    const m = before.match(/(?:^|\s)@([\w.\-]*)$/);
+    if (m) {
+      setOpen(true);
+      setAnchor(pos - m[1].length - 1);
+      setQuery(m[1]);
+      setActive(0);
+    } else {
+      setOpen(false);
+      setAnchor(null);
+    }
+  };
+
+  const insertMention = (member: Member) => {
+    if (anchor == null) return;
+    const name = (member.profile?.display_name ?? member.profile?.email ?? "user").replace(/\s+/g, "");
+    const pos = ref.current?.selectionStart ?? value.length;
+    const before = value.slice(0, anchor);
+    const after = value.slice(pos);
+    const insert = `@${name} `;
+    const next = before + insert + after;
+    onChange(next);
+    setOpen(false);
+    setAnchor(null);
+    setQuery("");
+    requestAnimationFrame(() => {
+      const newPos = (before + insert).length;
+      ref.current?.focus();
+      ref.current?.setSelectionRange(newPos, newPos);
+    });
+  };
+
+  return (
+    <div className="relative">
+      <Textarea
+        ref={ref}
+        value={value}
+        onChange={(e) => handleChange(e.target.value)}
+        onKeyDown={(e) => {
+          if (open && matches.length > 0) {
+            if (e.key === "ArrowDown") { e.preventDefault(); setActive((a) => (a + 1) % matches.length); return; }
+            if (e.key === "ArrowUp") { e.preventDefault(); setActive((a) => (a - 1 + matches.length) % matches.length); return; }
+            if (e.key === "Enter" || e.key === "Tab") { e.preventDefault(); insertMention(matches[active]); return; }
+            if (e.key === "Escape") { e.preventDefault(); setOpen(false); return; }
+          }
+          if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) {
+            e.preventDefault();
+            onSubmit?.();
+          }
+        }}
+        placeholder={placeholder}
+        className="min-h-[70px] bg-tcard text-tcard-foreground"
+      />
+      {open && matches.length > 0 && (
+        <div className="absolute left-2 top-full z-50 mt-1 w-64 overflow-hidden rounded-md border bg-popover text-popover-foreground shadow-md">
+          {matches.map((m, i) => {
+            const name = m.profile?.display_name ?? m.profile?.email ?? "User";
+            return (
+              <button
+                key={m.user_id}
+                type="button"
+                onMouseDown={(e) => { e.preventDefault(); insertMention(m); }}
+                onMouseEnter={() => setActive(i)}
+                className={cn("flex w-full items-center gap-2 px-2 py-1.5 text-sm text-left", i === active && "bg-accent text-accent-foreground")}
+              >
+                <Avatar member={m} />
+                <div className="min-w-0">
+                  <div className="truncate font-medium">{name}</div>
+                  {m.profile?.email && <div className="truncate text-xs text-muted-foreground">{m.profile.email}</div>}
+                </div>
+              </button>
+            );
+          })}
+        </div>
+      )}
     </div>
   );
 }
