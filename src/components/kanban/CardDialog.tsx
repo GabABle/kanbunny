@@ -204,6 +204,7 @@ export function CardDialog({
             {/* Comments */}
             <AttachmentsBlock cardId={card.id} canEdit={canEdit} />
             <CommentsBlock cardId={card.id} canEdit={canEdit} members={members} />
+            <ActivityBlock cardId={card.id} />
           </div>
 
           {/* Sidebar */}
