@@ -209,6 +209,9 @@ export function CardDialog({
                 items={cl.items.filter((i) => i.checklist_id === checklist.id)}
               />
             ))}
+
+            {/* Comments */}
+            <CommentsBlock cardId={card.id} canEdit={canEdit} />
           </div>
 
           {/* Sidebar */}
