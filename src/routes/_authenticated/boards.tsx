@@ -1,5 +1,5 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { queryOptions, useMutation, useQueryClient, useSuspenseQuery } from "@tanstack/react-query";
+import { useMutation, useQueryClient, useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
@@ -10,16 +10,14 @@ import { Plus, Trash2 } from "lucide-react";
 import { createBoard, deleteBoard, listBoards } from "@/lib/kanban.functions";
 import { toast } from "sonner";
 
-const boardsQO = queryOptions({ queryKey: ["boards"], queryFn: () => listBoards() });
-
 export const Route = createFileRoute("/_authenticated/boards")({
   head: () => ({ meta: [{ title: "Your boards — Stack" }] }),
-  loader: ({ context }) => context.queryClient.ensureQueryData(boardsQO),
   component: BoardsPage,
 });
 
 function BoardsPage() {
-  const { data: boards } = useSuspenseQuery(boardsQO);
+  const list = useServerFn(listBoards);
+  const { data: boards = [], isLoading } = useQuery({ queryKey: ["boards"], queryFn: () => list() });
   const qc = useQueryClient();
   const navigate = useNavigate();
   const create = useServerFn(createBoard);
