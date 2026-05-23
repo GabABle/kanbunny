@@ -320,8 +320,10 @@ export const addChecklist = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d) => z.object({ cardId: uuid, title: z.string().min(1).max(120) }).parse(d))
   .handler(async ({ data, context }) => {
-    const { data: cl, error } = await context.supabase.from("checklists").insert({ card_id: data.cardId, title: data.title }).select().single();
+    const { supabase, userId } = context;
+    const { data: cl, error } = await supabase.from("checklists").insert({ card_id: data.cardId, title: data.title }).select().single();
     if (error) throw new Error(error.message);
+    await logActivity(supabase, userId, data.cardId, "checklist_added", { title: data.title });
     return cl;
   });
 
@@ -329,8 +331,11 @@ export const addChecklistItem = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d) => z.object({ checklistId: uuid, text: z.string().min(1).max(500) }).parse(d))
   .handler(async ({ data, context }) => {
-    const { data: item, error } = await context.supabase.from("checklist_items").insert({ checklist_id: data.checklistId, text: data.text }).select().single();
+    const { supabase, userId } = context;
+    const { data: item, error } = await supabase.from("checklist_items").insert({ checklist_id: data.checklistId, text: data.text }).select().single();
     if (error) throw new Error(error.message);
+    const cardId = await cardIdFromChecklist(supabase, data.checklistId);
+    if (cardId) await logActivity(supabase, userId, cardId, "checklist_item_added", { text: data.text });
     return item;
   });
 
@@ -338,8 +343,14 @@ export const toggleChecklistItem = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d) => z.object({ id: uuid, done: z.boolean() }).parse(d))
   .handler(async ({ data, context }) => {
-    const { error } = await context.supabase.from("checklist_items").update({ done: data.done }).eq("id", data.id);
+    const { supabase, userId } = context;
+    const { data: item } = await supabase.from("checklist_items").select("text, checklist_id").eq("id", data.id).maybeSingle();
+    const { error } = await supabase.from("checklist_items").update({ done: data.done }).eq("id", data.id);
     if (error) throw new Error(error.message);
+    if (item) {
+      const cardId = await cardIdFromChecklist(supabase, item.checklist_id);
+      if (cardId) await logActivity(supabase, userId, cardId, data.done ? "checklist_item_done" : "checklist_item_undone", { text: item.text });
+    }
     return { ok: true };
   });
 
@@ -409,15 +420,16 @@ export const getCardComments = createServerFn({ method: "GET" })
 
 export const addCardComment = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((d) => z.object({ cardId: uuid, body: z.string().min(1).max(5000) }).parse(d))
+  .inputValidator((d) => z.object({ cardId: uuid, body: z.string().min(1).max(5000), parent_id: uuid.nullable().optional() }).parse(d))
   .handler(async ({ data, context }) => {
     const { supabase, userId } = context;
     const { data: row, error } = await supabase
       .from("card_comments")
-      .insert({ card_id: data.cardId, user_id: userId, body: data.body })
+      .insert({ card_id: data.cardId, user_id: userId, body: data.body, parent_id: data.parent_id ?? null } as any)
       .select()
       .single();
     if (error) throw new Error(error.message);
+    await logActivity(supabase, userId, data.cardId, data.parent_id ? "comment_replied" : "comment_added", {});
     return row;
   });
 
