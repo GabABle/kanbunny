@@ -196,6 +196,7 @@ export const createCard = createServerFn({ method: "POST" })
       .select()
       .single();
     if (error) throw new Error(error.message);
+    await logActivity(supabase, userId, card.id, "card_created", { title: data.title });
     return card;
   });
 
@@ -211,8 +212,12 @@ export const updateCard = createServerFn({ method: "POST" })
   )
   .handler(async ({ data, context }) => {
     const { id, ...rest } = data;
-    const { error } = await context.supabase.from("cards").update(rest).eq("id", id);
+    const { supabase, userId } = context;
+    const { error } = await supabase.from("cards").update(rest).eq("id", id);
     if (error) throw new Error(error.message);
+    if ("title" in rest) await logActivity(supabase, userId, id, "title_changed", { title: rest.title });
+    if ("description" in rest) await logActivity(supabase, userId, id, "description_changed", {});
+    if ("due_date" in rest) await logActivity(supabase, userId, id, rest.due_date ? "due_set" : "due_removed", { due_date: rest.due_date });
     return { ok: true };
   });
 
