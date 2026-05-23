@@ -13,6 +13,7 @@ import { format } from "date-fns";
 import {
   AlignLeft, CheckSquare, Clock, Tag, Trash2, Users, X, Plus, Check, MessageSquare, Paperclip, Download, FileIcon,
 } from "lucide-react";
+import { ChevronDown, ChevronRight, Activity } from "lucide-react";
 import {
   updateCard, deleteCard,
   createLabel, toggleCardLabel, deleteLabel,
@@ -21,6 +22,7 @@ import {
   deleteChecklistItem, deleteChecklist, getCardChecklists,
   getCardComments, addCardComment, updateCardComment, deleteCardComment,
   listCardAttachments, addCardAttachment, deleteCardAttachment, getAttachmentUrl,
+  getCardActivities,
 } from "@/lib/kanban.functions";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
@@ -111,8 +113,15 @@ export function CardDialog({
 
   return (
     <Dialog open onOpenChange={(o) => !o && onClose()}>
-      <DialogContent className="max-w-3xl gap-0 overflow-hidden p-0">
-        <div className="grid grid-cols-[1fr_220px] gap-6 bg-list text-list-foreground p-5 max-h-[85vh] overflow-y-auto">
+      <DialogContent
+        className="max-w-3xl gap-0 overflow-hidden p-0"
+        onOpenAutoFocus={(e) => {
+          // Focus the dialog itself instead of the first form field
+          e.preventDefault();
+          (e.currentTarget as HTMLElement | null)?.focus?.();
+        }}
+      >
+        <div tabIndex={-1} className="grid grid-cols-[1fr_220px] gap-6 bg-list text-list-foreground p-5 max-h-[85vh] overflow-y-auto outline-none">
           {/* Main column */}
           <div className="space-y-5 min-w-0">
             {/* Title */}
@@ -195,6 +204,7 @@ export function CardDialog({
             {/* Comments */}
             <AttachmentsBlock cardId={card.id} canEdit={canEdit} />
             <CommentsBlock cardId={card.id} canEdit={canEdit} members={members} />
+            <ActivityBlock cardId={card.id} />
           </div>
 
           {/* Sidebar */}
@@ -731,15 +741,16 @@ function CommentsBlock({ cardId, canEdit, members }: { cardId: string; canEdit: 
   });
 
   const add = useMutation({
-    mutationFn: (body: string) => addFn({ data: { cardId, body } }),
-    onMutate: async (body) => {
+    mutationFn: (v: { body: string; parent_id?: string | null }) => addFn({ data: { cardId, body: v.body, parent_id: v.parent_id ?? null } }),
+    onMutate: async (v) => {
       await qc.cancelQueries({ queryKey: key });
       const prev = qc.getQueryData<any[]>(key);
       const tmp = {
         id: `tmp-${Math.random()}`,
         card_id: cardId,
         user_id: user?.id ?? "",
-        body,
+        body: v.body,
+        parent_id: v.parent_id ?? null,
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString(),
         profile: {
@@ -784,6 +795,19 @@ function CommentsBlock({ cardId, canEdit, members }: { cardId: string; canEdit: 
 
   const [body, setBody] = useState("");
 
+  // Group replies by parent
+  const topLevel = (comments as any[]).filter((c) => !c.parent_id);
+  const repliesByParent = new Map<string, any[]>();
+  for (const c of comments as any[]) {
+    if (c.parent_id) {
+      const arr = repliesByParent.get(c.parent_id) ?? [];
+      arr.push(c);
+      repliesByParent.set(c.parent_id, arr);
+    }
+  }
+  // Sort replies oldest first within thread
+  for (const arr of repliesByParent.values()) arr.sort((a, b) => +new Date(a.created_at) - +new Date(b.created_at));
+
   return (
     <div>
       <div className="mb-2 flex items-center gap-2">
@@ -792,7 +816,7 @@ function CommentsBlock({ cardId, canEdit, members }: { cardId: string; canEdit: 
       </div>
       {canEdit && (
         <form
-          onSubmit={(e) => { e.preventDefault(); const v = body.trim(); if (v) { add.mutate(v); setBody(""); } }}
+          onSubmit={(e) => { e.preventDefault(); const v = body.trim(); if (v) { add.mutate({ body: v }); setBody(""); } }}
           className="mb-4 space-y-2"
         >
           <MentionTextarea
@@ -800,7 +824,7 @@ function CommentsBlock({ cardId, canEdit, members }: { cardId: string; canEdit: 
             onChange={setBody}
             members={members}
             placeholder="Write a comment… use @ to mention"
-            onSubmit={() => { const v = body.trim(); if (v) { add.mutate(v); setBody(""); } }}
+            onSubmit={() => { const v = body.trim(); if (v) { add.mutate({ body: v }); setBody(""); } }}
           />
           <div className="flex items-center gap-2">
             <Button type="submit" size="sm" disabled={!body.trim()}>Save</Button>
@@ -809,14 +833,33 @@ function CommentsBlock({ cardId, canEdit, members }: { cardId: string; canEdit: 
         </form>
       )}
       <div className="space-y-3">
-        {comments.map((c: any) => (
-          <CommentRow
-            key={c.id}
-            comment={c}
-            isOwn={c.user_id === user?.id}
-            onUpdate={(body) => update.mutate({ id: c.id, body })}
-            onDelete={() => remove.mutate(c.id)}
-          />
+        {topLevel.map((c: any) => (
+          <div key={c.id} className="space-y-2">
+            <CommentRow
+              comment={c}
+              isOwn={c.user_id === user?.id}
+              canReply={canEdit}
+              members={members}
+              onUpdate={(body) => update.mutate({ id: c.id, body })}
+              onDelete={() => remove.mutate(c.id)}
+              onReply={(body) => add.mutate({ body, parent_id: c.id })}
+            />
+            {(repliesByParent.get(c.id) ?? []).length > 0 && (
+              <div className="ml-10 space-y-2 border-l-2 border-border/40 pl-3">
+                {(repliesByParent.get(c.id) ?? []).map((r: any) => (
+                  <CommentRow
+                    key={r.id}
+                    comment={r}
+                    isOwn={r.user_id === user?.id}
+                    canReply={false}
+                    members={members}
+                    onUpdate={(body) => update.mutate({ id: r.id, body })}
+                    onDelete={() => remove.mutate(r.id)}
+                  />
+                ))}
+              </div>
+            )}
+          </div>
         ))}
         {comments.length === 0 && <div className="text-xs text-list-muted">No comments yet.</div>}
       </div>
@@ -824,11 +867,16 @@ function CommentsBlock({ cardId, canEdit, members }: { cardId: string; canEdit: 
   );
 }
 
-function CommentRow({ comment, isOwn, onUpdate, onDelete }: {
-  comment: any; isOwn: boolean; onUpdate: (body: string) => void; onDelete: () => void;
+function CommentRow({ comment, isOwn, canReply, members, onUpdate, onDelete, onReply }: {
+  comment: any; isOwn: boolean; canReply?: boolean;
+  members: Member[];
+  onUpdate: (body: string) => void; onDelete: () => void;
+  onReply?: (body: string) => void;
 }) {
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState(comment.body);
+  const [replying, setReplying] = useState(false);
+  const [reply, setReply] = useState("");
   const name = comment.profile?.display_name ?? comment.profile?.email ?? "User";
   const initials = name.slice(0, 2).toUpperCase();
   const when = new Date(comment.created_at);
@@ -862,10 +910,28 @@ function CommentRow({ comment, isOwn, onUpdate, onDelete }: {
         ) : (
           <div className="mt-1 whitespace-pre-wrap rounded bg-tcard p-2 text-sm text-tcard-foreground">{comment.body}</div>
         )}
-        {isOwn && !editing && (
+        {!editing && (
           <div className="mt-1 flex gap-3 text-xs text-list-muted">
-            <button className="hover:underline" onClick={() => setEditing(true)}>Edit</button>
-            <button className="hover:underline" onClick={() => { if (confirm("Delete comment?")) onDelete(); }}>Delete</button>
+            {canReply && onReply && (
+              <button className="hover:underline" onClick={() => setReplying((r) => !r)}>Reply</button>
+            )}
+            {isOwn && <button className="hover:underline" onClick={() => setEditing(true)}>Edit</button>}
+            {isOwn && <button className="hover:underline" onClick={() => { if (confirm("Delete comment?")) onDelete(); }}>Delete</button>}
+          </div>
+        )}
+        {replying && onReply && (
+          <div className="mt-2 space-y-2">
+            <MentionTextarea
+              value={reply}
+              onChange={setReply}
+              members={members}
+              placeholder={`Reply to ${name}…`}
+              onSubmit={() => { const v = reply.trim(); if (v) { onReply(v); setReply(""); setReplying(false); } }}
+            />
+            <div className="flex gap-2">
+              <Button size="sm" onClick={() => { const v = reply.trim(); if (v) { onReply(v); setReply(""); setReplying(false); } }}>Reply</Button>
+              <Button size="sm" variant="ghost" onClick={() => { setReply(""); setReplying(false); }}>Cancel</Button>
+            </div>
           </div>
         )}
       </div>
@@ -977,4 +1043,80 @@ function MentionTextarea({
       )}
     </div>
   );
+}
+
+function ActivityBlock({ cardId }: { cardId: string }) {
+  const [open, setOpen] = useState(false);
+  const getFn = useServerFn(getCardActivities);
+  const { data: activities = [] } = useQuery({
+    queryKey: ["activities", cardId],
+    queryFn: () => getFn({ data: { cardId } }),
+    enabled: open,
+  });
+  return (
+    <div>
+      <button
+        onClick={() => setOpen((o) => !o)}
+        className="flex w-full items-center gap-2 text-left font-semibold"
+      >
+        {open ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
+        <Activity className="h-4 w-4" />
+        <span>Activity</span>
+        <span className="ml-1 text-xs font-normal text-list-muted">{open ? "(hide)" : "(show)"}</span>
+      </button>
+      {open && (
+        <div className="mt-3 space-y-2">
+          {activities.length === 0 && <div className="text-xs text-list-muted">No activity yet.</div>}
+          {(activities as any[]).map((a) => (
+            <ActivityRow key={a.id} activity={a} />
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function ActivityRow({ activity }: { activity: any }) {
+  const name = activity.profile?.display_name ?? activity.profile?.email ?? "Someone";
+  const initials = name.slice(0, 2).toUpperCase();
+  const when = new Date(activity.created_at);
+  const p = activity.payload ?? {};
+  const text = describeActivity(activity.type, p);
+  return (
+    <div className="flex items-start gap-2 text-sm">
+      <div className="grid h-7 w-7 shrink-0 place-items-center rounded-full bg-primary text-[10px] font-semibold text-primary-foreground">
+        {initials}
+      </div>
+      <div className="min-w-0 flex-1">
+        <div className="text-list-foreground">
+          <span className="font-semibold">{name}</span> <span>{text}</span>
+        </div>
+        <div className="text-xs text-list-muted">
+          {when.toLocaleString(undefined, { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" })}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function describeActivity(type: string, p: any): string {
+  switch (type) {
+    case "card_created": return `created this card${p.title ? ` "${p.title}"` : ""}`;
+    case "title_changed": return `renamed the card to "${p.title}"`;
+    case "description_changed": return `updated the description`;
+    case "due_set": return `set the due date${p.due_date ? ` to ${new Date(p.due_date).toLocaleString()}` : ""}`;
+    case "due_removed": return `removed the due date`;
+    case "moved": return `moved this card${p.from ? ` from "${p.from}"` : ""}${p.to ? ` to "${p.to}"` : ""}`;
+    case "label_added": return `added label "${p.name ?? ""}"`;
+    case "label_removed": return `removed label "${p.name ?? ""}"`;
+    case "member_added": return `assigned ${p.name ?? "a member"}`;
+    case "member_removed": return `unassigned ${p.name ?? "a member"}`;
+    case "checklist_added": return `added checklist "${p.title ?? ""}"`;
+    case "checklist_item_added": return `added an item: "${p.text ?? ""}"`;
+    case "checklist_item_done": return `completed "${p.text ?? ""}"`;
+    case "checklist_item_undone": return `unchecked "${p.text ?? ""}"`;
+    case "comment_added": return `added a comment`;
+    case "comment_replied": return `replied to a comment`;
+    default: return type.replace(/_/g, " ");
+  }
 }

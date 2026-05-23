@@ -67,6 +67,33 @@ export type Database = {
         }
         Relationships: []
       }
+      card_activities: {
+        Row: {
+          card_id: string
+          created_at: string
+          id: string
+          payload: Json
+          type: string
+          user_id: string
+        }
+        Insert: {
+          card_id: string
+          created_at?: string
+          id?: string
+          payload?: Json
+          type: string
+          user_id: string
+        }
+        Update: {
+          card_id?: string
+          created_at?: string
+          id?: string
+          payload?: Json
+          type?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       card_assignees: {
         Row: {
           card_id: string
@@ -129,6 +156,7 @@ export type Database = {
           card_id: string
           created_at: string
           id: string
+          parent_id: string | null
           updated_at: string
           user_id: string
         }
@@ -137,6 +165,7 @@ export type Database = {
           card_id: string
           created_at?: string
           id?: string
+          parent_id?: string | null
           updated_at?: string
           user_id: string
         }
@@ -145,10 +174,19 @@ export type Database = {
           card_id?: string
           created_at?: string
           id?: string
+          parent_id?: string | null
           updated_at?: string
           user_id?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "card_comments_parent_id_fkey"
+            columns: ["parent_id"]
+            isOneToOne: false
+            referencedRelation: "card_comments"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       card_labels: {
         Row: {
