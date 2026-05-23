@@ -7,13 +7,15 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { Plus, MoreHorizontal, Trash2, UserPlus, X } from "lucide-react";
+import { Plus, Trash2, UserPlus, X, Clock, CheckSquare } from "lucide-react";
 import {
   getBoard, createList, renameList, deleteList,
   createCard, updateCard, deleteCard, moveCard,
   inviteMember, removeMember,
 } from "@/lib/kanban.functions";
 import { toast } from "sonner";
+import { CardDialog } from "@/components/kanban/CardDialog";
+import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/_authenticated/boards/$boardId")({
   head: () => ({ meta: [{ title: "Board — Stack" }] }),
@@ -135,6 +137,7 @@ function BoardPage() {
   }
   const canEdit = data.role === "owner" || data.role === "editor";
   const openedCard = data.cards.find((c) => c.id === openCard);
+  const openedList = openedCard ? data.lists.find((l) => l.id === openedCard.list_id) : null;
 
   const cardsByList = (listId: string) => data.cards.filter((c) => c.list_id === listId).sort((a, b) => a.position - b.position);
 
@@ -179,27 +182,15 @@ function BoardPage() {
               </div>
               <div className="flex flex-1 flex-col gap-2 overflow-y-auto px-2 pb-2">
                 {cardsByList(list.id).map((card) => (
-                  <div
+                  <CardFront
                     key={card.id}
-                    onClick={() => setOpenCard(card.id)}
-                    className="cursor-pointer rounded-md bg-tcard text-tcard-foreground p-2 text-sm shadow-sm ring-0 hover:ring-2 hover:ring-primary/40 transition"
-                  >
-                    <div className="font-medium">{card.title}</div>
-                    {card.description && <div className="mt-1 line-clamp-2 text-xs text-list-muted">{card.description}</div>}
-                    {canEdit && data.lists.length > 1 && (
-                      <div className="mt-2 flex flex-wrap gap-1" onClick={(e) => e.stopPropagation()}>
-                        {data.lists.filter((l) => l.id !== list.id).map((l) => (
-                          <button
-                            key={l.id}
-                            onClick={() => moveCardTo(card.id, l.id)}
-                            className="rounded bg-black/5 px-1.5 py-0.5 text-[10px] text-list-muted hover:bg-black/10 hover:text-list-foreground"
-                          >
-                            → {l.title}
-                          </button>
-                        ))}
-                      </div>
-                    )}
-                  </div>
+                    card={card}
+                    data={data}
+                    canEdit={canEdit}
+                    onOpen={() => setOpenCard(card.id)}
+                    onMove={(toListId) => moveCardTo(card.id, toListId)}
+                    listId={list.id}
+                  />
                 ))}
                 {canEdit && <NewCardForm onAdd={(title) => createCardMut.mutate({ listId: list.id, title })} />}
               </div>
@@ -214,46 +205,80 @@ function BoardPage() {
         </div>
       </div>
 
-      <Dialog open={!!openedCard} onOpenChange={(o) => !o && setOpenCard(null)}>
-        <DialogContent className="max-w-lg">
-          {openedCard && (
-            <>
-              <DialogHeader>
-                <DialogTitle>
-                  <InlineRename value={openedCard.title} disabled={!canEdit} onSave={(t) => updateCardMut.mutate({ id: openedCard.id, title: t })} />
-                </DialogTitle>
-              </DialogHeader>
-              <div className="space-y-3">
-                <Textarea
-                  defaultValue={openedCard.description ?? ""}
-                  disabled={!canEdit}
-                  placeholder="Add a description…"
-                  onBlur={(e) => {
-                    const v = e.target.value;
-                    if (v !== (openedCard.description ?? "")) updateCardMut.mutate({ id: openedCard.id, description: v || null });
-                  }}
-                />
-                <div className="flex items-center gap-2">
-                  <Input
-                    type="datetime-local"
-                    disabled={!canEdit}
-                    defaultValue={openedCard.due_date ? new Date(openedCard.due_date).toISOString().slice(0, 16) : ""}
-                    onChange={(e) => updateCardMut.mutate({ id: openedCard.id, due_date: e.target.value ? new Date(e.target.value).toISOString() : null })}
-                    className="max-w-xs"
-                  />
-                </div>
-              </div>
-              <DialogFooter>
-                {canEdit && (
-                  <Button variant="destructive" size="sm" onClick={() => { deleteCardMut.mutate(openedCard.id); setOpenCard(null); }}>
-                    <Trash2 className="h-4 w-4" /> Delete card
-                  </Button>
-                )}
-              </DialogFooter>
-            </>
-          )}
-        </DialogContent>
-      </Dialog>
+      {openedCard && openedList && (
+        <CardDialog
+          card={openedCard as any}
+          listTitle={openedList.title}
+          boardId={boardId}
+          canEdit={canEdit}
+          labels={data.labels as any}
+          cardLabels={data.cardLabels as any}
+          assignees={data.assignees as any}
+          members={data.members as any}
+          onClose={() => setOpenCard(null)}
+        />
+      )}
+    </div>
+  );
+}
+
+function CardFront({ card, data, canEdit, onOpen, onMove, listId }: {
+  card: any; data: any; canEdit: boolean; onOpen: () => void; onMove: (toListId: string) => void; listId: string;
+}) {
+  const labelIds = new Set(data.cardLabels.filter((cl: any) => cl.card_id === card.id).map((cl: any) => cl.label_id));
+  const myLabels = data.labels.filter((l: any) => labelIds.has(l.id));
+  const assigneeIds = new Set(data.assignees.filter((a: any) => a.card_id === card.id).map((a: any) => a.user_id));
+  const myMembers = data.members.filter((m: any) => assigneeIds.has(m.user_id));
+  const dueDate = card.due_date ? new Date(card.due_date) : null;
+  const overdue = dueDate ? dueDate.getTime() < Date.now() : false;
+
+  return (
+    <div
+      onClick={onOpen}
+      className="cursor-pointer rounded-md bg-tcard text-tcard-foreground p-2 text-sm shadow-sm hover:ring-2 hover:ring-primary/40 transition"
+    >
+      {myLabels.length > 0 && (
+        <div className="mb-1.5 flex flex-wrap gap-1">
+          {myLabels.map((l: any) => (
+            <span key={l.id} className="h-2 w-10 rounded-full" style={{ backgroundColor: l.color }} title={l.name} />
+          ))}
+        </div>
+      )}
+      <div className="font-medium">{card.title}</div>
+      <div className="mt-1.5 flex flex-wrap items-center gap-2 text-xs text-list-muted">
+        {dueDate && (
+          <span className={cn("inline-flex items-center gap-1 rounded px-1.5 py-0.5", overdue && "bg-destructive/15 text-destructive")}>
+            <Clock className="h-3 w-3" />
+            {dueDate.toLocaleDateString(undefined, { month: "short", day: "numeric" })}
+          </span>
+        )}
+        {card.description && (
+          <span title="Has description" className="inline-flex"><span className="text-[10px]">≡</span></span>
+        )}
+        <span className="ml-auto flex -space-x-1.5">
+          {myMembers.slice(0, 3).map((m: any) => {
+            const name = m.profile?.display_name ?? m.profile?.email ?? "?";
+            return (
+              <span key={m.user_id} className="grid h-5 w-5 place-items-center rounded-full bg-primary text-[10px] font-semibold text-primary-foreground ring-2 ring-tcard" title={name}>
+                {name.slice(0, 1).toUpperCase()}
+              </span>
+            );
+          })}
+        </span>
+      </div>
+      {canEdit && data.lists.length > 1 && (
+        <div className="mt-2 flex flex-wrap gap-1" onClick={(e) => e.stopPropagation()}>
+          {data.lists.filter((l: any) => l.id !== listId).map((l: any) => (
+            <button
+              key={l.id}
+              onClick={() => onMove(l.id)}
+              className="rounded bg-black/5 px-1.5 py-0.5 text-[10px] text-list-muted hover:bg-black/10 hover:text-list-foreground"
+            >
+              → {l.title}
+            </button>
+          ))}
+        </div>
+      )}
     </div>
   );
 }
