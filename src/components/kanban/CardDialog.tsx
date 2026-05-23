@@ -113,8 +113,15 @@ export function CardDialog({
 
   return (
     <Dialog open onOpenChange={(o) => !o && onClose()}>
-      <DialogContent className="max-w-3xl gap-0 overflow-hidden p-0">
-        <div className="grid grid-cols-[1fr_220px] gap-6 bg-list text-list-foreground p-5 max-h-[85vh] overflow-y-auto">
+      <DialogContent
+        className="max-w-3xl gap-0 overflow-hidden p-0"
+        onOpenAutoFocus={(e) => {
+          // Focus the dialog itself instead of the first form field
+          e.preventDefault();
+          (e.currentTarget as HTMLElement | null)?.focus?.();
+        }}
+      >
+        <div tabIndex={-1} className="grid grid-cols-[1fr_220px] gap-6 bg-list text-list-foreground p-5 max-h-[85vh] overflow-y-auto outline-none">
           {/* Main column */}
           <div className="space-y-5 min-w-0">
             {/* Title */}
