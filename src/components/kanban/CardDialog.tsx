@@ -694,6 +694,7 @@ function AttachmentsBlock({ cardId, canEdit }: { cardId: string; canEdit: boolea
   const { data: attachments = [] } = useQuery({
     queryKey: key,
     queryFn: () => listFn({ data: { cardId } }),
+    enabled: /^[0-9a-f-]{36}$/i.test(cardId),
   });
   const remove = useMutation({
     mutationFn: (id: string) => delFn({ data: { id } }),
@@ -764,6 +765,7 @@ function CommentsBlock({ cardId, canEdit, members }: { cardId: string; canEdit: 
     queryKey: key,
     queryFn: () => getFn({ data: { cardId } }),
     refetchOnWindowFocus: false,
+    enabled: /^[0-9a-f-]{36}$/i.test(cardId),
   });
 
   const add = useMutation({
