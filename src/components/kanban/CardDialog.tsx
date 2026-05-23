@@ -8,8 +8,10 @@ import { Textarea } from "@/components/ui/textarea";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Progress } from "@/components/ui/progress";
+import { Calendar } from "@/components/ui/calendar";
+import { format } from "date-fns";
 import {
-  AlignLeft, CheckSquare, Clock, Tag, Trash2, Users, X, Plus, Check,
+  AlignLeft, CheckSquare, Clock, Tag, Trash2, Users, X, Plus, Check, MessageSquare,
 } from "lucide-react";
 import {
   updateCard, deleteCard,
@@ -17,9 +19,11 @@ import {
   toggleAssignee,
   addChecklist, addChecklistItem, toggleChecklistItem,
   deleteChecklistItem, deleteChecklist, getCardChecklists,
+  getCardComments, addCardComment, updateCardComment, deleteCardComment,
 } from "@/lib/kanban.functions";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import { useAuth } from "@/hooks/use-auth";
 
 const LABEL_COLORS = [
   "#61bd4f", "#f2d600", "#ff9f1a", "#eb5a46", "#c377e0",
