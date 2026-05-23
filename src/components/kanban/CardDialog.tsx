@@ -761,6 +761,7 @@ function CommentsBlock({ cardId, canEdit, members }: { cardId: string; canEdit: 
   const { data: comments = [] } = useQuery({
     queryKey: key,
     queryFn: () => getFn({ data: { cardId } }),
+    refetchOnWindowFocus: false,
   });
 
   const add = useMutation({
@@ -817,6 +818,8 @@ function CommentsBlock({ cardId, canEdit, members }: { cardId: string; canEdit: 
   });
 
   const [body, setBody] = useState("");
+  const [replyTo, setReplyTo] = useState<string | null>(null);
+  const [replyBody, setReplyBody] = useState("");
 
   // Group replies by parent
   const topLevel = (comments as any[]).filter((c) => !c.parent_id);
@@ -865,7 +868,20 @@ function CommentsBlock({ cardId, canEdit, members }: { cardId: string; canEdit: 
               members={members}
               onUpdate={(body) => update.mutate({ id: c.id, body })}
               onDelete={() => remove.mutate(c.id)}
-              onReply={(body) => add.mutate({ body, parent_id: c.id })}
+              replying={replyTo === c.id}
+              replyBody={replyBody}
+              onReplyBodyChange={setReplyBody}
+              onToggleReply={() => {
+                setReplyTo((cur) => (cur === c.id ? null : c.id));
+                setReplyBody("");
+              }}
+              onSubmitReply={() => {
+                const v = replyBody.trim();
+                if (!v) return;
+                add.mutate({ body: v, parent_id: c.id });
+                setReplyBody("");
+                setReplyTo(null);
+              }}
             />
             {(repliesByParent.get(c.id) ?? []).length > 0 && (
               <div className="ml-10 space-y-2 border-l-2 border-border/40 pl-3">
