@@ -401,17 +401,36 @@ function MembersPopover({ boardId, cardId, canEdit, members, myAssignees }: { bo
 }
 
 function DueDatePopover({ canEdit, dueDate, onChange }: { canEdit: boolean; dueDate: Date | null; onChange: (v: string | null) => void }) {
-  const value = dueDate ? new Date(dueDate.getTime() - dueDate.getTimezoneOffset() * 60000).toISOString().slice(0, 16) : "";
+  const [time, setTime] = useState(dueDate ? format(dueDate, "HH:mm") : "12:00");
+  useEffect(() => { if (dueDate) setTime(format(dueDate, "HH:mm")); }, [dueDate?.getTime()]);
+  const apply = (date: Date | undefined, t: string) => {
+    if (!date) { onChange(null); return; }
+    const [h, m] = t.split(":").map(Number);
+    const d = new Date(date);
+    d.setHours(h || 0, m || 0, 0, 0);
+    onChange(d.toISOString());
+  };
   return (
     <Popover>
       <PopoverTrigger asChild><SidebarButton icon={Clock} disabled={!canEdit}>Dates</SidebarButton></PopoverTrigger>
-      <PopoverContent className="w-72">
+      <PopoverContent className="w-auto p-3" align="end">
         <div className="text-sm font-medium mb-2">Due date</div>
-        <Input
-          type="datetime-local"
-          defaultValue={value}
-          onChange={(e) => onChange(e.target.value ? new Date(e.target.value).toISOString() : null)}
+        <Calendar
+          mode="single"
+          selected={dueDate ?? undefined}
+          onSelect={(d) => apply(d, time)}
+          initialFocus
+          className={cn("p-0 pointer-events-auto")}
         />
+        <div className="mt-3 flex items-center gap-2">
+          <span className="text-xs text-muted-foreground">Time</span>
+          <Input
+            type="time"
+            value={time}
+            onChange={(e) => { setTime(e.target.value); if (dueDate) apply(dueDate, e.target.value); }}
+            className="h-8 w-32"
+          />
+        </div>
         {dueDate && (
           <Button variant="ghost" size="sm" className="mt-2 w-full" onClick={() => onChange(null)}>
             <X className="h-4 w-4" /> Remove date
