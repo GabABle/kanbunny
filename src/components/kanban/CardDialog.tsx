@@ -910,10 +910,28 @@ function CommentRow({ comment, isOwn, canReply, members, onUpdate, onDelete, onR
         ) : (
           <div className="mt-1 whitespace-pre-wrap rounded bg-tcard p-2 text-sm text-tcard-foreground">{comment.body}</div>
         )}
-        {isOwn && !editing && (
+        {!editing && (
           <div className="mt-1 flex gap-3 text-xs text-list-muted">
-            <button className="hover:underline" onClick={() => setEditing(true)}>Edit</button>
-            <button className="hover:underline" onClick={() => { if (confirm("Delete comment?")) onDelete(); }}>Delete</button>
+            {canReply && onReply && (
+              <button className="hover:underline" onClick={() => setReplying((r) => !r)}>Reply</button>
+            )}
+            {isOwn && <button className="hover:underline" onClick={() => setEditing(true)}>Edit</button>}
+            {isOwn && <button className="hover:underline" onClick={() => { if (confirm("Delete comment?")) onDelete(); }}>Delete</button>}
+          </div>
+        )}
+        {replying && onReply && (
+          <div className="mt-2 space-y-2">
+            <MentionTextarea
+              value={reply}
+              onChange={setReply}
+              members={members}
+              placeholder={`Reply to ${name}…`}
+              onSubmit={() => { const v = reply.trim(); if (v) { onReply(v); setReply(""); setReplying(false); } }}
+            />
+            <div className="flex gap-2">
+              <Button size="sm" onClick={() => { const v = reply.trim(); if (v) { onReply(v); setReply(""); setReplying(false); } }}>Reply</Button>
+              <Button size="sm" variant="ghost" onClick={() => { setReply(""); setReplying(false); }}>Cancel</Button>
+            </div>
           </div>
         )}
       </div>
