@@ -4,6 +4,35 @@ import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 
 const uuid = z.string().uuid();
 
+// ---------- Activity helper ----------
+async function logActivity(
+  supabase: any,
+  userId: string,
+  cardId: string,
+  type: string,
+  payload: Record<string, unknown> = {},
+) {
+  try {
+    await supabase.from("card_activities").insert({
+      card_id: cardId,
+      user_id: userId,
+      type,
+      payload,
+    });
+  } catch (_e) {
+    // never fail user action because of activity log
+  }
+}
+
+async function cardIdFromChecklist(supabase: any, checklistId: string): Promise<string | null> {
+  const { data } = await supabase.from("checklists").select("card_id").eq("id", checklistId).maybeSingle();
+  return data?.card_id ?? null;
+}
+async function cardIdFromItem(supabase: any, itemId: string): Promise<string | null> {
+  const { data } = await supabase.from("checklist_items").select("checklist_id").eq("id", itemId).maybeSingle();
+  if (!data) return null;
+  return cardIdFromChecklist(supabase, data.checklist_id);
+}
 // ---------- Boards ----------
 export const listBoards = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
