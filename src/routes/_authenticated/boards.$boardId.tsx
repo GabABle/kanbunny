@@ -281,20 +281,62 @@ function NewCardForm({ onAdd }: { onAdd: (title: string) => void }) {
   const [title, setTitle] = useState("");
   if (!open) {
     return (
-      <button onClick={() => setOpen(true)} className="mt-1 flex items-center gap-1 rounded-md px-2 py-1.5 text-xs text-muted-foreground hover:bg-accent hover:text-foreground">
-        <Plus className="h-3.5 w-3.5" /> Add card
+      <button onClick={() => setOpen(true)} className="mt-1 flex items-center gap-1 rounded-md px-2 py-1.5 text-xs text-list-muted hover:bg-black/5 hover:text-list-foreground">
+        <Plus className="h-3.5 w-3.5" /> Add a card
       </button>
     );
   }
+  const submit = () => { if (title.trim()) { onAdd(title.trim()); setTitle(""); setOpen(false); } };
   return (
     <form
-      onSubmit={(e) => { e.preventDefault(); if (title.trim()) { onAdd(title.trim()); setTitle(""); setOpen(false); } }}
+      onSubmit={(e) => { e.preventDefault(); submit(); }}
       className="flex flex-col gap-2"
     >
-      <Textarea autoFocus value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Card title" className="min-h-[60px] text-sm" />
+      <Textarea
+        autoFocus
+        value={title}
+        onChange={(e) => setTitle(e.target.value)}
+        onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); submit(); } if (e.key === "Escape") { setOpen(false); setTitle(""); } }}
+        placeholder="Enter a title for this card…"
+        className="min-h-[60px] bg-tcard text-tcard-foreground text-sm"
+      />
       <div className="flex gap-2">
-        <Button type="submit" size="sm">Add</Button>
+        <Button type="submit" size="sm">Add card</Button>
         <Button type="button" variant="ghost" size="sm" onClick={() => { setOpen(false); setTitle(""); }}><X className="h-4 w-4" /></Button>
+      </div>
+    </form>
+  );
+}
+
+function NewListForm({ value, setValue, onAdd }: { value: string; setValue: (v: string) => void; onAdd: (t: string) => void }) {
+  const [open, setOpen] = useState(false);
+  if (!open) {
+    return (
+      <button
+        onClick={() => setOpen(true)}
+        className="flex w-full items-center gap-1 rounded-xl bg-white/20 px-3 py-2 text-sm text-board-foreground hover:bg-white/30"
+      >
+        <Plus className="h-4 w-4" /> Add another list
+      </button>
+    );
+  }
+  const submit = () => { if (value.trim()) { onAdd(value.trim()); setOpen(false); } };
+  return (
+    <form
+      onSubmit={(e) => { e.preventDefault(); submit(); }}
+      className="flex flex-col gap-2 rounded-xl bg-list p-2 text-list-foreground"
+    >
+      <Input
+        autoFocus
+        value={value}
+        onChange={(e) => setValue(e.target.value)}
+        onKeyDown={(e) => { if (e.key === "Escape") { setOpen(false); setValue(""); } }}
+        placeholder="Enter list title…"
+        className="h-8 bg-tcard text-tcard-foreground"
+      />
+      <div className="flex gap-2">
+        <Button type="submit" size="sm">Add list</Button>
+        <Button type="button" variant="ghost" size="sm" onClick={() => { setOpen(false); setValue(""); }}><X className="h-4 w-4" /></Button>
       </div>
     </form>
   );
