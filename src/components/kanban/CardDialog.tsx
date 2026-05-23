@@ -421,7 +421,7 @@ function DueDatePopover({ canEdit, dueDate, onChange }: { canEdit: boolean; dueD
   };
   return (
     <Popover>
-      <PopoverTrigger asChild><SidebarButton icon={Clock} disabled={!canEdit}>Dates</SidebarButton></PopoverTrigger>
+      <PopoverTrigger asChild><SidebarButton icon={Clock} disabled={!canEdit}>Due Date</SidebarButton></PopoverTrigger>
       <PopoverContent className="w-auto p-3" align="end">
         <div className="text-sm font-medium mb-2">Due date</div>
         <Calendar
