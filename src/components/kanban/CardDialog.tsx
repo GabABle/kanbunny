@@ -11,7 +11,7 @@ import { Progress } from "@/components/ui/progress";
 import { Calendar } from "@/components/ui/calendar";
 import { format } from "date-fns";
 import {
-  AlignLeft, CheckSquare, Clock, Tag, Trash2, Users, X, Plus, Check, MessageSquare,
+  AlignLeft, CheckSquare, Clock, Tag, Trash2, Users, X, Plus, Check, MessageSquare, Paperclip, Download, FileIcon,
 } from "lucide-react";
 import {
   updateCard, deleteCard,
@@ -20,10 +20,13 @@ import {
   addChecklist, addChecklistItem, toggleChecklistItem,
   deleteChecklistItem, deleteChecklist, getCardChecklists,
   getCardComments, addCardComment, updateCardComment, deleteCardComment,
+  listCardAttachments, addCardAttachment, deleteCardAttachment, getAttachmentUrl,
 } from "@/lib/kanban.functions";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/hooks/use-auth";
+import { supabase } from "@/integrations/supabase/client";
+import { useRef } from "react";
 
 const LABEL_COLORS = [
   "#61bd4f", "#f2d600", "#ff9f1a", "#eb5a46", "#c377e0",
