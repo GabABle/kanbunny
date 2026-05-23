@@ -429,7 +429,6 @@ export const addCardComment = createServerFn({ method: "POST" })
       .select()
       .single();
     if (error) throw new Error(error.message);
-    await logActivity(supabase, userId, data.cardId, data.parent_id ? "comment_replied" : "comment_added", {});
     return row;
   });
 
