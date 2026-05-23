@@ -78,13 +78,20 @@ export const getBoard = createServerFn({ method: "GET" })
       supabase.from("card_assignees").select("card_id, user_id"),
       supabase
         .from("board_members")
-        .select("user_id, role, profiles:profiles!inner(id, display_name, avatar_url, email)")
+        .select("user_id, role")
         .eq("board_id", data.id),
     ]);
 
     for (const r of [listsRes, cardsRes, labelsRes, cardLabelsRes, assigneesRes, membersRes]) {
       if (r.error) throw new Error(r.error.message);
     }
+
+    const memberIds = (membersRes.data ?? []).map((m: any) => m.user_id);
+    const profilesRes = memberIds.length
+      ? await supabase.from("profiles").select("id, display_name, avatar_url, email").in("id", memberIds)
+      : { data: [], error: null as any };
+    if (profilesRes.error) throw new Error(profilesRes.error.message);
+    const profileMap = new Map((profilesRes.data ?? []).map((p: any) => [p.id, p]));
 
     // Determine role
     const me = (membersRes.data ?? []).find((m: any) => m.user_id === userId);
@@ -101,7 +108,7 @@ export const getBoard = createServerFn({ method: "GET" })
       members: (membersRes.data ?? []).map((m: any) => ({
         user_id: m.user_id,
         role: m.role,
-        profile: m.profiles,
+        profile: profileMap.get(m.user_id) ?? null,
       })),
     };
   });
