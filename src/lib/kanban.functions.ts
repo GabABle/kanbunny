@@ -520,3 +520,24 @@ export const getAttachmentUrl = createServerFn({ method: "POST" })
     if (error) throw new Error(error.message);
     return { url: signed.signedUrl };
   });
+
+// ---------- Activities ----------
+export const getCardActivities = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d) => z.object({ cardId: uuid }).parse(d))
+  .handler(async ({ data, context }) => {
+    const { supabase } = context;
+    const { data: rows, error } = await supabase
+      .from("card_activities" as any)
+      .select("id, card_id, user_id, type, payload, created_at")
+      .eq("card_id", data.cardId)
+      .order("created_at", { ascending: false });
+    if (error) throw new Error(error.message);
+    const ids = Array.from(new Set((rows ?? []).map((r: any) => r.user_id)));
+    const profilesRes = ids.length
+      ? await supabase.from("profiles").select("id, display_name, avatar_url, email").in("id", ids)
+      : { data: [], error: null as any };
+    if (profilesRes.error) throw new Error(profilesRes.error.message);
+    const map = new Map((profilesRes.data ?? []).map((p: any) => [p.id, p]));
+    return (rows ?? []).map((r: any) => ({ ...r, profile: map.get(r.user_id) ?? null }));
+  });
