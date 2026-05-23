@@ -106,9 +106,11 @@ export function CardDialog({
   // ---- Checklists ----
   const getChecklistsFn = useServerFn(getCardChecklists);
   const checklistKey = ["checklists", card.id] as const;
+  const isRealCard = !card.id.startsWith("tmp-");
   const { data: cl } = useQuery({
     queryKey: checklistKey,
     queryFn: () => getChecklistsFn({ data: { cardId: card.id } }),
+    enabled: isRealCard,
   });
 
   return (
