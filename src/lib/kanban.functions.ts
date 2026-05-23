@@ -22,13 +22,6 @@ export const createBoard = createServerFn({ method: "POST" })
   .inputValidator((d) => z.object({ title: z.string().min(1).max(120), description: z.string().max(500).optional() }).parse(d))
   .handler(async ({ data, context }) => {
     const { supabase, userId } = context;
-    // Probe what PostgREST sees as auth.uid()
-    const probe = await (supabase as any)
-      .from("profiles")
-      .select("id")
-      .eq("id", userId)
-      .maybeSingle();
-    console.log("[createBoard] userId:", userId, "profile probe:", probe);
     const { data: board, error } = await supabase
       .from("boards")
       .insert({ title: data.title, description: data.description ?? null, owner_id: userId })
