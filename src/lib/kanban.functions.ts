@@ -338,3 +338,56 @@ export const getCardChecklists = createServerFn({ method: "GET" })
     if (items.error) throw new Error(items.error.message);
     return { checklists: cls.data ?? [], items: items.data ?? [] };
   });
+
+// ---------- Comments ----------
+export const getCardComments = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d) => z.object({ cardId: uuid }).parse(d))
+  .handler(async ({ data, context }) => {
+    const { supabase } = context;
+    const { data: rows, error } = await supabase
+      .from("card_comments")
+      .select("id, card_id, user_id, body, created_at, updated_at")
+      .eq("card_id", data.cardId)
+      .order("created_at", { ascending: false });
+    if (error) throw new Error(error.message);
+    const ids = Array.from(new Set((rows ?? []).map((r) => r.user_id)));
+    const profilesRes = ids.length
+      ? await supabase.from("profiles").select("id, display_name, avatar_url, email").in("id", ids)
+      : { data: [], error: null as any };
+    if (profilesRes.error) throw new Error(profilesRes.error.message);
+    const map = new Map((profilesRes.data ?? []).map((p: any) => [p.id, p]));
+    return (rows ?? []).map((r) => ({ ...r, profile: map.get(r.user_id) ?? null }));
+  });
+
+export const addCardComment = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d) => z.object({ cardId: uuid, body: z.string().min(1).max(5000) }).parse(d))
+  .handler(async ({ data, context }) => {
+    const { supabase, userId } = context;
+    const { data: row, error } = await supabase
+      .from("card_comments")
+      .insert({ card_id: data.cardId, user_id: userId, body: data.body })
+      .select()
+      .single();
+    if (error) throw new Error(error.message);
+    return row;
+  });
+
+export const updateCardComment = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d) => z.object({ id: uuid, body: z.string().min(1).max(5000) }).parse(d))
+  .handler(async ({ data, context }) => {
+    const { error } = await context.supabase.from("card_comments").update({ body: data.body }).eq("id", data.id);
+    if (error) throw new Error(error.message);
+    return { ok: true };
+  });
+
+export const deleteCardComment = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d) => z.object({ id: uuid }).parse(d))
+  .handler(async ({ data, context }) => {
+    const { error } = await context.supabase.from("card_comments").delete().eq("id", data.id);
+    if (error) throw new Error(error.message);
+    return { ok: true };
+  });
