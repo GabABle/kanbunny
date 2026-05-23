@@ -13,7 +13,7 @@ import { Route as SignupRouteImport } from './routes/signup'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as AuthenticatedRouteImport } from './routes/_authenticated'
 import { Route as IndexRouteImport } from './routes/index'
-import { Route as AuthenticatedBoardsRouteImport } from './routes/_authenticated/boards'
+import { Route as AuthenticatedBoardsIndexRouteImport } from './routes/_authenticated/boards.index'
 import { Route as AuthenticatedBoardsBoardIdRouteImport } from './routes/_authenticated/boards.$boardId'
 
 const SignupRoute = SignupRouteImport.update({
@@ -35,31 +35,32 @@ const IndexRoute = IndexRouteImport.update({
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
-const AuthenticatedBoardsRoute = AuthenticatedBoardsRouteImport.update({
-  id: '/boards',
-  path: '/boards',
-  getParentRoute: () => AuthenticatedRoute,
-} as any)
+const AuthenticatedBoardsIndexRoute =
+  AuthenticatedBoardsIndexRouteImport.update({
+    id: '/boards/',
+    path: '/boards/',
+    getParentRoute: () => AuthenticatedRoute,
+  } as any)
 const AuthenticatedBoardsBoardIdRoute =
   AuthenticatedBoardsBoardIdRouteImport.update({
-    id: '/$boardId',
-    path: '/$boardId',
-    getParentRoute: () => AuthenticatedBoardsRoute,
+    id: '/boards/$boardId',
+    path: '/boards/$boardId',
+    getParentRoute: () => AuthenticatedRoute,
   } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/login': typeof LoginRoute
   '/signup': typeof SignupRoute
-  '/boards': typeof AuthenticatedBoardsRouteWithChildren
   '/boards/$boardId': typeof AuthenticatedBoardsBoardIdRoute
+  '/boards/': typeof AuthenticatedBoardsIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/login': typeof LoginRoute
   '/signup': typeof SignupRoute
-  '/boards': typeof AuthenticatedBoardsRouteWithChildren
   '/boards/$boardId': typeof AuthenticatedBoardsBoardIdRoute
+  '/boards': typeof AuthenticatedBoardsIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -67,22 +68,22 @@ export interface FileRoutesById {
   '/_authenticated': typeof AuthenticatedRouteWithChildren
   '/login': typeof LoginRoute
   '/signup': typeof SignupRoute
-  '/_authenticated/boards': typeof AuthenticatedBoardsRouteWithChildren
   '/_authenticated/boards/$boardId': typeof AuthenticatedBoardsBoardIdRoute
+  '/_authenticated/boards/': typeof AuthenticatedBoardsIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/login' | '/signup' | '/boards' | '/boards/$boardId'
+  fullPaths: '/' | '/login' | '/signup' | '/boards/$boardId' | '/boards/'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/login' | '/signup' | '/boards' | '/boards/$boardId'
+  to: '/' | '/login' | '/signup' | '/boards/$boardId' | '/boards'
   id:
     | '__root__'
     | '/'
     | '/_authenticated'
     | '/login'
     | '/signup'
-    | '/_authenticated/boards'
     | '/_authenticated/boards/$boardId'
+    | '/_authenticated/boards/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -122,40 +123,31 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/_authenticated/boards': {
-      id: '/_authenticated/boards'
+    '/_authenticated/boards/': {
+      id: '/_authenticated/boards/'
       path: '/boards'
-      fullPath: '/boards'
-      preLoaderRoute: typeof AuthenticatedBoardsRouteImport
+      fullPath: '/boards/'
+      preLoaderRoute: typeof AuthenticatedBoardsIndexRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
     '/_authenticated/boards/$boardId': {
       id: '/_authenticated/boards/$boardId'
-      path: '/$boardId'
+      path: '/boards/$boardId'
       fullPath: '/boards/$boardId'
       preLoaderRoute: typeof AuthenticatedBoardsBoardIdRouteImport
-      parentRoute: typeof AuthenticatedBoardsRoute
+      parentRoute: typeof AuthenticatedRoute
     }
   }
 }
 
-interface AuthenticatedBoardsRouteChildren {
-  AuthenticatedBoardsBoardIdRoute: typeof AuthenticatedBoardsBoardIdRoute
-}
-
-const AuthenticatedBoardsRouteChildren: AuthenticatedBoardsRouteChildren = {
-  AuthenticatedBoardsBoardIdRoute: AuthenticatedBoardsBoardIdRoute,
-}
-
-const AuthenticatedBoardsRouteWithChildren =
-  AuthenticatedBoardsRoute._addFileChildren(AuthenticatedBoardsRouteChildren)
-
 interface AuthenticatedRouteChildren {
-  AuthenticatedBoardsRoute: typeof AuthenticatedBoardsRouteWithChildren
+  AuthenticatedBoardsBoardIdRoute: typeof AuthenticatedBoardsBoardIdRoute
+  AuthenticatedBoardsIndexRoute: typeof AuthenticatedBoardsIndexRoute
 }
 
 const AuthenticatedRouteChildren: AuthenticatedRouteChildren = {
-  AuthenticatedBoardsRoute: AuthenticatedBoardsRouteWithChildren,
+  AuthenticatedBoardsBoardIdRoute: AuthenticatedBoardsBoardIdRoute,
+  AuthenticatedBoardsIndexRoute: AuthenticatedBoardsIndexRoute,
 }
 
 const AuthenticatedRouteWithChildren = AuthenticatedRoute._addFileChildren(
@@ -171,3 +163,13 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
+
+import type { getRouter } from './router.tsx'
+import type { startInstance } from './start.ts'
+declare module '@tanstack/react-start' {
+  interface Register {
+    ssr: true
+    router: Awaited<ReturnType<typeof getRouter>>
+    config: Awaited<ReturnType<typeof startInstance.getOptions>>
+  }
+}
