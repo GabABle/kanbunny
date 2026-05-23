@@ -405,7 +405,7 @@ export const getCardComments = createServerFn({ method: "GET" })
     const { supabase } = context;
     const { data: rows, error } = await supabase
       .from("card_comments")
-      .select("id, card_id, user_id, body, created_at, updated_at")
+      .select("id, card_id, user_id, body, created_at, updated_at, parent_id")
       .eq("card_id", data.cardId)
       .order("created_at", { ascending: false });
     if (error) throw new Error(error.message);
