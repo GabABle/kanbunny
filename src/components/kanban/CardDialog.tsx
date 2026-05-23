@@ -8,8 +8,10 @@ import { Textarea } from "@/components/ui/textarea";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Progress } from "@/components/ui/progress";
+import { Calendar } from "@/components/ui/calendar";
+import { format } from "date-fns";
 import {
-  AlignLeft, CheckSquare, Clock, Tag, Trash2, Users, X, Plus, Check,
+  AlignLeft, CheckSquare, Clock, Tag, Trash2, Users, X, Plus, Check, MessageSquare,
 } from "lucide-react";
 import {
   updateCard, deleteCard,
@@ -17,9 +19,11 @@ import {
   toggleAssignee,
   addChecklist, addChecklistItem, toggleChecklistItem,
   deleteChecklistItem, deleteChecklist, getCardChecklists,
+  getCardComments, addCardComment, updateCardComment, deleteCardComment,
 } from "@/lib/kanban.functions";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import { useAuth } from "@/hooks/use-auth";
 
 const LABEL_COLORS = [
   "#61bd4f", "#f2d600", "#ff9f1a", "#eb5a46", "#c377e0",
@@ -205,6 +209,9 @@ export function CardDialog({
                 items={cl.items.filter((i) => i.checklist_id === checklist.id)}
               />
             ))}
+
+            {/* Comments */}
+            <CommentsBlock cardId={card.id} canEdit={canEdit} />
           </div>
 
           {/* Sidebar */}
@@ -285,11 +292,36 @@ function LabelsPopover({ boardId, cardId, canEdit, labels, myLabelIds }: { board
   });
   const create = useMutation({
     mutationFn: (v: { name: string; color: string }) => createFn({ data: { boardId, ...v } }),
-    onSuccess: inv, onError: (e) => toast.error(e.message),
+    onMutate: async (v) => {
+      await qc.cancelQueries({ queryKey: ["board", boardId] });
+      const prev = qc.getQueryData<any>(["board", boardId]);
+      const tmpId = `tmp-${Math.random()}`;
+      qc.setQueryData<any>(["board", boardId], (d: any) =>
+        d ? { ...d, labels: [...d.labels, { id: tmpId, name: v.name, color: v.color }] } : d,
+      );
+      return { prev };
+    },
+    onError: (e, _v, ctx) => { if (ctx?.prev) qc.setQueryData(["board", boardId], ctx.prev); toast.error(e.message); },
+    onSettled: inv,
   });
   const remove = useMutation({
     mutationFn: (id: string) => deleteFn({ data: { id } }),
-    onSuccess: inv, onError: (e) => toast.error(e.message),
+    onMutate: async (id) => {
+      await qc.cancelQueries({ queryKey: ["board", boardId] });
+      const prev = qc.getQueryData<any>(["board", boardId]);
+      qc.setQueryData<any>(["board", boardId], (d: any) =>
+        d
+          ? {
+              ...d,
+              labels: d.labels.filter((l: any) => l.id !== id),
+              cardLabels: d.cardLabels.filter((cl: any) => cl.label_id !== id),
+            }
+          : d,
+      );
+      return { prev };
+    },
+    onError: (e, _v, ctx) => { if (ctx?.prev) qc.setQueryData(["board", boardId], ctx.prev); toast.error(e.message); },
+    onSettled: inv,
   });
 
   const [creating, setCreating] = useState(false);
@@ -394,17 +426,36 @@ function MembersPopover({ boardId, cardId, canEdit, members, myAssignees }: { bo
 }
 
 function DueDatePopover({ canEdit, dueDate, onChange }: { canEdit: boolean; dueDate: Date | null; onChange: (v: string | null) => void }) {
-  const value = dueDate ? new Date(dueDate.getTime() - dueDate.getTimezoneOffset() * 60000).toISOString().slice(0, 16) : "";
+  const [time, setTime] = useState(dueDate ? format(dueDate, "HH:mm") : "12:00");
+  useEffect(() => { if (dueDate) setTime(format(dueDate, "HH:mm")); }, [dueDate?.getTime()]);
+  const apply = (date: Date | undefined, t: string) => {
+    if (!date) { onChange(null); return; }
+    const [h, m] = t.split(":").map(Number);
+    const d = new Date(date);
+    d.setHours(h || 0, m || 0, 0, 0);
+    onChange(d.toISOString());
+  };
   return (
     <Popover>
       <PopoverTrigger asChild><SidebarButton icon={Clock} disabled={!canEdit}>Dates</SidebarButton></PopoverTrigger>
-      <PopoverContent className="w-72">
+      <PopoverContent className="w-auto p-3" align="end">
         <div className="text-sm font-medium mb-2">Due date</div>
-        <Input
-          type="datetime-local"
-          defaultValue={value}
-          onChange={(e) => onChange(e.target.value ? new Date(e.target.value).toISOString() : null)}
+        <Calendar
+          mode="single"
+          selected={dueDate ?? undefined}
+          onSelect={(d) => apply(d, time)}
+          initialFocus
+          className={cn("p-0 pointer-events-auto")}
         />
+        <div className="mt-3 flex items-center gap-2">
+          <span className="text-xs text-muted-foreground">Time</span>
+          <Input
+            type="time"
+            value={time}
+            onChange={(e) => { setTime(e.target.value); if (dueDate) apply(dueDate, e.target.value); }}
+            className="h-8 w-32"
+          />
+        </div>
         {dueDate && (
           <Button variant="ghost" size="sm" className="mt-2 w-full" onClick={() => onChange(null)}>
             <X className="h-4 w-4" /> Remove date
@@ -418,10 +469,21 @@ function DueDatePopover({ canEdit, dueDate, onChange }: { canEdit: boolean; dueD
 function ChecklistAdd({ boardId, cardId, canEdit }: { boardId: string; cardId: string; canEdit: boolean }) {
   const qc = useQueryClient();
   const fn = useServerFn(addChecklist);
+  const key = ["checklists", cardId] as const;
   const mut = useMutation({
     mutationFn: (title: string) => fn({ data: { cardId, title } }),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["checklists", cardId] }),
-    onError: (e) => toast.error(e.message),
+    onMutate: async (title) => {
+      await qc.cancelQueries({ queryKey: key });
+      const prev = qc.getQueryData<any>(key);
+      const tmpId = `tmp-${Math.random()}`;
+      qc.setQueryData<any>(key, (d: any) => {
+        const base = d ?? { checklists: [], items: [] };
+        return { ...base, checklists: [...base.checklists, { id: tmpId, title, position: 9999 }] };
+      });
+      return { prev };
+    },
+    onError: (e, _v, ctx) => { if (ctx?.prev) qc.setQueryData(key, ctx.prev); toast.error(e.message); },
+    onSettled: () => qc.invalidateQueries({ queryKey: key }),
   });
   const [open, setOpen] = useState(false);
   const [title, setTitle] = useState("Checklist");
@@ -461,7 +523,18 @@ function ChecklistBlock({ boardId, cardId, canEdit, checklist, items }: {
 
   const addItem = useMutation({
     mutationFn: (text: string) => addItemFn({ data: { checklistId: checklist.id, text } }),
-    onSuccess: inv, onError: (e) => toast.error(e.message),
+    onMutate: async (text) => {
+      await qc.cancelQueries({ queryKey: key });
+      const prev = qc.getQueryData<any>(key);
+      const tmpId = `tmp-${Math.random()}`;
+      qc.setQueryData<any>(key, (d: any) => {
+        if (!d) return d;
+        return { ...d, items: [...d.items, { id: tmpId, checklist_id: checklist.id, text, done: false, position: 9999 }] };
+      });
+      return { prev };
+    },
+    onError: (e, _v, ctx) => { if (ctx?.prev) qc.setQueryData(key, ctx.prev); toast.error(e.message); },
+    onSettled: inv,
   });
   const toggle = useMutation({
     mutationFn: (v: { id: string; done: boolean }) => toggleFn({ data: v }),
@@ -545,6 +618,169 @@ function ChecklistBlock({ boardId, cardId, canEdit, checklist, items }: {
           )}
         </div>
       )}
+    </div>
+  );
+}
+
+function CommentsBlock({ cardId, canEdit }: { cardId: string; canEdit: boolean }) {
+  const { user } = useAuth();
+  const qc = useQueryClient();
+  const key = ["comments", cardId] as const;
+  const getFn = useServerFn(getCardComments);
+  const addFn = useServerFn(addCardComment);
+  const updFn = useServerFn(updateCardComment);
+  const delFn = useServerFn(deleteCardComment);
+
+  const { data: comments = [] } = useQuery({
+    queryKey: key,
+    queryFn: () => getFn({ data: { cardId } }),
+  });
+
+  const add = useMutation({
+    mutationFn: (body: string) => addFn({ data: { cardId, body } }),
+    onMutate: async (body) => {
+      await qc.cancelQueries({ queryKey: key });
+      const prev = qc.getQueryData<any[]>(key);
+      const tmp = {
+        id: `tmp-${Math.random()}`,
+        card_id: cardId,
+        user_id: user?.id ?? "",
+        body,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+        profile: {
+          id: user?.id ?? "",
+          display_name: user?.user_metadata?.display_name ?? user?.email?.split("@")[0] ?? "You",
+          email: user?.email ?? null,
+          avatar_url: user?.user_metadata?.avatar_url ?? null,
+        },
+      };
+      qc.setQueryData<any[]>(key, (d) => [tmp, ...(d ?? [])]);
+      return { prev };
+    },
+    onError: (e, _v, ctx) => { if (ctx?.prev) qc.setQueryData(key, ctx.prev); toast.error(e.message); },
+    onSettled: () => qc.invalidateQueries({ queryKey: key }),
+  });
+
+  const update = useMutation({
+    mutationFn: (v: { id: string; body: string }) => updFn({ data: v }),
+    onMutate: async (v) => {
+      await qc.cancelQueries({ queryKey: key });
+      const prev = qc.getQueryData<any[]>(key);
+      qc.setQueryData<any[]>(key, (d) =>
+        (d ?? []).map((c) => (c.id === v.id ? { ...c, body: v.body, updated_at: new Date().toISOString() } : c)),
+      );
+      return { prev };
+    },
+    onError: (e, _v, ctx) => { if (ctx?.prev) qc.setQueryData(key, ctx.prev); toast.error(e.message); },
+    onSettled: () => qc.invalidateQueries({ queryKey: key }),
+  });
+
+  const remove = useMutation({
+    mutationFn: (id: string) => delFn({ data: { id } }),
+    onMutate: async (id) => {
+      await qc.cancelQueries({ queryKey: key });
+      const prev = qc.getQueryData<any[]>(key);
+      qc.setQueryData<any[]>(key, (d) => (d ?? []).filter((c) => c.id !== id));
+      return { prev };
+    },
+    onError: (e, _v, ctx) => { if (ctx?.prev) qc.setQueryData(key, ctx.prev); toast.error(e.message); },
+    onSettled: () => qc.invalidateQueries({ queryKey: key }),
+  });
+
+  const [body, setBody] = useState("");
+
+  return (
+    <div>
+      <div className="mb-2 flex items-center gap-2">
+        <MessageSquare className="h-4 w-4" />
+        <h3 className="font-semibold">Comments</h3>
+      </div>
+      {canEdit && (
+        <form
+          onSubmit={(e) => { e.preventDefault(); const v = body.trim(); if (v) { add.mutate(v); setBody(""); } }}
+          className="mb-4 space-y-2"
+        >
+          <Textarea
+            value={body}
+            onChange={(e) => setBody(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) {
+                e.preventDefault();
+                const v = body.trim();
+                if (v) { add.mutate(v); setBody(""); }
+              }
+            }}
+            placeholder="Write a comment…"
+            className="min-h-[70px] bg-tcard text-tcard-foreground"
+          />
+          <div className="flex items-center gap-2">
+            <Button type="submit" size="sm" disabled={!body.trim()}>Save</Button>
+            <span className="text-xs text-list-muted">Ctrl/⌘ + Enter to save</span>
+          </div>
+        </form>
+      )}
+      <div className="space-y-3">
+        {comments.map((c: any) => (
+          <CommentRow
+            key={c.id}
+            comment={c}
+            isOwn={c.user_id === user?.id}
+            onUpdate={(body) => update.mutate({ id: c.id, body })}
+            onDelete={() => remove.mutate(c.id)}
+          />
+        ))}
+        {comments.length === 0 && <div className="text-xs text-list-muted">No comments yet.</div>}
+      </div>
+    </div>
+  );
+}
+
+function CommentRow({ comment, isOwn, onUpdate, onDelete }: {
+  comment: any; isOwn: boolean; onUpdate: (body: string) => void; onDelete: () => void;
+}) {
+  const [editing, setEditing] = useState(false);
+  const [draft, setDraft] = useState(comment.body);
+  const name = comment.profile?.display_name ?? comment.profile?.email ?? "User";
+  const initials = name.slice(0, 2).toUpperCase();
+  const when = new Date(comment.created_at);
+  const edited = comment.updated_at && comment.updated_at !== comment.created_at;
+  return (
+    <div className="flex gap-2">
+      <div className="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-primary text-xs font-semibold text-primary-foreground">
+        {initials}
+      </div>
+      <div className="min-w-0 flex-1">
+        <div className="flex items-baseline gap-2 text-xs">
+          <span className="font-semibold text-list-foreground">{name}</span>
+          <span className="text-list-muted">
+            {when.toLocaleString(undefined, { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" })}
+            {edited && " (edited)"}
+          </span>
+        </div>
+        {editing ? (
+          <div className="mt-1 space-y-2">
+            <Textarea
+              autoFocus
+              value={draft}
+              onChange={(e) => setDraft(e.target.value)}
+              className="min-h-[60px] bg-tcard text-tcard-foreground"
+            />
+            <div className="flex gap-2">
+              <Button size="sm" onClick={() => { const v = draft.trim(); if (v) { onUpdate(v); setEditing(false); } }}>Save</Button>
+              <Button size="sm" variant="ghost" onClick={() => { setDraft(comment.body); setEditing(false); }}>Cancel</Button>
+            </div>
+          </div>
+        ) : (
+          <div className="mt-1 whitespace-pre-wrap rounded bg-tcard p-2 text-sm text-tcard-foreground">{comment.body}</div>
+        )}
+        {isOwn && !editing && (
+          <div className="mt-1 flex gap-3 text-xs text-list-muted">
+            <button className="hover:underline" onClick={() => setEditing(true)}>Edit</button>
+            <button className="hover:underline" onClick={() => { if (confirm("Delete comment?")) onDelete(); }}>Delete</button>
+          </div>
+        )}
+      </div>
     </div>
   );
 }
