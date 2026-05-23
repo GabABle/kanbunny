@@ -292,11 +292,36 @@ function LabelsPopover({ boardId, cardId, canEdit, labels, myLabelIds }: { board
   });
   const create = useMutation({
     mutationFn: (v: { name: string; color: string }) => createFn({ data: { boardId, ...v } }),
-    onSuccess: inv, onError: (e) => toast.error(e.message),
+    onMutate: async (v) => {
+      await qc.cancelQueries({ queryKey: ["board", boardId] });
+      const prev = qc.getQueryData<any>(["board", boardId]);
+      const tmpId = `tmp-${Math.random()}`;
+      qc.setQueryData<any>(["board", boardId], (d: any) =>
+        d ? { ...d, labels: [...d.labels, { id: tmpId, name: v.name, color: v.color }] } : d,
+      );
+      return { prev };
+    },
+    onError: (e, _v, ctx) => { if (ctx?.prev) qc.setQueryData(["board", boardId], ctx.prev); toast.error(e.message); },
+    onSettled: inv,
   });
   const remove = useMutation({
     mutationFn: (id: string) => deleteFn({ data: { id } }),
-    onSuccess: inv, onError: (e) => toast.error(e.message),
+    onMutate: async (id) => {
+      await qc.cancelQueries({ queryKey: ["board", boardId] });
+      const prev = qc.getQueryData<any>(["board", boardId]);
+      qc.setQueryData<any>(["board", boardId], (d: any) =>
+        d
+          ? {
+              ...d,
+              labels: d.labels.filter((l: any) => l.id !== id),
+              cardLabels: d.cardLabels.filter((cl: any) => cl.label_id !== id),
+            }
+          : d,
+      );
+      return { prev };
+    },
+    onError: (e, _v, ctx) => { if (ctx?.prev) qc.setQueryData(["board", boardId], ctx.prev); toast.error(e.message); },
+    onSettled: inv,
   });
 
   const [creating, setCreating] = useState(false);
