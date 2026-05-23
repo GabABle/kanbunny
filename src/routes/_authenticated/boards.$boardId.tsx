@@ -243,7 +243,12 @@ function CardFront({ card, data, canEdit, onOpen, onMove, listId }: {
   return (
     <div
       onClick={onOpen}
-      className="cursor-pointer rounded-md bg-tcard text-tcard-foreground p-2 text-sm shadow-sm hover:ring-2 hover:ring-primary/40 transition"
+      draggable={canEdit}
+      onDragStart={(e) => {
+        e.dataTransfer.setData("text/card-id", card.id);
+        e.dataTransfer.effectAllowed = "move";
+      }}
+      className="cursor-pointer rounded-md bg-tcard text-tcard-foreground p-2 text-sm shadow-sm hover:ring-2 hover:ring-primary/40 transition active:opacity-60"
     >
       {myLabels.length > 0 && (
         <div className="mb-1.5 flex flex-wrap gap-1">
