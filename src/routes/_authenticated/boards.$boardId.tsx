@@ -33,11 +33,6 @@ function BoardPage() {
   const getBoardFn = useServerFn(getBoard);
   const { data, isLoading } = useQuery({ queryKey: ["board", boardId], queryFn: () => getBoardFn({ data: { id: boardId } }) });
   const qc = useQueryClient();
-  if (isLoading || !data) {
-    return <div className="grid min-h-[60vh] place-items-center text-sm text-muted-foreground">Loading…</div>;
-  }
-  const canEdit = data.role === "owner" || data.role === "editor";
-
   const invalidate = () => qc.invalidateQueries({ queryKey: ["board", boardId] });
 
   const createListFn = useServerFn(createList);
@@ -58,6 +53,11 @@ function BoardPage() {
 
   const [newListTitle, setNewListTitle] = useState("");
   const [openCard, setOpenCard] = useState<string | null>(null);
+
+  if (isLoading || !data) {
+    return <div className="grid min-h-[60vh] place-items-center text-sm text-muted-foreground">Loading…</div>;
+  }
+  const canEdit = data.role === "owner" || data.role === "editor";
   const openedCard = data.cards.find((c) => c.id === openCard);
 
   const cardsByList = (listId: string) => data.cards.filter((c) => c.list_id === listId).sort((a, b) => a.position - b.position);
