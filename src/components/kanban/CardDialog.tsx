@@ -606,7 +606,117 @@ function ChecklistBlock({ boardId, cardId, canEdit, checklist, items }: {
   );
 }
 
-function CommentsBlock({ cardId, canEdit }: { cardId: string; canEdit: boolean }) {
+function AttachmentButton({ cardId, canEdit }: { cardId: string; canEdit: boolean }) {
+  const ref = useRef<HTMLInputElement>(null);
+  const qc = useQueryClient();
+  const addFn = useServerFn(addCardAttachment);
+  const key = ["attachments", cardId] as const;
+  const [uploading, setUploading] = useState(false);
+
+  const onPick = async (file: File) => {
+    if (!file) return;
+    setUploading(true);
+    try {
+      const safe = file.name.replace(/[^a-zA-Z0-9._-]/g, "_");
+      const path = `${cardId}/${crypto.randomUUID()}-${safe}`;
+      const { error } = await supabase.storage.from("card-attachments").upload(path, file, {
+        contentType: file.type || undefined,
+        upsert: false,
+      });
+      if (error) throw error;
+      await addFn({ data: { cardId, file_path: path, file_name: file.name, mime_type: file.type || null, size_bytes: file.size } });
+      qc.invalidateQueries({ queryKey: key });
+    } catch (e: any) {
+      toast.error(e.message ?? "Upload failed");
+    } finally {
+      setUploading(false);
+      if (ref.current) ref.current.value = "";
+    }
+  };
+
+  return (
+    <>
+      <input
+        ref={ref}
+        type="file"
+        className="hidden"
+        onChange={(e) => e.target.files?.[0] && onPick(e.target.files[0])}
+      />
+      <SidebarButton icon={Paperclip} disabled={!canEdit || uploading} onClick={() => ref.current?.click()}>
+        {uploading ? "Uploading…" : "Attachment"}
+      </SidebarButton>
+    </>
+  );
+}
+
+function AttachmentsBlock({ cardId, canEdit }: { cardId: string; canEdit: boolean }) {
+  const { user } = useAuth();
+  const qc = useQueryClient();
+  const key = ["attachments", cardId] as const;
+  const listFn = useServerFn(listCardAttachments);
+  const delFn = useServerFn(deleteCardAttachment);
+  const urlFn = useServerFn(getAttachmentUrl);
+  const { data: attachments = [] } = useQuery({
+    queryKey: key,
+    queryFn: () => listFn({ data: { cardId } }),
+  });
+  const remove = useMutation({
+    mutationFn: (id: string) => delFn({ data: { id } }),
+    onMutate: async (id) => {
+      await qc.cancelQueries({ queryKey: key });
+      const prev = qc.getQueryData<any[]>(key);
+      qc.setQueryData<any[]>(key, (d) => (d ?? []).filter((a) => a.id !== id));
+      return { prev };
+    },
+    onError: (e, _v, ctx) => { if (ctx?.prev) qc.setQueryData(key, ctx.prev); toast.error(e.message); },
+    onSettled: () => qc.invalidateQueries({ queryKey: key }),
+  });
+  const open = async (path: string) => {
+    try {
+      const { url } = await urlFn({ data: { file_path: path } });
+      window.open(url, "_blank", "noopener,noreferrer");
+    } catch (e: any) { toast.error(e.message); }
+  };
+  if (attachments.length === 0) return null;
+  return (
+    <div>
+      <div className="mb-2 flex items-center gap-2">
+        <Paperclip className="h-4 w-4" />
+        <h3 className="font-semibold">Attachments</h3>
+      </div>
+      <div className="space-y-2">
+        {attachments.map((a: any) => (
+          <div key={a.id} className="flex items-center gap-3 rounded bg-tcard p-2 text-sm">
+            <div className="grid h-10 w-14 shrink-0 place-items-center rounded bg-list text-list-muted">
+              <FileIcon className="h-5 w-5" />
+            </div>
+            <div className="min-w-0 flex-1">
+              <button onClick={() => open(a.file_path)} className="block w-full truncate text-left font-medium hover:underline">{a.file_name}</button>
+              <div className="text-xs text-list-muted">
+                {new Date(a.created_at).toLocaleString(undefined, { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" })}
+                {a.size_bytes ? ` · ${formatBytes(a.size_bytes)}` : ""}
+              </div>
+            </div>
+            <Button size="sm" variant="ghost" onClick={() => open(a.file_path)} title="Download"><Download className="h-4 w-4" /></Button>
+            {(canEdit || a.user_id === user?.id) && (
+              <Button size="sm" variant="ghost" onClick={() => { if (confirm("Delete attachment?")) remove.mutate(a.id); }}>
+                <Trash2 className="h-4 w-4" />
+              </Button>
+            )}
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function formatBytes(n: number) {
+  if (n < 1024) return `${n} B`;
+  if (n < 1024 * 1024) return `${(n / 1024).toFixed(1)} KB`;
+  return `${(n / 1024 / 1024).toFixed(1)} MB`;
+}
+
+function CommentsBlock({ cardId, canEdit, members }: { cardId: string; canEdit: boolean; members: Member[] }) {
   const { user } = useAuth();
   const qc = useQueryClient();
   const key = ["comments", cardId] as const;
