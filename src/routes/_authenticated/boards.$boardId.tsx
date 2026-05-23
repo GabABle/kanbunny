@@ -161,7 +161,16 @@ function BoardPage() {
       <div className="flex-1 overflow-x-auto">
         <div className="flex h-full items-start gap-3 p-4">
           {data.lists.sort((a, b) => a.position - b.position).map((list) => (
-            <div key={list.id} className="flex w-72 flex-none flex-col rounded-xl bg-list text-list-foreground shadow-sm max-h-full">
+            <div
+              key={list.id}
+              className="flex w-72 flex-none flex-col rounded-xl bg-list text-list-foreground shadow-sm max-h-full"
+              onDragOver={(e) => { e.preventDefault(); e.dataTransfer.dropEffect = "move"; }}
+              onDrop={(e) => {
+                e.preventDefault();
+                const cardId = e.dataTransfer.getData("text/card-id");
+                if (cardId) moveCardTo(cardId, list.id);
+              }}
+            >
               <div className="flex items-center justify-between px-3 pt-2 pb-1">
                 <InlineRename
                   value={list.title}
