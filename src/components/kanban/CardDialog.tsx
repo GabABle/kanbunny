@@ -469,10 +469,21 @@ function DueDatePopover({ canEdit, dueDate, onChange }: { canEdit: boolean; dueD
 function ChecklistAdd({ boardId, cardId, canEdit }: { boardId: string; cardId: string; canEdit: boolean }) {
   const qc = useQueryClient();
   const fn = useServerFn(addChecklist);
+  const key = ["checklists", cardId] as const;
   const mut = useMutation({
     mutationFn: (title: string) => fn({ data: { cardId, title } }),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["checklists", cardId] }),
-    onError: (e) => toast.error(e.message),
+    onMutate: async (title) => {
+      await qc.cancelQueries({ queryKey: key });
+      const prev = qc.getQueryData<any>(key);
+      const tmpId = `tmp-${Math.random()}`;
+      qc.setQueryData<any>(key, (d: any) => {
+        const base = d ?? { checklists: [], items: [] };
+        return { ...base, checklists: [...base.checklists, { id: tmpId, title, position: 9999 }] };
+      });
+      return { prev };
+    },
+    onError: (e, _v, ctx) => { if (ctx?.prev) qc.setQueryData(key, ctx.prev); toast.error(e.message); },
+    onSettled: () => qc.invalidateQueries({ queryKey: key }),
   });
   const [open, setOpen] = useState(false);
   const [title, setTitle] = useState("Checklist");
