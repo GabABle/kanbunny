@@ -391,3 +391,73 @@ export const deleteCardComment = createServerFn({ method: "POST" })
     if (error) throw new Error(error.message);
     return { ok: true };
   });
+
+// ---------- Attachments ----------
+export const listCardAttachments = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d) => z.object({ cardId: uuid }).parse(d))
+  .handler(async ({ data, context }) => {
+    const { data: rows, error } = await context.supabase
+      .from("card_attachments")
+      .select("id, card_id, user_id, file_name, file_path, mime_type, size_bytes, created_at")
+      .eq("card_id", data.cardId)
+      .order("created_at", { ascending: false });
+    if (error) throw new Error(error.message);
+    return rows ?? [];
+  });
+
+export const addCardAttachment = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d) =>
+    z.object({
+      cardId: uuid,
+      file_path: z.string().min(1).max(500),
+      file_name: z.string().min(1).max(255),
+      mime_type: z.string().max(150).optional().nullable(),
+      size_bytes: z.number().int().nonnegative().optional().nullable(),
+    }).parse(d),
+  )
+  .handler(async ({ data, context }) => {
+    const { supabase, userId } = context;
+    const { data: row, error } = await supabase
+      .from("card_attachments")
+      .insert({
+        card_id: data.cardId,
+        user_id: userId,
+        file_path: data.file_path,
+        file_name: data.file_name,
+        mime_type: data.mime_type ?? null,
+        size_bytes: data.size_bytes ?? null,
+      })
+      .select()
+      .single();
+    if (error) throw new Error(error.message);
+    return row;
+  });
+
+export const deleteCardAttachment = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d) => z.object({ id: uuid }).parse(d))
+  .handler(async ({ data, context }) => {
+    const { supabase } = context;
+    const { data: row, error: gErr } = await supabase
+      .from("card_attachments").select("file_path").eq("id", data.id).maybeSingle();
+    if (gErr) throw new Error(gErr.message);
+    if (row?.file_path) {
+      await supabase.storage.from("card-attachments").remove([row.file_path]);
+    }
+    const { error } = await supabase.from("card_attachments").delete().eq("id", data.id);
+    if (error) throw new Error(error.message);
+    return { ok: true };
+  });
+
+export const getAttachmentUrl = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d) => z.object({ file_path: z.string().min(1).max(500) }).parse(d))
+  .handler(async ({ data, context }) => {
+    const { data: signed, error } = await context.supabase.storage
+      .from("card-attachments")
+      .createSignedUrl(data.file_path, 60 * 10);
+    if (error) throw new Error(error.message);
+    return { url: signed.signedUrl };
+  });
