@@ -906,16 +906,21 @@ function CommentsBlock({ cardId, canEdit, members }: { cardId: string; canEdit: 
   );
 }
 
-function CommentRow({ comment, isOwn, canReply, members, onUpdate, onDelete, onReply }: {
+function CommentRow({
+  comment, isOwn, canReply, members, onUpdate, onDelete,
+  replying, replyBody, onReplyBodyChange, onToggleReply, onSubmitReply,
+}: {
   comment: any; isOwn: boolean; canReply?: boolean;
   members: Member[];
   onUpdate: (body: string) => void; onDelete: () => void;
-  onReply?: (body: string) => void;
+  replying?: boolean;
+  replyBody?: string;
+  onReplyBodyChange?: (v: string) => void;
+  onToggleReply?: () => void;
+  onSubmitReply?: () => void;
 }) {
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState(comment.body);
-  const [replying, setReplying] = useState(false);
-  const [reply, setReply] = useState("");
   const name = comment.profile?.display_name ?? comment.profile?.email ?? "User";
   const initials = name.slice(0, 2).toUpperCase();
   const when = new Date(comment.created_at);
@@ -942,8 +947,8 @@ function CommentRow({ comment, isOwn, canReply, members, onUpdate, onDelete, onR
               className="min-h-[60px] bg-tcard text-tcard-foreground"
             />
             <div className="flex gap-2">
-              <Button size="sm" onClick={() => { const v = draft.trim(); if (v) { onUpdate(v); setEditing(false); } }}>Save</Button>
-              <Button size="sm" variant="ghost" onClick={() => { setDraft(comment.body); setEditing(false); }}>Cancel</Button>
+              <Button type="button" size="sm" onClick={() => { const v = draft.trim(); if (v) { onUpdate(v); setEditing(false); } }}>Save</Button>
+              <Button type="button" size="sm" variant="ghost" onClick={() => { setDraft(comment.body); setEditing(false); }}>Cancel</Button>
             </div>
           </div>
         ) : (
@@ -951,25 +956,25 @@ function CommentRow({ comment, isOwn, canReply, members, onUpdate, onDelete, onR
         )}
         {!editing && (
           <div className="mt-1 flex gap-3 text-xs text-list-muted">
-            {canReply && onReply && (
-              <button className="hover:underline" onClick={() => setReplying((r) => !r)}>Reply</button>
+            {canReply && onToggleReply && (
+              <button type="button" className="hover:underline" onClick={onToggleReply}>Reply</button>
             )}
-            {isOwn && <button className="hover:underline" onClick={() => setEditing(true)}>Edit</button>}
-            {isOwn && <button className="hover:underline" onClick={() => { if (confirm("Delete comment?")) onDelete(); }}>Delete</button>}
+            {isOwn && <button type="button" className="hover:underline" onClick={() => setEditing(true)}>Edit</button>}
+            {isOwn && <button type="button" className="hover:underline" onClick={() => { if (confirm("Delete comment?")) onDelete(); }}>Delete</button>}
           </div>
         )}
-        {replying && onReply && (
+        {replying && onSubmitReply && onReplyBodyChange && (
           <div className="mt-2 space-y-2">
             <MentionTextarea
-              value={reply}
-              onChange={setReply}
+              value={replyBody ?? ""}
+              onChange={onReplyBodyChange}
               members={members}
               placeholder={`Reply to ${name}…`}
-              onSubmit={() => { const v = reply.trim(); if (v) { onReply(v); setReply(""); setReplying(false); } }}
+              onSubmit={onSubmitReply}
             />
             <div className="flex gap-2">
-              <Button size="sm" onClick={() => { const v = reply.trim(); if (v) { onReply(v); setReply(""); setReplying(false); } }}>Reply</Button>
-              <Button size="sm" variant="ghost" onClick={() => { setReply(""); setReplying(false); }}>Cancel</Button>
+              <Button type="button" size="sm" onClick={onSubmitReply}>Reply</Button>
+              <Button type="button" size="sm" variant="ghost" onClick={onToggleReply}>Cancel</Button>
             </div>
           </div>
         )}
