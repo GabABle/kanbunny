@@ -28,7 +28,7 @@ function SignupPage() {
   const onSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setBusy(true);
-    const { error } = await supabase.auth.signUp({
+    const { data, error } = await supabase.auth.signUp({
       email,
       password,
       options: {
@@ -36,9 +36,13 @@ function SignupPage() {
         data: { display_name: name },
       },
     });
+    if (error) { setBusy(false); return toast.error(error.message); }
+    if (!data.session) {
+      const { error: signInError } = await supabase.auth.signInWithPassword({ email, password });
+      if (signInError) { setBusy(false); return toast.error(signInError.message); }
+    }
     setBusy(false);
-    if (error) return toast.error(error.message);
-    toast.success("Check your email to verify your account.");
+    navigate({ to: "/boards" });
   };
 
   const onGoogle = async () => {
