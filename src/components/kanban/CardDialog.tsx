@@ -474,10 +474,15 @@ function ChecklistAdd({ boardId, cardId, canEdit }: { boardId: string; cardId: s
         const base = d ?? { checklists: [], items: [] };
         return { ...base, checklists: [...base.checklists, { id: tmpId, title, position: 9999 }] };
       });
-      return { prev };
+      return { prev, tmpId };
     },
     onError: (e, _v, ctx) => { if (ctx?.prev) qc.setQueryData(key, ctx.prev); toast.error(e.message); },
-    onSettled: () => qc.invalidateQueries({ queryKey: key }),
+    onSuccess: (real: any, _v, ctx) => {
+      qc.setQueryData<any>(key, (d: any) => {
+        if (!d) return d;
+        return { ...d, checklists: d.checklists.map((c: any) => (c.id === ctx?.tmpId ? real : c)) };
+      });
+    },
   });
   const [open, setOpen] = useState(false);
   const [title, setTitle] = useState("Checklist");
