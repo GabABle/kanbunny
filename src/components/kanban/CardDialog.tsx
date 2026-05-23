@@ -106,9 +106,11 @@ export function CardDialog({
   // ---- Checklists ----
   const getChecklistsFn = useServerFn(getCardChecklists);
   const checklistKey = ["checklists", card.id] as const;
+  const isRealCard = !card.id.startsWith("tmp-");
   const { data: cl } = useQuery({
     queryKey: checklistKey,
     queryFn: () => getChecklistsFn({ data: { cardId: card.id } }),
+    enabled: isRealCard,
   });
 
   return (
@@ -692,6 +694,7 @@ function AttachmentsBlock({ cardId, canEdit }: { cardId: string; canEdit: boolea
   const { data: attachments = [] } = useQuery({
     queryKey: key,
     queryFn: () => listFn({ data: { cardId } }),
+    enabled: /^[0-9a-f-]{36}$/i.test(cardId),
   });
   const remove = useMutation({
     mutationFn: (id: string) => delFn({ data: { id } }),
@@ -762,6 +765,7 @@ function CommentsBlock({ cardId, canEdit, members }: { cardId: string; canEdit: 
     queryKey: key,
     queryFn: () => getFn({ data: { cardId } }),
     refetchOnWindowFocus: false,
+    enabled: /^[0-9a-f-]{36}$/i.test(cardId),
   });
 
   const add = useMutation({
