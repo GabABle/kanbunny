@@ -621,3 +621,166 @@ function ChecklistBlock({ boardId, cardId, canEdit, checklist, items }: {
     </div>
   );
 }
+
+function CommentsBlock({ cardId, canEdit }: { cardId: string; canEdit: boolean }) {
+  const { user } = useAuth();
+  const qc = useQueryClient();
+  const key = ["comments", cardId] as const;
+  const getFn = useServerFn(getCardComments);
+  const addFn = useServerFn(addCardComment);
+  const updFn = useServerFn(updateCardComment);
+  const delFn = useServerFn(deleteCardComment);
+
+  const { data: comments = [] } = useQuery({
+    queryKey: key,
+    queryFn: () => getFn({ data: { cardId } }),
+  });
+
+  const add = useMutation({
+    mutationFn: (body: string) => addFn({ data: { cardId, body } }),
+    onMutate: async (body) => {
+      await qc.cancelQueries({ queryKey: key });
+      const prev = qc.getQueryData<any[]>(key);
+      const tmp = {
+        id: `tmp-${Math.random()}`,
+        card_id: cardId,
+        user_id: user?.id ?? "",
+        body,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+        profile: {
+          id: user?.id ?? "",
+          display_name: user?.user_metadata?.display_name ?? user?.email?.split("@")[0] ?? "You",
+          email: user?.email ?? null,
+          avatar_url: user?.user_metadata?.avatar_url ?? null,
+        },
+      };
+      qc.setQueryData<any[]>(key, (d) => [tmp, ...(d ?? [])]);
+      return { prev };
+    },
+    onError: (e, _v, ctx) => { if (ctx?.prev) qc.setQueryData(key, ctx.prev); toast.error(e.message); },
+    onSettled: () => qc.invalidateQueries({ queryKey: key }),
+  });
+
+  const update = useMutation({
+    mutationFn: (v: { id: string; body: string }) => updFn({ data: v }),
+    onMutate: async (v) => {
+      await qc.cancelQueries({ queryKey: key });
+      const prev = qc.getQueryData<any[]>(key);
+      qc.setQueryData<any[]>(key, (d) =>
+        (d ?? []).map((c) => (c.id === v.id ? { ...c, body: v.body, updated_at: new Date().toISOString() } : c)),
+      );
+      return { prev };
+    },
+    onError: (e, _v, ctx) => { if (ctx?.prev) qc.setQueryData(key, ctx.prev); toast.error(e.message); },
+    onSettled: () => qc.invalidateQueries({ queryKey: key }),
+  });
+
+  const remove = useMutation({
+    mutationFn: (id: string) => delFn({ data: { id } }),
+    onMutate: async (id) => {
+      await qc.cancelQueries({ queryKey: key });
+      const prev = qc.getQueryData<any[]>(key);
+      qc.setQueryData<any[]>(key, (d) => (d ?? []).filter((c) => c.id !== id));
+      return { prev };
+    },
+    onError: (e, _v, ctx) => { if (ctx?.prev) qc.setQueryData(key, ctx.prev); toast.error(e.message); },
+    onSettled: () => qc.invalidateQueries({ queryKey: key }),
+  });
+
+  const [body, setBody] = useState("");
+
+  return (
+    <div>
+      <div className="mb-2 flex items-center gap-2">
+        <MessageSquare className="h-4 w-4" />
+        <h3 className="font-semibold">Comments</h3>
+      </div>
+      {canEdit && (
+        <form
+          onSubmit={(e) => { e.preventDefault(); const v = body.trim(); if (v) { add.mutate(v); setBody(""); } }}
+          className="mb-4 space-y-2"
+        >
+          <Textarea
+            value={body}
+            onChange={(e) => setBody(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) {
+                e.preventDefault();
+                const v = body.trim();
+                if (v) { add.mutate(v); setBody(""); }
+              }
+            }}
+            placeholder="Write a comment…"
+            className="min-h-[70px] bg-tcard text-tcard-foreground"
+          />
+          <div className="flex items-center gap-2">
+            <Button type="submit" size="sm" disabled={!body.trim()}>Save</Button>
+            <span className="text-xs text-list-muted">Ctrl/⌘ + Enter to save</span>
+          </div>
+        </form>
+      )}
+      <div className="space-y-3">
+        {comments.map((c: any) => (
+          <CommentRow
+            key={c.id}
+            comment={c}
+            isOwn={c.user_id === user?.id}
+            onUpdate={(body) => update.mutate({ id: c.id, body })}
+            onDelete={() => remove.mutate(c.id)}
+          />
+        ))}
+        {comments.length === 0 && <div className="text-xs text-list-muted">No comments yet.</div>}
+      </div>
+    </div>
+  );
+}
+
+function CommentRow({ comment, isOwn, onUpdate, onDelete }: {
+  comment: any; isOwn: boolean; onUpdate: (body: string) => void; onDelete: () => void;
+}) {
+  const [editing, setEditing] = useState(false);
+  const [draft, setDraft] = useState(comment.body);
+  const name = comment.profile?.display_name ?? comment.profile?.email ?? "User";
+  const initials = name.slice(0, 2).toUpperCase();
+  const when = new Date(comment.created_at);
+  const edited = comment.updated_at && comment.updated_at !== comment.created_at;
+  return (
+    <div className="flex gap-2">
+      <div className="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-primary text-xs font-semibold text-primary-foreground">
+        {initials}
+      </div>
+      <div className="min-w-0 flex-1">
+        <div className="flex items-baseline gap-2 text-xs">
+          <span className="font-semibold text-list-foreground">{name}</span>
+          <span className="text-list-muted">
+            {when.toLocaleString(undefined, { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" })}
+            {edited && " (edited)"}
+          </span>
+        </div>
+        {editing ? (
+          <div className="mt-1 space-y-2">
+            <Textarea
+              autoFocus
+              value={draft}
+              onChange={(e) => setDraft(e.target.value)}
+              className="min-h-[60px] bg-tcard text-tcard-foreground"
+            />
+            <div className="flex gap-2">
+              <Button size="sm" onClick={() => { const v = draft.trim(); if (v) { onUpdate(v); setEditing(false); } }}>Save</Button>
+              <Button size="sm" variant="ghost" onClick={() => { setDraft(comment.body); setEditing(false); }}>Cancel</Button>
+            </div>
+          </div>
+        ) : (
+          <div className="mt-1 whitespace-pre-wrap rounded bg-tcard p-2 text-sm text-tcard-foreground">{comment.body}</div>
+        )}
+        {isOwn && !editing && (
+          <div className="mt-1 flex gap-3 text-xs text-list-muted">
+            <button className="hover:underline" onClick={() => setEditing(true)}>Edit</button>
+            <button className="hover:underline" onClick={() => { if (confirm("Delete comment?")) onDelete(); }}>Delete</button>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
