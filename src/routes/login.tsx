@@ -1,4 +1,4 @@
-import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate, useRouter } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/use-auth";
@@ -16,6 +16,7 @@ export const Route = createFileRoute("/login")({
 function LoginPage() {
   const { user } = useAuth();
   const navigate = useNavigate();
+  const router = useRouter();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [busy, setBusy] = useState(false);
@@ -23,6 +24,11 @@ function LoginPage() {
   useEffect(() => {
     if (user) navigate({ to: "/boards" });
   }, [user, navigate]);
+
+  useEffect(() => {
+    router.preloadRoute({ to: "/signup" });
+    router.preloadRoute({ to: "/boards" });
+  }, [router]);
 
   const onSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
