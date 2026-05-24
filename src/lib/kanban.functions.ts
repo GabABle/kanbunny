@@ -301,11 +301,11 @@ export const inviteMember = createServerFn({ method: "POST" })
       .ilike("display_name", uname)
       .limit(2);
     if (pErr) throw new Error(pErr.message);
-    if (!matches || matches.length === 0) throw new Error(`No user found with username "@${uname}".`);
-    if (matches.length > 1) throw new Error(`Multiple users match "@${uname}". Please be more specific.`);
+    if (!matches || matches.length === 0) return { ok: false, error: `No user found with username "@${uname}".` } as const;
+    if (matches.length > 1) return { ok: false, error: `Multiple users match "@${uname}". Please be more specific.` } as const;
     const { error } = await supabase.from("board_members").insert({ board_id: data.boardId, user_id: matches[0].id, role: data.role });
-    if (error) throw new Error(error.message);
-    return { ok: true };
+    if (error) return { ok: false, error: error.message } as const;
+    return { ok: true } as const;
   });
 
 export const removeMember = createServerFn({ method: "POST" })
