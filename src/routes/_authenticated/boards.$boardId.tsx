@@ -10,7 +10,7 @@ import { Plus, Trash2, UserPlus, X, Clock, Bell, Filter } from "lucide-react";
 import {
   getBoard, createList, renameList, deleteList,
   createCard, updateCard, deleteCard, moveCard,
-  inviteMember, removeMember, searchProfiles,
+  inviteMember, removeMember, searchProfiles, renameBoard,
 } from "@/lib/kanban.functions";
 import { toast } from "sonner";
 import { CardDialog } from "@/components/kanban/CardDialog";
@@ -97,6 +97,7 @@ function BoardPage() {
   const createListFn = useServerFn(createList);
   const renameListFn = useServerFn(renameList);
   const deleteListFn = useServerFn(deleteList);
+  const renameBoardFn = useServerFn(renameBoard);
   const createCardFn = useServerFn(createCard);
   const updateCardFn = useServerFn(updateCard);
   const deleteCardFn = useServerFn(deleteCard);
@@ -180,6 +181,16 @@ function BoardPage() {
     },
     onError: (e, _v, ctx) => { if (ctx?.prev) qc.setQueryData(key, ctx.prev); toast.error(e.message); },
   });
+  const renameBoardMut = useMutation({
+    mutationFn: (title: string) => renameBoardFn({ data: { id: boardId, title } }),
+    onMutate: async (title) => {
+      await qc.cancelQueries({ queryKey: key });
+      const prev = qc.getQueryData<BoardData>(key);
+      patch((d) => ({ ...d, board: { ...d.board, title } }));
+      return { prev };
+    },
+    onError: (e, _v, ctx) => { if (ctx?.prev) qc.setQueryData(key, ctx.prev); toast.error(e.message); },
+  });
 
   const [newListTitle, setNewListTitle] = useState("");
   const [openCard, setOpenCard] = useState<string | null>(null);
@@ -221,7 +232,12 @@ function BoardPage() {
     <div className="flex h-[calc(100vh-48px)] flex-col bg-board text-board-foreground">
       <div className="flex items-center justify-between bg-board-bar px-4 py-2 backdrop-blur">
         <div>
-          <h1 className="text-base font-semibold tracking-tight text-board-foreground">{data.board.title}</h1>
+          <InlineRename
+            value={data.board.title}
+            disabled={!canEdit}
+            onSave={(t) => renameBoardMut.mutate(t)}
+            className="text-base font-semibold tracking-tight text-board-foreground"
+          />
           {data.board.description && <p className="text-xs text-board-foreground/70">{data.board.description}</p>}
         </div>
         <div className="flex items-center gap-2">
