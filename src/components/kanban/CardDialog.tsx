@@ -30,7 +30,7 @@ import { cn } from "@/lib/utils";
 import { useAuth } from "@/hooks/use-auth";
 import { supabase } from "@/integrations/supabase/client";
 import { useConfirm } from "@/components/ui/confirm-dialog";
-import { avatarColor } from "@/lib/avatar-color";
+import { colorFor } from "@/lib/avatar-color";
 
 const LABEL_COLORS = [
   "#61bd4f", "#f2d600", "#ff9f1a", "#eb5a46", "#c377e0",
@@ -39,7 +39,7 @@ const LABEL_COLORS = [
 
 type Card = { id: string; title: string; description: string | null; due_date: string | null; list_id: string; created_by?: string | null };
 type Label = { id: string; name: string; color: string };
-type Member = { user_id: string; role: string; profile: { id: string; display_name: string | null; email: string | null; avatar_url: string | null } | null };
+type Member = { user_id: string; role: string; profile: { id: string; display_name: string | null; email: string | null; avatar_url: string | null; avatar_color?: string | null } | null };
 
 export function CardDialog({
   card, listTitle, boardId, canEdit, labels, cardLabels, assignees, members, onClose,
@@ -193,7 +193,7 @@ export function CardDialog({
                   <div>
                     <div className="text-[11px] font-semibold uppercase text-list-muted mb-1">Owner</div>
                     <div className="flex items-center gap-2 rounded px-2 py-1.5 text-sm">
-                      <span className="grid h-6 w-6 place-items-center rounded-full text-[10px] font-semibold text-white" style={{ backgroundColor: avatarColor(owner?.user_id) }}>
+                      <span className="grid h-6 w-6 place-items-center rounded-full text-[10px] font-semibold text-white" style={{ backgroundColor: colorFor(owner) }}>
                         {ownerName.slice(0, 1).toUpperCase()}
                       </span>
                       <span>{ownerName}</span>
@@ -306,7 +306,7 @@ function Avatar({ member }: { member: Member }) {
   const name = member.profile?.display_name ?? member.profile?.email ?? "?";
   const initials = name.slice(0, 2).toUpperCase();
   return (
-    <div className="grid h-7 w-7 place-items-center rounded-full text-xs font-semibold text-white" style={{ backgroundColor: avatarColor(member.user_id) }} title={name}>
+    <div className="grid h-7 w-7 place-items-center rounded-full text-xs font-semibold text-white" style={{ backgroundColor: colorFor(member) }} title={name}>
       {initials}
     </div>
   );

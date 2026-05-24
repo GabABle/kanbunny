@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { Plus, Trash2, UserPlus, X, Clock } from "lucide-react";
+import { Plus, Trash2, UserPlus, X, Clock, Bell, Filter } from "lucide-react";
 import {
   getBoard, createList, renameList, deleteList,
   createCard, updateCard, deleteCard, moveCard,
@@ -16,7 +16,53 @@ import { toast } from "sonner";
 import { CardDialog } from "@/components/kanban/CardDialog";
 import { cn } from "@/lib/utils";
 import { useConfirm } from "@/components/ui/confirm-dialog";
-import { avatarColor } from "@/lib/avatar-color";
+import { colorFor } from "@/lib/avatar-color";
+
+function UserFilterPopover({ members, selected, onChange }: { members: any[]; selected: Set<string>; onChange: (s: Set<string>) => void }) {
+  const toggle = (id: string) => {
+    const next = new Set(selected);
+    if (next.has(id)) next.delete(id); else next.add(id);
+    onChange(next);
+  };
+  return (
+    <Popover>
+      <PopoverTrigger asChild>
+        <Button variant={selected.size > 0 ? "default" : "outline"} size="sm">
+          <Filter className="h-4 w-4" /> User{selected.size > 0 ? ` (${selected.size})` : ""}
+        </Button>
+      </PopoverTrigger>
+      <PopoverContent align="end" className="w-64">
+        <div className="space-y-2">
+          <div className="flex items-center justify-between">
+            <div className="text-sm font-medium">Filter by user</div>
+            {selected.size > 0 && (
+              <button className="text-xs text-muted-foreground hover:underline" onClick={() => onChange(new Set())}>Clear</button>
+            )}
+          </div>
+          <div className="max-h-72 space-y-1 overflow-y-auto">
+            {members.map((m) => {
+              const name = m.profile?.display_name ?? m.profile?.email ?? "User";
+              const on = selected.has(m.user_id);
+              return (
+                <button
+                  key={m.user_id}
+                  onClick={() => toggle(m.user_id)}
+                  className={cn("flex w-full items-center gap-2 rounded px-2 py-1.5 text-left text-sm hover:bg-accent", on && "bg-accent")}
+                >
+                  <span className="grid h-6 w-6 place-items-center rounded-full text-[10px] font-semibold text-white" style={{ backgroundColor: colorFor(m) }}>
+                    {name.slice(0, 1).toUpperCase()}
+                  </span>
+                  <span className="flex-1 truncate">{name}</span>
+                  {on && <span className="text-xs text-primary">✓</span>}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      </PopoverContent>
+    </Popover>
+  );
+}
 
 export const Route = createFileRoute("/_authenticated/boards/$boardId")({
   head: () => ({ meta: [{ title: "Board — Stack" }] }),
@@ -139,6 +185,8 @@ function BoardPage() {
   const [openCard, setOpenCard] = useState<string | null>(null);
   const [dragOverList, setDragOverList] = useState<string | null>(null);
   const [draggingCard, setDraggingCard] = useState<string | null>(null);
+  const [filterUserIds, setFilterUserIds] = useState<Set<string>>(new Set());
+  const [onlyChanged, setOnlyChanged] = useState(false);
 
   if (isLoading || !data) {
     return <div className="grid min-h-[60vh] place-items-center text-sm text-muted-foreground">Loading…</div>;
@@ -147,7 +195,21 @@ function BoardPage() {
   const openedCard = data.cards.find((c) => c.id === openCard);
   const openedList = openedCard ? data.lists.find((l) => l.id === openedCard.list_id) : null;
 
-  const cardsByList = (listId: string) => data.cards.filter((c) => c.list_id === listId).sort((a, b) => a.position - b.position);
+  const changedSet = new Set<string>((data as any).recentlyChangedCardIds ?? []);
+  const passesFilters = (cardId: string) => {
+    if (onlyChanged && !changedSet.has(cardId)) return false;
+    if (filterUserIds.size > 0) {
+      const ids = new Set(data.assignees.filter((a: any) => a.card_id === cardId).map((a: any) => a.user_id));
+      let ok = false;
+      filterUserIds.forEach((u) => { if (ids.has(u)) ok = true; });
+      if (!ok) return false;
+    }
+    return true;
+  };
+  const cardsByList = (listId: string) =>
+    data.cards
+      .filter((c) => c.list_id === listId && passesFilters(c.id))
+      .sort((a, b) => a.position - b.position);
 
   const moveCardTo = (cardId: string, targetListId: string) => {
     const targetCards = cardsByList(targetListId);
@@ -163,6 +225,19 @@ function BoardPage() {
           {data.board.description && <p className="text-xs text-board-foreground/70">{data.board.description}</p>}
         </div>
         <div className="flex items-center gap-2">
+          <UserFilterPopover
+            members={data.members as any}
+            selected={filterUserIds}
+            onChange={setFilterUserIds}
+          />
+          <Button
+            variant={onlyChanged ? "default" : "outline"}
+            size="sm"
+            onClick={() => setOnlyChanged((v) => !v)}
+            title="Show only cards with recent changes (last 7 days)"
+          >
+            <Bell className="h-4 w-4" /> Changes{onlyChanged ? ` (${changedSet.size})` : ""}
+          </Button>
           <MembersPopover boardId={boardId} members={data.members} isOwner={data.role === "owner"} onChange={invalidate} />
         </div>
       </div>
@@ -298,7 +373,7 @@ function CardFront({ card, data, canEdit, onOpen, onDragStart, onDragEnd, isDrag
         {ownerName && (
           <span
             className="grid h-5 w-5 shrink-0 place-items-center rounded-full text-[10px] font-semibold text-white ring-1 ring-border"
-            style={{ backgroundColor: avatarColor(owner?.user_id) }}
+            style={{ backgroundColor: colorFor(owner) }}
             title={`Owner: ${ownerName}`}
           >
             {ownerName.slice(0, 1).toUpperCase()}
@@ -322,7 +397,7 @@ function CardFront({ card, data, canEdit, onOpen, onDragStart, onDragEnd, isDrag
           {myMembers.slice(0, 3).map((m: any) => {
             const name = m.profile?.display_name ?? m.profile?.email ?? "?";
             return (
-              <span key={m.user_id} className="grid h-5 w-5 place-items-center rounded-full text-[10px] font-semibold text-white ring-2 ring-tcard" style={{ backgroundColor: avatarColor(m.user_id) }} title={name}>
+              <span key={m.user_id} className="grid h-5 w-5 place-items-center rounded-full text-[10px] font-semibold text-white ring-2 ring-tcard" style={{ backgroundColor: colorFor(m) }} title={name}>
                 {name.slice(0, 1).toUpperCase()}
               </span>
             );
