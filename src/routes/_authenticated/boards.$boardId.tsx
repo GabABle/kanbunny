@@ -134,6 +134,8 @@ function BoardPage() {
 
   const [newListTitle, setNewListTitle] = useState("");
   const [openCard, setOpenCard] = useState<string | null>(null);
+  const [dragOverList, setDragOverList] = useState<string | null>(null);
+  const [draggingCard, setDraggingCard] = useState<string | null>(null);
 
   if (isLoading || !data) {
     return <div className="grid min-h-[60vh] place-items-center text-sm text-muted-foreground">Loading…</div>;
@@ -168,11 +170,19 @@ function BoardPage() {
             <div
               key={list.id}
               className="flex w-72 flex-none flex-col rounded-xl bg-list text-list-foreground shadow-sm max-h-full"
-              onDragOver={(e) => { e.preventDefault(); e.dataTransfer.dropEffect = "move"; }}
+              onDragOver={(e) => { e.preventDefault(); e.dataTransfer.dropEffect = "move"; if (dragOverList !== list.id) setDragOverList(list.id); }}
+              onDragLeave={(e) => {
+                // Only clear if leaving the list container entirely
+                if (!e.currentTarget.contains(e.relatedTarget as Node)) {
+                  setDragOverList((cur) => (cur === list.id ? null : cur));
+                }
+              }}
               onDrop={(e) => {
                 e.preventDefault();
                 const cardId = e.dataTransfer.getData("text/card-id");
                 if (cardId) moveCardTo(cardId, list.id);
+                setDragOverList(null);
+                setDraggingCard(null);
               }}
             >
               <div className="flex items-center justify-between px-3 pt-2 pb-1">
@@ -200,10 +210,20 @@ function BoardPage() {
                     data={data}
                     canEdit={canEdit}
                     onOpen={() => setOpenCard(card.id)}
-                    onMove={(toListId) => moveCardTo(card.id, toListId)}
-                    listId={list.id}
+                    onDragStart={() => setDraggingCard(card.id)}
+                    onDragEnd={() => { setDraggingCard(null); setDragOverList(null); }}
+                    isDragging={draggingCard === card.id}
                   />
                 ))}
+                {draggingCard && dragOverList === list.id && draggingCard && (
+                  // Only show placeholder if dragged card isn't already in this list at the end
+                  (() => {
+                    const inList = cardsByList(list.id).some((c) => c.id === draggingCard);
+                    const last = cardsByList(list.id).slice(-1)[0];
+                    if (inList && last?.id === draggingCard) return null;
+                    return <div className="h-12 rounded-md border-2 border-dashed border-primary/40 bg-primary/5" />;
+                  })()
+                )}
                 {canEdit && <NewCardForm onAdd={(title) => createCardMut.mutate({ listId: list.id, title })} />}
               </div>
             </div>
@@ -234,8 +254,9 @@ function BoardPage() {
   );
 }
 
-function CardFront({ card, data, canEdit, onOpen, onMove, listId }: {
-  card: any; data: any; canEdit: boolean; onOpen: () => void; onMove: (toListId: string) => void; listId: string;
+function CardFront({ card, data, canEdit, onOpen, onDragStart, onDragEnd, isDragging }: {
+  card: any; data: any; canEdit: boolean; onOpen: () => void;
+  onDragStart?: () => void; onDragEnd?: () => void; isDragging?: boolean;
 }) {
   const labelIds = new Set(data.cardLabels.filter((cl: any) => cl.card_id === card.id).map((cl: any) => cl.label_id));
   const myLabels = data.labels.filter((l: any) => labelIds.has(l.id));
@@ -243,6 +264,8 @@ function CardFront({ card, data, canEdit, onOpen, onMove, listId }: {
   const myMembers = data.members.filter((m: any) => assigneeIds.has(m.user_id));
   const dueDate = card.due_date ? new Date(card.due_date) : null;
   const overdue = dueDate ? dueDate.getTime() < Date.now() : false;
+  const owner = card.created_by ? data.members.find((m: any) => m.user_id === card.created_by) : null;
+  const ownerName = owner?.profile?.display_name ?? owner?.profile?.email ?? null;
 
   return (
     <div
@@ -251,8 +274,13 @@ function CardFront({ card, data, canEdit, onOpen, onMove, listId }: {
       onDragStart={(e) => {
         e.dataTransfer.setData("text/card-id", card.id);
         e.dataTransfer.effectAllowed = "move";
+        onDragStart?.();
       }}
-      className="cursor-pointer rounded-md bg-tcard text-tcard-foreground p-2 text-sm shadow-sm hover:ring-2 hover:ring-primary/40 transition active:opacity-60"
+      onDragEnd={() => onDragEnd?.()}
+      className={cn(
+        "cursor-pointer rounded-md bg-tcard text-tcard-foreground p-2 text-sm shadow-sm hover:ring-2 hover:ring-primary/40 transition",
+        isDragging && "opacity-40",
+      )}
     >
       {myLabels.length > 0 && (
         <div className="mb-1.5 flex flex-wrap gap-1">
@@ -261,7 +289,17 @@ function CardFront({ card, data, canEdit, onOpen, onMove, listId }: {
           ))}
         </div>
       )}
-      <div className="font-medium">{card.title}</div>
+      <div className="flex items-start gap-2">
+        <div className="flex-1 font-medium">{card.title}</div>
+        {ownerName && (
+          <span
+            className="grid h-5 w-5 shrink-0 place-items-center rounded-full bg-secondary text-[10px] font-semibold text-secondary-foreground ring-1 ring-border"
+            title={`Owner: ${ownerName}`}
+          >
+            {ownerName.slice(0, 1).toUpperCase()}
+          </span>
+        )}
+      </div>
       <div className="mt-1.5 flex flex-wrap items-center gap-2 text-xs text-list-muted">
         {dueDate && (
           <span className={cn("inline-flex items-center gap-1 rounded px-1.5 py-0.5", overdue && "bg-destructive/15 text-destructive")}>
