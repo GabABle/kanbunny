@@ -220,6 +220,7 @@ export type Database = {
       }
       cards: {
         Row: {
+          archived: boolean
           created_at: string
           created_by: string | null
           description: string | null
@@ -230,6 +231,7 @@ export type Database = {
           title: string
         }
         Insert: {
+          archived?: boolean
           created_at?: string
           created_by?: string | null
           description?: string | null
@@ -240,6 +242,7 @@ export type Database = {
           title: string
         }
         Update: {
+          archived?: boolean
           created_at?: string
           created_by?: string | null
           description?: string | null
