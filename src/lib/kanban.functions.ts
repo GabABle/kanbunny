@@ -85,13 +85,25 @@ export const renameBoard = createServerFn({ method: "POST" })
     return { ok: true };
   });
 
+export const updateBoardBackground = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d) => z.object({ id: uuid, background_gradient: z.string().max(500).nullable() }).parse(d))
+  .handler(async ({ data, context }) => {
+    const { error } = await context.supabase
+      .from("boards")
+      .update({ background_gradient: data.background_gradient } as any)
+      .eq("id", data.id);
+    if (error) throw new Error(error.message);
+    return { ok: true };
+  });
+
 // ---------- Board detail ----------
 export const getBoard = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d) => z.object({ id: uuid }).parse(d))
   .handler(async ({ data, context }) => {
     const { supabase, userId } = context;
-    const boardRes = await supabase.from("boards").select("id, title, description, owner_id, created_at").eq("id", data.id).maybeSingle();
+    const boardRes = await supabase.from("boards").select("id, title, description, owner_id, created_at, background_gradient").eq("id", data.id).maybeSingle();
     if (boardRes.error) throw new Error(boardRes.error.message);
     if (!boardRes.data) throw new Error("Board not found");
 
