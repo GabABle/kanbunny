@@ -10,7 +10,7 @@ import { Plus, Trash2, UserPlus, X, Clock, Bell, Filter } from "lucide-react";
 import {
   getBoard, createList, renameList, deleteList,
   createCard, updateCard, deleteCard, moveCard,
-  inviteMember, removeMember, searchProfiles,
+  inviteMember, removeMember, searchProfiles, renameBoard,
 } from "@/lib/kanban.functions";
 import { toast } from "sonner";
 import { CardDialog } from "@/components/kanban/CardDialog";
@@ -97,6 +97,7 @@ function BoardPage() {
   const createListFn = useServerFn(createList);
   const renameListFn = useServerFn(renameList);
   const deleteListFn = useServerFn(deleteList);
+  const renameBoardFn = useServerFn(renameBoard);
   const createCardFn = useServerFn(createCard);
   const updateCardFn = useServerFn(updateCard);
   const deleteCardFn = useServerFn(deleteCard);
@@ -180,6 +181,16 @@ function BoardPage() {
     },
     onError: (e, _v, ctx) => { if (ctx?.prev) qc.setQueryData(key, ctx.prev); toast.error(e.message); },
   });
+  const renameBoardMut = useMutation({
+    mutationFn: (title: string) => renameBoardFn({ data: { id: boardId, title } }),
+    onMutate: async (title) => {
+      await qc.cancelQueries({ queryKey: key });
+      const prev = qc.getQueryData<BoardData>(key);
+      patch((d) => ({ ...d, board: { ...d.board, title } }));
+      return { prev };
+    },
+    onError: (e, _v, ctx) => { if (ctx?.prev) qc.setQueryData(key, ctx.prev); toast.error(e.message); },
+  });
 
   const [newListTitle, setNewListTitle] = useState("");
   const [openCard, setOpenCard] = useState<string | null>(null);
@@ -221,7 +232,12 @@ function BoardPage() {
     <div className="flex h-[calc(100vh-48px)] flex-col bg-board text-board-foreground">
       <div className="flex items-center justify-between bg-board-bar px-4 py-2 backdrop-blur">
         <div>
-          <h1 className="text-base font-semibold tracking-tight text-board-foreground">{data.board.title}</h1>
+          <InlineRename
+            value={data.board.title}
+            disabled={!canEdit}
+            onSave={(t) => renameBoardMut.mutate(t)}
+            className="text-base font-semibold tracking-tight text-board-foreground"
+          />
           {data.board.description && <p className="text-xs text-board-foreground/70">{data.board.description}</p>}
         </div>
         <div className="flex items-center gap-2">
@@ -343,8 +359,6 @@ function CardFront({ card, data, canEdit, onOpen, onDragStart, onDragEnd, isDrag
   const dueDate = card.due_date ? new Date(card.due_date) : null;
   const overdue = dueDate ? dueDate.getTime() < Date.now() : false;
   const dueSoon = dueDate ? (dueDate.getTime() - Date.now()) <= 3 * 24 * 3600 * 1000 : false;
-  const owner = card.created_by ? data.members.find((m: any) => m.user_id === card.created_by) : null;
-  const ownerName = owner?.profile?.display_name ?? owner?.profile?.email ?? null;
 
   return (
     <div
@@ -370,15 +384,6 @@ function CardFront({ card, data, canEdit, onOpen, onDragStart, onDragEnd, isDrag
       )}
       <div className="flex items-start gap-2">
         <div className="flex-1 font-medium">{card.title}</div>
-        {ownerName && (
-          <span
-            className="grid h-5 w-5 shrink-0 place-items-center rounded-full text-[10px] font-semibold text-white ring-1 ring-border"
-            style={{ backgroundColor: colorFor(owner) }}
-            title={`Owner: ${ownerName}`}
-          >
-            {ownerName.slice(0, 1).toUpperCase()}
-          </span>
-        )}
       </div>
       <div className="mt-1.5 flex flex-wrap items-center gap-2 text-xs text-list-muted">
         {dueDate && (
@@ -421,7 +426,7 @@ function InlineRename({ value, onSave, disabled, className }: { value: string; o
       onChange={(e) => setV(e.target.value)}
       onBlur={() => { setEditing(false); if (v.trim() && v !== value) onSave(v.trim()); }}
       onKeyDown={(e) => { if (e.key === "Enter") (e.target as HTMLInputElement).blur(); if (e.key === "Escape") setEditing(false); }}
-      className={"rounded border border-border bg-background px-1 py-0.5 outline-none " + (className ?? "")}
+      className={"rounded border border-border bg-white text-foreground px-1 py-0.5 outline-none " + (className ?? "")}
     />
   );
 }
