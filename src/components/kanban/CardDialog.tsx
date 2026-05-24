@@ -29,6 +29,7 @@ import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/hooks/use-auth";
 import { supabase } from "@/integrations/supabase/client";
+import { useConfirm } from "@/components/ui/confirm-dialog";
 
 const LABEL_COLORS = [
   "#61bd4f", "#f2d600", "#ff9f1a", "#eb5a46", "#c377e0",
@@ -54,6 +55,7 @@ export function CardDialog({
 }) {
   const qc = useQueryClient();
   const invalidateBoard = () => qc.invalidateQueries({ queryKey: ["board", boardId] });
+  const confirm = useConfirm();
 
   // ---- Card actions ----
   const updateFn = useServerFn(updateCard);
@@ -189,7 +191,7 @@ export function CardDialog({
                 {ownerName && (
                   <div>
                     <div className="text-[11px] font-semibold uppercase text-list-muted mb-1">Owner</div>
-                    <div className="flex items-center gap-2 rounded bg-tcard px-2 py-1.5 text-sm">
+                    <div className="flex items-center gap-2 rounded px-2 py-1.5 text-sm">
                       <span className="grid h-6 w-6 place-items-center rounded-full bg-primary text-[10px] font-semibold text-primary-foreground">
                         {ownerName.slice(0, 1).toUpperCase()}
                       </span>
@@ -284,10 +286,10 @@ export function CardDialog({
             {canEdit && (
               <>
                 <div className="pt-3 text-[11px] font-semibold uppercase text-list-muted">Actions</div>
-                <Button variant="secondary" size="sm" className="w-full justify-start gap-2" onClick={() => { if (confirm("Archive this card? It will be hidden from the board.")) archive.mutate(); }}>
+                <Button variant="secondary" size="sm" className="w-full justify-start gap-2" onClick={async () => { if (await confirm({ title: "Archive card?", description: "It will be hidden from the board.", confirmText: "Archive" })) archive.mutate(); }}>
                   <Archive className="h-4 w-4" /> Archive card
                 </Button>
-                <Button variant="destructive" size="sm" className="w-full justify-start" onClick={() => { if (confirm("Delete this card?")) del.mutate(); }}>
+                <Button variant="destructive" size="sm" className="w-full justify-start" onClick={async () => { if (await confirm({ title: "Delete card?", confirmText: "Delete", destructive: true })) del.mutate(); }}>
                   <Trash2 className="h-4 w-4" /> Delete card
                 </Button>
               </>
