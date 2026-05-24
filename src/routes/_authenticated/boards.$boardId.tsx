@@ -397,7 +397,8 @@ function CardFront({ card, data, canEdit, onOpen, onDragStart, onDragEnd, isDrag
 }) {
   const labelIds = new Set(data.cardLabels.filter((cl: any) => cl.card_id === card.id).map((cl: any) => cl.label_id));
   const myLabels = data.labels.filter((l: any) => labelIds.has(l.id));
-  const assigneeIds = new Set(data.assignees.filter((a: any) => a.card_id === card.id).map((a: any) => a.user_id));
+  const assigneeIds = new Set<string>(data.assignees.filter((a: any) => a.card_id === card.id).map((a: any) => a.user_id));
+  if (card.created_by) assigneeIds.add(card.created_by);
   const myMembers = data.members.filter((m: any) => assigneeIds.has(m.user_id));
   const dueDate = card.due_date ? new Date(card.due_date) : null;
   const overdue = dueDate ? dueDate.getTime() < Date.now() : false;
