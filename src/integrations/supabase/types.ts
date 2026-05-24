@@ -392,6 +392,7 @@ export type Database = {
       }
       profiles: {
         Row: {
+          avatar_color: string | null
           avatar_url: string | null
           created_at: string
           display_name: string | null
@@ -399,6 +400,7 @@ export type Database = {
           id: string
         }
         Insert: {
+          avatar_color?: string | null
           avatar_url?: string | null
           created_at?: string
           display_name?: string | null
@@ -406,6 +408,7 @@ export type Database = {
           id: string
         }
         Update: {
+          avatar_color?: string | null
           avatar_url?: string | null
           created_at?: string
           display_name?: string | null
@@ -434,6 +437,7 @@ export type Database = {
         Args: { _board_id: string; _user_id: string }
         Returns: boolean
       }
+      pick_avatar_color: { Args: { _seed: string }; Returns: string }
     }
     Enums: {
       board_role: "owner" | "editor" | "viewer"
