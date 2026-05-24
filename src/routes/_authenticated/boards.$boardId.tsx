@@ -10,13 +10,32 @@ import { Plus, Trash2, UserPlus, X, Clock, Bell, Filter } from "lucide-react";
 import {
   getBoard, createList, renameList, deleteList,
   createCard, updateCard, deleteCard, moveCard,
-  inviteMember, removeMember, searchProfiles, renameBoard,
+  inviteMember, removeMember, searchProfiles, renameBoard, updateBoardBackground,
 } from "@/lib/kanban.functions";
 import { toast } from "sonner";
 import { CardDialog } from "@/components/kanban/CardDialog";
 import { cn } from "@/lib/utils";
 import { useConfirm } from "@/components/ui/confirm-dialog";
 import { colorFor } from "@/lib/avatar-color";
+
+const BOARD_GRADIENTS = [
+  "linear-gradient(135deg, #6366f1, #ec4899)",
+  "linear-gradient(135deg, #0ea5e9, #22d3ee)",
+  "linear-gradient(135deg, #f59e0b, #ef4444)",
+  "linear-gradient(135deg, #10b981, #3b82f6)",
+  "linear-gradient(135deg, #8b5cf6, #6366f1)",
+  "linear-gradient(135deg, #f43f5e, #f97316)",
+  "linear-gradient(135deg, #14b8a6, #84cc16)",
+  "linear-gradient(135deg, #a855f7, #ec4899)",
+  "linear-gradient(135deg, #0f766e, #0ea5e9)",
+  "linear-gradient(135deg, #1e3a8a, #7c3aed)",
+  "linear-gradient(135deg, #be185d, #f59e0b)",
+  "linear-gradient(135deg, #064e3b, #0ea5e9)",
+];
+function randomGradient(exclude?: string | null) {
+  const pool = BOARD_GRADIENTS.filter((g) => g !== exclude);
+  return pool[Math.floor(Math.random() * pool.length)];
+}
 
 function UserFilterPopover({ members, selected, onChange }: { members: any[]; selected: Set<string>; onChange: (s: Set<string>) => void }) {
   const toggle = (id: string) => {
