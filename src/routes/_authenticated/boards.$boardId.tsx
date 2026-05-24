@@ -264,6 +264,7 @@ function CardFront({ card, data, canEdit, onOpen, onDragStart, onDragEnd, isDrag
   const myMembers = data.members.filter((m: any) => assigneeIds.has(m.user_id));
   const dueDate = card.due_date ? new Date(card.due_date) : null;
   const overdue = dueDate ? dueDate.getTime() < Date.now() : false;
+  const dueSoon = dueDate ? (dueDate.getTime() - Date.now()) <= 3 * 24 * 3600 * 1000 : false;
   const owner = card.created_by ? data.members.find((m: any) => m.user_id === card.created_by) : null;
   const ownerName = owner?.profile?.display_name ?? owner?.profile?.email ?? null;
 
@@ -302,7 +303,10 @@ function CardFront({ card, data, canEdit, onOpen, onDragStart, onDragEnd, isDrag
       </div>
       <div className="mt-1.5 flex flex-wrap items-center gap-2 text-xs text-list-muted">
         {dueDate && (
-          <span className={cn("inline-flex items-center gap-1 rounded px-1.5 py-0.5", overdue && "bg-destructive/15 text-destructive")}>
+          <span className={cn(
+            "inline-flex items-center gap-1 rounded px-1.5 py-0.5",
+            dueSoon ? "bg-destructive text-destructive-foreground font-semibold" : overdue && "bg-destructive/15 text-destructive",
+          )}>
             <Clock className="h-3 w-3" />
             {dueDate.toLocaleDateString(undefined, { month: "short", day: "numeric" })}
           </span>
