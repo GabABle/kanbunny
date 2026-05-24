@@ -15,6 +15,7 @@ import {
 import { toast } from "sonner";
 import { CardDialog } from "@/components/kanban/CardDialog";
 import { cn } from "@/lib/utils";
+import { useConfirm } from "@/components/ui/confirm-dialog";
 
 export const Route = createFileRoute("/_authenticated/boards/$boardId")({
   head: () => ({ meta: [{ title: "Board — Stack" }] }),
@@ -33,6 +34,7 @@ type BoardData = Awaited<ReturnType<typeof getBoard>>;
 
 function BoardPage() {
   const { boardId } = Route.useParams();
+  const confirmDlg = useConfirm();
   const getBoardFn = useServerFn(getBoard);
   const qc = useQueryClient();
   const key = ["board", boardId] as const;
@@ -194,7 +196,7 @@ function BoardPage() {
                 />
                 {canEdit && (
                   <button
-                    onClick={() => confirm("Delete this list and all its cards?") && deleteListMut.mutate(list.id)}
+                    onClick={async () => { if (await confirmDlg({ title: "Delete this list?", description: "All its cards will be removed.", destructive: true, confirmText: "Delete" })) deleteListMut.mutate(list.id); }}
                     className="rounded p-1 text-list-muted hover:bg-black/5 hover:text-list-foreground"
                     aria-label="Delete list"
                   >
@@ -416,10 +418,10 @@ function NewListForm({ value, setValue, onAdd }: { value: string; setValue: (v: 
 function MembersPopover({ boardId, members, isOwner, onChange }: { boardId: string; members: any[]; isOwner: boolean; onChange: () => void }) {
   const inviteFn = useServerFn(inviteMember);
   const removeFn = useServerFn(removeMember);
-  const [email, setEmail] = useState("");
+  const [username, setUsername] = useState("");
   const inviteMut = useMutation({
-    mutationFn: () => inviteFn({ data: { boardId, email, role: "editor" } }),
-    onSuccess: () => { toast.success("Member added"); setEmail(""); onChange(); },
+    mutationFn: () => inviteFn({ data: { boardId, username: username.replace(/^@/, "").trim(), role: "editor" } }),
+    onSuccess: () => { toast.success("Member added"); setUsername(""); onChange(); },
     onError: (e) => toast.error(e.message),
   });
   const removeMut = useMutation({
@@ -450,9 +452,9 @@ function MembersPopover({ boardId, members, isOwner, onChange }: { boardId: stri
             ))}
           </div>
           {isOwner && (
-            <form onSubmit={(e) => { e.preventDefault(); if (email) inviteMut.mutate(); }} className="flex gap-2 border-t border-border/60 pt-3">
-              <Input type="email" placeholder="user@example.com" value={email} onChange={(e) => setEmail(e.target.value)} className="h-8" />
-              <Button type="submit" size="sm" disabled={inviteMut.isPending}>Invite</Button>
+            <form onSubmit={(e) => { e.preventDefault(); if (username.replace(/^@/, "").trim()) inviteMut.mutate(); }} className="flex gap-2 border-t border-border/60 pt-3">
+              <Input placeholder="@username" value={username} onChange={(e) => setUsername(e.target.value)} className="h-8" />
+              <Button type="submit" size="sm" disabled={inviteMut.isPending}>Add</Button>
             </form>
           )}
         </div>
