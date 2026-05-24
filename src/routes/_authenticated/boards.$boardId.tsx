@@ -16,6 +16,7 @@ import { toast } from "sonner";
 import { CardDialog } from "@/components/kanban/CardDialog";
 import { cn } from "@/lib/utils";
 import { useConfirm } from "@/components/ui/confirm-dialog";
+import { avatarColor } from "@/lib/avatar-color";
 
 export const Route = createFileRoute("/_authenticated/boards/$boardId")({
   head: () => ({ meta: [{ title: "Board — Stack" }] }),
@@ -296,7 +297,8 @@ function CardFront({ card, data, canEdit, onOpen, onDragStart, onDragEnd, isDrag
         <div className="flex-1 font-medium">{card.title}</div>
         {ownerName && (
           <span
-            className="grid h-5 w-5 shrink-0 place-items-center rounded-full bg-secondary text-[10px] font-semibold text-secondary-foreground ring-1 ring-border"
+            className="grid h-5 w-5 shrink-0 place-items-center rounded-full text-[10px] font-semibold text-white ring-1 ring-border"
+            style={{ backgroundColor: avatarColor(owner?.user_id) }}
             title={`Owner: ${ownerName}`}
           >
             {ownerName.slice(0, 1).toUpperCase()}
@@ -320,7 +322,7 @@ function CardFront({ card, data, canEdit, onOpen, onDragStart, onDragEnd, isDrag
           {myMembers.slice(0, 3).map((m: any) => {
             const name = m.profile?.display_name ?? m.profile?.email ?? "?";
             return (
-              <span key={m.user_id} className="grid h-5 w-5 place-items-center rounded-full bg-primary text-[10px] font-semibold text-primary-foreground ring-2 ring-tcard" title={name}>
+              <span key={m.user_id} className="grid h-5 w-5 place-items-center rounded-full text-[10px] font-semibold text-white ring-2 ring-tcard" style={{ backgroundColor: avatarColor(m.user_id) }} title={name}>
                 {name.slice(0, 1).toUpperCase()}
               </span>
             );
