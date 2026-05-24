@@ -16,6 +16,7 @@ import {
 import { ChevronDown, ChevronRight, Activity } from "lucide-react";
 import {
   updateCard, deleteCard,
+  archiveCard,
   createLabel, toggleCardLabel, deleteLabel,
   toggleAssignee,
   addChecklist, addChecklistItem, toggleChecklistItem,
