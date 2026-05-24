@@ -7,7 +7,7 @@ import { LayoutGrid, Users, Zap } from "lucide-react";
 export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
-      { title: "Stack — Modern Kanban for fast teams" },
+      { title: "Kanbunny — Modern Kanban for fast teams" },
       { name: "description", content: "A clean, collaborative kanban board. Boards, lists, cards, drag-and-drop, and team workflows." },
     ],
   }),
@@ -29,7 +29,7 @@ function Index() {
             <div className="grid h-7 w-7 place-items-center rounded-md bg-primary text-primary-foreground">
               <LayoutGrid className="h-4 w-4" />
             </div>
-            <span className="font-semibold tracking-tight">Stack</span>
+            <span className="font-semibold tracking-tight">Kanbunny</span>
           </div>
           <div className="flex items-center gap-2">
             <Button asChild variant="ghost" size="sm">
