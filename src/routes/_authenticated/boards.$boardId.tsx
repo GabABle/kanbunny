@@ -36,7 +36,11 @@ function BoardPage() {
   const getBoardFn = useServerFn(getBoard);
   const qc = useQueryClient();
   const key = ["board", boardId] as const;
-  const { data, isLoading } = useQuery({ queryKey: key, queryFn: () => getBoardFn({ data: { id: boardId } }) });
+  const { data, isLoading } = useQuery({
+    queryKey: key,
+    queryFn: () => getBoardFn({ data: { id: boardId } }),
+    staleTime: 60_000,
+  });
   const invalidate = () => qc.invalidateQueries({ queryKey: key });
   const patch = (fn: (d: BoardData) => BoardData) =>
     qc.setQueryData<BoardData>(key, (old) => (old ? fn(old) : old));
@@ -279,19 +283,6 @@ function CardFront({ card, data, canEdit, onOpen, onMove, listId }: {
           })}
         </span>
       </div>
-      {canEdit && data.lists.length > 1 && (
-        <div className="mt-2 flex flex-wrap gap-1" onClick={(e) => e.stopPropagation()}>
-          {data.lists.filter((l: any) => l.id !== listId).map((l: any) => (
-            <button
-              key={l.id}
-              onClick={() => onMove(l.id)}
-              className="rounded bg-black/5 px-1.5 py-0.5 text-[10px] text-list-muted hover:bg-black/10 hover:text-list-foreground"
-            >
-              → {l.title}
-            </button>
-          ))}
-        </div>
-      )}
     </div>
   );
 }
