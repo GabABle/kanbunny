@@ -324,6 +324,7 @@ function LabelsPopover({ boardId, cardId, canEdit, labels, myLabelIds }: { board
   const toggleFn = useServerFn(toggleCardLabel);
   const createFn = useServerFn(createLabel);
   const deleteFn = useServerFn(deleteLabel);
+  const confirmDlg = useConfirm();
   const inv = () => qc.invalidateQueries({ queryKey: ["board", boardId] });
 
   const toggle = useMutation({
