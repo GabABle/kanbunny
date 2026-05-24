@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { Plus, Trash2, UserPlus, X, Clock, Users, Bell, Filter } from "lucide-react";
+import { Plus, Trash2, UserPlus, X, Clock, Bell, Filter } from "lucide-react";
 import {
   getBoard, createList, renameList, deleteList,
   createCard, updateCard, deleteCard, moveCard,
@@ -16,7 +16,7 @@ import { toast } from "sonner";
 import { CardDialog } from "@/components/kanban/CardDialog";
 import { cn } from "@/lib/utils";
 import { useConfirm } from "@/components/ui/confirm-dialog";
-import { avatarColor, colorFor } from "@/lib/avatar-color";
+import { colorFor } from "@/lib/avatar-color";
 
 function UserFilterPopover({ members, selected, onChange }: { members: any[]; selected: Set<string>; onChange: (s: Set<string>) => void }) {
   const toggle = (id: string) => {
