@@ -885,6 +885,7 @@ function CommentsBlock({ cardId, canEdit, members }: { cardId: string; canEdit: 
   const [body, setBody] = useState("");
   const [replyTo, setReplyTo] = useState<string | null>(null);
   const [replyBody, setReplyBody] = useState("");
+  const [open, setOpen] = useState(false);
 
   // Group replies by parent
   const topLevel = (comments as any[]).filter((c) => !c.parent_id);
@@ -901,11 +902,19 @@ function CommentsBlock({ cardId, canEdit, members }: { cardId: string; canEdit: 
 
   return (
     <div>
-      <div className="mb-2 flex items-center gap-2">
+      <button
+        type="button"
+        onClick={() => setOpen((o) => !o)}
+        className="mb-2 flex w-full items-center gap-2 text-left font-semibold"
+      >
+        {open ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
         <MessageSquare className="h-4 w-4" />
-        <h3 className="font-semibold">Comments</h3>
-      </div>
-      {canEdit && (
+        <span>Comments</span>
+        <span className="ml-1 text-xs font-normal text-list-muted">
+          ({comments.length}) {open ? "(hide)" : "(show)"}
+        </span>
+      </button>
+      {open && canEdit && (
         <form
           onSubmit={(e) => { e.preventDefault(); const v = body.trim(); if (v) { add.mutate({ body: v }); setBody(""); } }}
           className="mb-4 space-y-2"
@@ -923,6 +932,7 @@ function CommentsBlock({ cardId, canEdit, members }: { cardId: string; canEdit: 
           </div>
         </form>
       )}
+      {open && (
       <div className="space-y-3">
         {topLevel.map((c: any) => (
           <div key={c.id} className="space-y-2">
@@ -967,6 +977,7 @@ function CommentsBlock({ cardId, canEdit, members }: { cardId: string; canEdit: 
         ))}
         {comments.length === 0 && <div className="text-xs text-list-muted">No comments yet.</div>}
       </div>
+      )}
     </div>
   );
 }
