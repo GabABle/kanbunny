@@ -1010,7 +1010,7 @@ function CommentRow({
   const edited = comment.updated_at && comment.updated_at !== comment.created_at;
   return (
     <div className="flex gap-2">
-      <div className="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-primary text-xs font-semibold text-primary-foreground">
+      <div className="grid h-8 w-8 shrink-0 place-items-center rounded-full text-xs font-semibold text-white" style={{ backgroundColor: colorFor({ profile: comment.profile, user_id: comment.user_id }) }}>
         {initials}
       </div>
       <div className="min-w-0 flex-1">
@@ -1211,7 +1211,7 @@ function ActivityRow({ activity }: { activity: any }) {
   const text = describeActivity(activity.type, p);
   return (
     <div className="flex items-start gap-2 text-sm">
-      <div className="grid h-7 w-7 shrink-0 place-items-center rounded-full bg-primary text-[10px] font-semibold text-primary-foreground">
+      <div className="grid h-7 w-7 shrink-0 place-items-center rounded-full text-[10px] font-semibold text-white" style={{ backgroundColor: colorFor({ profile: activity.profile, user_id: activity.user_id }) }}>
         {initials}
       </div>
       <div className="min-w-0 flex-1">
