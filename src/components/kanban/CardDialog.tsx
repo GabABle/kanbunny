@@ -11,7 +11,7 @@ import { Progress } from "@/components/ui/progress";
 import { Calendar } from "@/components/ui/calendar";
 import { format } from "date-fns";
 import {
-  AlignLeft, CheckSquare, Clock, Tag, Trash2, Users, X, Plus, Check, MessageSquare, Paperclip, Download, FileIcon,
+  AlignLeft, CheckSquare, Clock, Tag, Trash2, Users, X, Plus, Check, MessageSquare, Paperclip, Download, FileIcon, Loader2, User as UserIcon,
 } from "lucide-react";
 import { ChevronDown, ChevronRight, Activity } from "lucide-react";
 import {
@@ -22,7 +22,7 @@ import {
   deleteChecklistItem, deleteChecklist,
   getCardComments, addCardComment, updateCardComment, deleteCardComment,
   listCardAttachments, addCardAttachment, deleteCardAttachment, getAttachmentUrl,
-  getCardActivities, getCardDetails,
+  getCardActivities, getCardDetails, updateCardOwner,
 } from "@/lib/kanban.functions";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
@@ -34,7 +34,7 @@ const LABEL_COLORS = [
   "#0079bf", "#00c2e0", "#51e898", "#ff78cb", "#344563",
 ];
 
-type Card = { id: string; title: string; description: string | null; due_date: string | null; list_id: string };
+type Card = { id: string; title: string; description: string | null; due_date: string | null; list_id: string; created_by?: string | null };
 type Label = { id: string; name: string; color: string };
 type Member = { user_id: string; role: string; profile: { id: string; display_name: string | null; email: string | null; avatar_url: string | null } | null };
 
@@ -114,6 +114,7 @@ export function CardDialog({
       qc.setQueryData(["checklists", card.id], { checklists: d.checklists, items: d.items });
       qc.setQueryData(["comments", card.id], d.comments);
       qc.setQueryData(["attachments", card.id], d.attachments);
+      qc.setQueryData(["activities", card.id], (d as any).activities ?? []);
       return d;
     },
     enabled: isRealCard,
@@ -124,7 +125,7 @@ export function CardDialog({
   return (
     <Dialog open onOpenChange={(o) => !o && onClose()}>
       <DialogContent
-        className="max-w-3xl gap-0 overflow-hidden p-0"
+        className="max-w-3xl gap-0 overflow-hidden p-0 font-montserrat"
         onOpenAutoFocus={(e) => {
           // Don't move focus into the dialog when it opens
           e.preventDefault();
@@ -203,10 +204,9 @@ export function CardDialog({
 
             {/* Checklists */}
             {isRealCard && detailsLoading && (
-              <div className="space-y-3">
-                <div className="h-4 w-32 animate-pulse rounded bg-tcard" />
-                <div className="h-20 animate-pulse rounded bg-tcard" />
-                <div className="h-16 animate-pulse rounded bg-tcard" />
+              <div className="flex flex-col items-center justify-center gap-2 rounded-md bg-tcard/60 py-10 text-list-muted">
+                <Loader2 className="h-6 w-6 animate-spin text-primary" />
+                <div className="text-xs">Loading checklists, comments and activity…</div>
               </div>
             )}
             {!detailsLoading && cl?.checklists.map((checklist) => (
@@ -241,6 +241,10 @@ export function CardDialog({
               <MembersPopover
                 boardId={boardId} cardId={card.id} canEdit={canEdit}
                 members={members} myAssignees={myAssignees}
+              />
+              <OwnerPopover
+                boardId={boardId} cardId={card.id} canEdit={canEdit}
+                members={members} ownerId={card.created_by ?? null}
               />
               <ChecklistAdd boardId={boardId} cardId={card.id} canEdit={canEdit} />
               <DueDatePopover
@@ -1183,6 +1187,7 @@ function describeActivity(type: string, p: any): string {
     case "label_removed": return `removed label "${p.name ?? ""}"`;
     case "member_added": return `assigned ${p.name ?? "a member"}`;
     case "member_removed": return `unassigned ${p.name ?? "a member"}`;
+    case "owner_changed": return `changed the owner to ${p.name ?? "someone"}`;
     case "checklist_added": return `added checklist "${p.title ?? ""}"`;
     case "checklist_item_added": return `added an item: "${p.text ?? ""}"`;
     case "checklist_item_done": return `completed "${p.text ?? ""}"`;
@@ -1191,4 +1196,91 @@ function describeActivity(type: string, p: any): string {
     case "comment_replied": return `replied to a comment`;
     default: return type.replace(/_/g, " ");
   }
+}
+
+function OwnerPopover({ boardId, cardId, canEdit, members, ownerId }: {
+  boardId: string; cardId: string; canEdit: boolean; members: Member[]; ownerId: string | null;
+}) {
+  const qc = useQueryClient();
+  const updFn = useServerFn(updateCardOwner);
+  const [open, setOpen] = useState(false);
+  const [query, setQuery] = useState("");
+  const [active, setActive] = useState(0);
+
+  const current = members.find((m) => m.user_id === ownerId);
+  const currentName = current?.profile?.display_name ?? current?.profile?.email ?? (ownerId ? "Unknown" : "No owner");
+
+  const q = query.trim().toLowerCase();
+  const matches = members.filter((m) => {
+    if (!q) return true;
+    const n = (m.profile?.display_name ?? "").toLowerCase();
+    const e = (m.profile?.email ?? "").toLowerCase();
+    return n.includes(q) || e.includes(q);
+  }).slice(0, 8);
+
+  const setOwner = useMutation({
+    mutationFn: (userId: string) => updFn({ data: { cardId, userId } }),
+    onMutate: async (userId) => {
+      await qc.cancelQueries({ queryKey: ["board", boardId] });
+      const prev = qc.getQueryData<any>(["board", boardId]);
+      qc.setQueryData<any>(["board", boardId], (d: any) =>
+        d ? { ...d, cards: d.cards.map((c: any) => (c.id === cardId ? { ...c, created_by: userId } : c)) } : d,
+      );
+      return { prev };
+    },
+    onError: (e, _v, ctx) => { if (ctx?.prev) qc.setQueryData(["board", boardId], ctx.prev); toast.error(e.message); },
+    onSuccess: () => { setOpen(false); setQuery(""); toast.success("Owner updated"); },
+  });
+
+  return (
+    <Popover open={open} onOpenChange={(o) => { setOpen(o); if (o) { setQuery(""); setActive(0); } }}>
+      <PopoverTrigger asChild>
+        <SidebarButton icon={UserIcon} disabled={!canEdit}>
+          <span className="truncate">Owner: {currentName}</span>
+        </SidebarButton>
+      </PopoverTrigger>
+      <PopoverContent className="w-72">
+        <div className="text-sm font-medium mb-2">Change card owner</div>
+        <Input
+          autoFocus
+          value={query}
+          onChange={(e) => { setQuery(e.target.value); setActive(0); }}
+          onKeyDown={(e) => {
+            if (matches.length === 0) return;
+            if (e.key === "ArrowDown") { e.preventDefault(); setActive((a) => (a + 1) % matches.length); }
+            else if (e.key === "ArrowUp") { e.preventDefault(); setActive((a) => (a - 1 + matches.length) % matches.length); }
+            else if (e.key === "Enter") { e.preventDefault(); setOwner.mutate(matches[active].user_id); }
+          }}
+          placeholder="Type a name or email…"
+          className="h-8 mb-2"
+        />
+        <div className="space-y-1 max-h-64 overflow-y-auto">
+          {matches.map((m, i) => {
+            const name = m.profile?.display_name ?? m.profile?.email ?? "User";
+            const isOwner = m.user_id === ownerId;
+            return (
+              <button
+                key={m.user_id}
+                type="button"
+                onMouseEnter={() => setActive(i)}
+                onClick={() => setOwner.mutate(m.user_id)}
+                className={cn(
+                  "flex w-full items-center gap-2 rounded px-2 py-1.5 text-sm text-left",
+                  i === active && "bg-accent text-accent-foreground",
+                )}
+              >
+                <Avatar member={m} />
+                <div className="min-w-0 flex-1">
+                  <div className="truncate font-medium">{name}</div>
+                  {m.profile?.email && <div className="truncate text-xs text-muted-foreground">{m.profile.email}</div>}
+                </div>
+                {isOwner && <Check className="h-4 w-4 text-primary" />}
+              </button>
+            );
+          })}
+          {matches.length === 0 && <div className="px-2 py-1.5 text-xs text-muted-foreground">No matches.</div>}
+        </div>
+      </PopoverContent>
+    </Popover>
+  );
 }
