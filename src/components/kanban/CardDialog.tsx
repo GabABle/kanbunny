@@ -11,7 +11,7 @@ import { Progress } from "@/components/ui/progress";
 import { Calendar } from "@/components/ui/calendar";
 import { format } from "date-fns";
 import {
-  AlignLeft, CheckSquare, Clock, Tag, Trash2, Users, X, Plus, Check, MessageSquare, Paperclip, Download, FileIcon, Loader2, User as UserIcon,
+  AlignLeft, CheckSquare, Clock, Tag, Trash2, Users, X, Plus, Check, MessageSquare, Paperclip, Download, FileIcon, Loader2, User as UserIcon, Archive,
 } from "lucide-react";
 import { ChevronDown, ChevronRight, Activity } from "lucide-react";
 import {
