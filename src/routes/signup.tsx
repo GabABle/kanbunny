@@ -8,7 +8,7 @@ import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/signup")({
-  head: () => ({ meta: [{ title: "Sign up — Stack" }] }),
+  head: () => ({ meta: [{ title: "Sign up — Kanbunny" }] }),
   component: SignupPage,
 });
 

@@ -6,9 +6,10 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
+import { Loader2 } from "lucide-react";
 
 export const Route = createFileRoute("/login")({
-  head: () => ({ meta: [{ title: "Sign in — Stack" }] }),
+  head: () => ({ meta: [{ title: "Sign in — Kanbunny" }] }),
   component: LoginPage,
 });
 
@@ -34,6 +35,14 @@ function LoginPage() {
 
   return (
     <div className="grid min-h-screen place-items-center bg-background px-4">
+      {busy && (
+        <div className="fixed inset-0 z-50 grid place-items-center bg-background/70 backdrop-blur-sm">
+          <div className="flex flex-col items-center gap-3">
+            <Loader2 className="h-8 w-8 animate-spin text-primary" />
+            <p className="text-sm text-muted-foreground">Signing you in…</p>
+          </div>
+        </div>
+      )}
       <div className="w-full max-w-sm rounded-xl border border-border/60 bg-card p-6 shadow-sm">
         <h1 className="text-xl font-semibold tracking-tight">Welcome back</h1>
         <p className="mt-1 text-sm text-muted-foreground">Sign in to your boards.</p>
@@ -46,7 +55,16 @@ function LoginPage() {
             <Label htmlFor="password">Password</Label>
             <Input id="password" type="password" required value={password} onChange={(e) => setPassword(e.target.value)} />
           </div>
-          <Button type="submit" className="w-full" disabled={busy}>{busy ? "Signing in…" : "Sign in"}</Button>
+          <Button type="submit" className="w-full" disabled={busy}>
+            {busy ? (
+              <span className="inline-flex items-center gap-2">
+                <Loader2 className="h-4 w-4 animate-spin" />
+                Signing in…
+              </span>
+            ) : (
+              "Sign in"
+            )}
+          </Button>
         </form>
         <p className="mt-6 text-center text-sm text-muted-foreground">
           No account? <Link to="/signup" className="text-foreground underline-offset-4 hover:underline">Sign up</Link>

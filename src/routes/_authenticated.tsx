@@ -38,7 +38,7 @@ function AuthLayout() {
             <div className="grid h-6 w-6 place-items-center rounded-md bg-primary text-primary-foreground">
               <LayoutGrid className="h-3.5 w-3.5" />
             </div>
-            <span className="text-sm font-semibold tracking-tight">Stack</span>
+            <span className="text-sm font-semibold tracking-tight">Kanbunny</span>
           </Link>
           <nav className="flex items-center gap-1">
             <Button asChild variant={location.pathname === "/boards" ? "secondary" : "ghost"} size="sm">
