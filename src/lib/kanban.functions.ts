@@ -230,6 +230,18 @@ export const deleteCard = createServerFn({ method: "POST" })
     return { ok: true };
   });
 
+export const archiveCard = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d) => z.object({ id: uuid, archived: z.boolean().optional() }).parse(d))
+  .handler(async ({ data, context }) => {
+    const { supabase, userId } = context;
+    const archived = data.archived ?? true;
+    const { error } = await supabase.from("cards").update({ archived } as any).eq("id", data.id);
+    if (error) throw new Error(error.message);
+    await logActivity(supabase, userId, data.id, archived ? "card_archived" : "card_unarchived", {});
+    return { ok: true };
+  });
+
 export const moveCard = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d) => z.object({ id: uuid, listId: uuid, position: z.number() }).parse(d))
