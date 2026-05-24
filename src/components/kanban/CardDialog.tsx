@@ -22,7 +22,7 @@ import {
   deleteChecklistItem, deleteChecklist, getCardChecklists,
   getCardComments, addCardComment, updateCardComment, deleteCardComment,
   listCardAttachments, addCardAttachment, deleteCardAttachment, getAttachmentUrl,
-  getCardActivities,
+  getCardActivities, getCardDetails,
 } from "@/lib/kanban.functions";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
@@ -104,14 +104,22 @@ export function CardDialog({
   const overdue = dueDate ? dueDate.getTime() < Date.now() : false;
 
   // ---- Checklists ----
-  const getChecklistsFn = useServerFn(getCardChecklists);
-  const checklistKey = ["checklists", card.id] as const;
   const isRealCard = !card.id.startsWith("tmp-");
-  const { data: cl } = useQuery({
-    queryKey: checklistKey,
-    queryFn: () => getChecklistsFn({ data: { cardId: card.id } }),
+  const getDetailsFn = useServerFn(getCardDetails);
+  const { data: details, isLoading: detailsLoading } = useQuery({
+    queryKey: ["card-details", card.id],
+    queryFn: async () => {
+      const d = await getDetailsFn({ data: { cardId: card.id } });
+      // Prime per-section caches so child components render synchronously without flash
+      qc.setQueryData(["checklists", card.id], { checklists: d.checklists, items: d.items });
+      qc.setQueryData(["comments", card.id], d.comments);
+      qc.setQueryData(["attachments", card.id], d.attachments);
+      return d;
+    },
     enabled: isRealCard,
+    staleTime: 30_000,
   });
+  const cl = details ? { checklists: details.checklists, items: details.items } : undefined;
 
   return (
     <Dialog open onOpenChange={(o) => !o && onClose()}>
