@@ -34,7 +34,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         session,
         loading,
         signOut: async () => {
-          await supabase.auth.signOut();
+          await supabase.auth.signOut({ scope: "local" });
         },
       }}
     >
