@@ -117,6 +117,7 @@ function BoardPage() {
   const renameListFn = useServerFn(renameList);
   const deleteListFn = useServerFn(deleteList);
   const renameBoardFn = useServerFn(renameBoard);
+  const updateBgFn = useServerFn(updateBoardBackground);
   const createCardFn = useServerFn(createCard);
   const updateCardFn = useServerFn(updateCard);
   const deleteCardFn = useServerFn(deleteCard);
@@ -206,6 +207,16 @@ function BoardPage() {
       await qc.cancelQueries({ queryKey: key });
       const prev = qc.getQueryData<BoardData>(key);
       patch((d) => ({ ...d, board: { ...d.board, title } }));
+      return { prev };
+    },
+    onError: (e, _v, ctx) => { if (ctx?.prev) qc.setQueryData(key, ctx.prev); toast.error(e.message); },
+  });
+  const updateBgMut = useMutation({
+    mutationFn: (g: string) => updateBgFn({ data: { id: boardId, background_gradient: g } }),
+    onMutate: async (g) => {
+      await qc.cancelQueries({ queryKey: key });
+      const prev = qc.getQueryData<BoardData>(key);
+      patch((d) => ({ ...d, board: { ...d.board, background_gradient: g } as any }));
       return { prev };
     },
     onError: (e, _v, ctx) => { if (ctx?.prev) qc.setQueryData(key, ctx.prev); toast.error(e.message); },
