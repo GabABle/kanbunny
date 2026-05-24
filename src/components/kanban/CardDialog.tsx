@@ -335,14 +335,17 @@ function LabelsPopover({ boardId, cardId, canEdit, labels, myLabelIds }: { board
           {labels.map((l) => (
             <div key={l.id} className="flex items-center gap-2">
               <button
-                onClick={() => toggle.mutate({ labelId: l.id, on: !myLabelIds.has(l.id) })}
+                onClick={() => {
+                  if (l.id.startsWith("tmp-")) { toast.message("Saving label…"); return; }
+                  toggle.mutate({ labelId: l.id, on: !myLabelIds.has(l.id) });
+                }}
                 className="flex flex-1 items-center justify-between rounded px-3 py-1.5 text-sm font-semibold text-white"
                 style={{ backgroundColor: l.color }}
               >
                 <span>{l.name}</span>
                 {myLabelIds.has(l.id) && <Check className="h-4 w-4" />}
               </button>
-              <button onClick={() => { if (confirm("Delete label?")) remove.mutate(l.id); }} className="text-muted-foreground hover:text-destructive">
+              <button onClick={() => { if (l.id.startsWith("tmp-")) return; if (confirm("Delete label?")) remove.mutate(l.id); }} className="text-muted-foreground hover:text-destructive">
                 <Trash2 className="h-3.5 w-3.5" />
               </button>
             </div>
