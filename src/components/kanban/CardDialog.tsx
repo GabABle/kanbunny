@@ -19,7 +19,7 @@ import {
   createLabel, toggleCardLabel, deleteLabel,
   toggleAssignee,
   addChecklist, addChecklistItem, toggleChecklistItem,
-  deleteChecklistItem, deleteChecklist, getCardChecklists,
+  deleteChecklistItem, deleteChecklist,
   getCardComments, addCardComment, updateCardComment, deleteCardComment,
   listCardAttachments, addCardAttachment, deleteCardAttachment, getAttachmentUrl,
   getCardActivities, getCardDetails,
