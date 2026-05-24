@@ -118,10 +118,10 @@ function BoardsPage() {
               </Link>
               <button
                 onClick={async () => { if (await confirmDlg({ title: `Delete "${b.title}"?`, destructive: true, confirmText: "Delete" })) delMut.mutate(b.id); }}
-                className="absolute right-2 top-2 rounded p-1 text-white/80 opacity-0 transition hover:bg-black/20 hover:text-white group-hover:opacity-100"
+                className="absolute right-2 top-2 rounded-md bg-black/30 p-1.5 text-white shadow-sm backdrop-blur-sm transition hover:bg-black/50"
                 aria-label="Delete"
               >
-                <Trash2 className="h-3.5 w-3.5" />
+                <Trash2 className="h-4 w-4" />
               </button>
             </div>
           ))}
