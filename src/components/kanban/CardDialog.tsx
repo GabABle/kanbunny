@@ -157,7 +157,7 @@ export function CardDialog({
                 onChange={(e) => setTitle(e.target.value)}
                 onBlur={saveTitle}
                 onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); (e.target as HTMLInputElement).blur(); } if (e.key === "Escape") { setTitle(card.title); (e.target as HTMLInputElement).blur(); } }}
-                className="w-full bg-transparent text-xl font-semibold outline-none focus:bg-white focus:text-foreground focus:ring-2 focus:ring-primary/40 rounded px-1 -mx-1"
+                className="w-full bg-transparent text-xl font-semibold outline-none border border-transparent focus:border-transparent focus:outline-none rounded px-1 -mx-1"
               />
               <div className="text-xs text-list-muted mt-1">in list <span className="underline">{listTitle}</span></div>
             </div>
