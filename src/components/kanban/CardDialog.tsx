@@ -202,7 +202,14 @@ export function CardDialog({
             </div>
 
             {/* Checklists */}
-            {cl?.checklists.map((checklist) => (
+            {isRealCard && detailsLoading && (
+              <div className="space-y-3">
+                <div className="h-4 w-32 animate-pulse rounded bg-tcard" />
+                <div className="h-20 animate-pulse rounded bg-tcard" />
+                <div className="h-16 animate-pulse rounded bg-tcard" />
+              </div>
+            )}
+            {!detailsLoading && cl?.checklists.map((checklist) => (
               <ChecklistBlock
                 key={checklist.id}
                 boardId={boardId}
@@ -214,9 +221,13 @@ export function CardDialog({
             ))}
 
             {/* Comments */}
-            <AttachmentsBlock cardId={card.id} canEdit={canEdit} />
-            <CommentsBlock cardId={card.id} canEdit={canEdit} members={members} />
-            <ActivityBlock cardId={card.id} />
+            {!detailsLoading && (
+              <>
+                <AttachmentsBlock cardId={card.id} canEdit={canEdit} />
+                <CommentsBlock cardId={card.id} canEdit={canEdit} members={members} />
+                <ActivityBlock cardId={card.id} />
+              </>
+            )}
           </div>
 
           {/* Sidebar */}
