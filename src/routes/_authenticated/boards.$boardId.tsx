@@ -386,15 +386,6 @@ function CardFront({ card, data, canEdit, onOpen, onDragStart, onDragEnd, isDrag
       )}
       <div className="flex items-start gap-2">
         <div className="flex-1 font-medium">{card.title}</div>
-        {ownerName && (
-          <span
-            className="grid h-5 w-5 shrink-0 place-items-center rounded-full text-[10px] font-semibold text-white ring-1 ring-border"
-            style={{ backgroundColor: colorFor(owner) }}
-            title={`Owner: ${ownerName}`}
-          >
-            {ownerName.slice(0, 1).toUpperCase()}
-          </span>
-        )}
       </div>
       <div className="mt-1.5 flex flex-wrap items-center gap-2 text-xs text-list-muted">
         {dueDate && (
@@ -437,7 +428,7 @@ function InlineRename({ value, onSave, disabled, className }: { value: string; o
       onChange={(e) => setV(e.target.value)}
       onBlur={() => { setEditing(false); if (v.trim() && v !== value) onSave(v.trim()); }}
       onKeyDown={(e) => { if (e.key === "Enter") (e.target as HTMLInputElement).blur(); if (e.key === "Escape") setEditing(false); }}
-      className={"rounded border border-border bg-background px-1 py-0.5 outline-none " + (className ?? "")}
+      className={"rounded border border-border bg-white text-foreground px-1 py-0.5 outline-none " + (className ?? "")}
     />
   );
 }
