@@ -9,6 +9,25 @@ import { Textarea } from "@/components/ui/textarea";
 import { Plus, Trash2 } from "lucide-react";
 import { createBoard, deleteBoard, listBoards } from "@/lib/kanban.functions";
 import { toast } from "sonner";
+import { useConfirm } from "@/components/ui/confirm-dialog";
+
+const BOARD_GRADIENTS = [
+  "linear-gradient(135deg, #6366f1, #ec4899)",
+  "linear-gradient(135deg, #0ea5e9, #22d3ee)",
+  "linear-gradient(135deg, #f59e0b, #ef4444)",
+  "linear-gradient(135deg, #10b981, #3b82f6)",
+  "linear-gradient(135deg, #8b5cf6, #6366f1)",
+  "linear-gradient(135deg, #f43f5e, #f97316)",
+  "linear-gradient(135deg, #14b8a6, #84cc16)",
+  "linear-gradient(135deg, #a855f7, #ec4899)",
+  "linear-gradient(135deg, #0f766e, #0ea5e9)",
+  "linear-gradient(135deg, #1e3a8a, #7c3aed)",
+];
+function gradientFor(id: string) {
+  let h = 0;
+  for (let i = 0; i < id.length; i++) h = (h * 31 + id.charCodeAt(i)) >>> 0;
+  return BOARD_GRADIENTS[h % BOARD_GRADIENTS.length];
+}
 
 export const Route = createFileRoute("/_authenticated/boards/")({
   head: () => ({ meta: [{ title: "Your boards — Stack" }] }),
@@ -16,6 +35,7 @@ export const Route = createFileRoute("/_authenticated/boards/")({
 });
 
 function BoardsPage() {
+  const confirmDlg = useConfirm();
   const list = useServerFn(listBoards);
   const { data: boards, isPending } = useQuery({
     queryKey: ["boards"],
@@ -87,14 +107,18 @@ function BoardsPage() {
       ) : (
         <div className="mt-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
           {boards!.map((b) => (
-            <div key={b.id} className="group relative rounded-lg border border-border/60 bg-card p-4 transition hover:border-border">
+            <div
+              key={b.id}
+              className="group relative overflow-hidden rounded-lg border border-border/60 p-4 text-white shadow-sm transition hover:border-border hover:shadow-md"
+              style={{ backgroundImage: gradientFor(b.id) }}
+            >
               <Link to="/boards/$boardId" params={{ boardId: b.id }} className="block">
-                <h3 className="font-medium tracking-tight">{b.title}</h3>
-                {b.description && <p className="mt-1 line-clamp-2 text-sm text-muted-foreground">{b.description}</p>}
+                <h3 className="font-medium tracking-tight drop-shadow">{b.title}</h3>
+                {b.description && <p className="mt-1 line-clamp-2 text-sm text-white/85">{b.description}</p>}
               </Link>
               <button
-                onClick={() => confirm(`Delete "${b.title}"?`) && delMut.mutate(b.id)}
-                className="absolute right-2 top-2 rounded p-1 text-muted-foreground opacity-0 transition hover:bg-accent hover:text-foreground group-hover:opacity-100"
+                onClick={async () => { if (await confirmDlg({ title: `Delete "${b.title}"?`, destructive: true, confirmText: "Delete" })) delMut.mutate(b.id); }}
+                className="absolute right-2 top-2 rounded p-1 text-white/80 opacity-0 transition hover:bg-black/20 hover:text-white group-hover:opacity-100"
                 aria-label="Delete"
               >
                 <Trash2 className="h-3.5 w-3.5" />

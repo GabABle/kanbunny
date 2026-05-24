@@ -291,13 +291,19 @@ export const toggleCardLabel = createServerFn({ method: "POST" })
 // ---------- Members ----------
 export const inviteMember = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((d) => z.object({ boardId: uuid, email: z.string().email(), role: z.enum(["editor", "viewer"]) }).parse(d))
+  .inputValidator((d) => z.object({ boardId: uuid, username: z.string().min(1).max(120), role: z.enum(["editor", "viewer"]) }).parse(d))
   .handler(async ({ data, context }) => {
     const { supabase } = context;
-    const { data: profile, error: pErr } = await supabase.from("profiles").select("id").eq("email", data.email).maybeSingle();
+    const uname = data.username.trim();
+    const { data: matches, error: pErr } = await supabase
+      .from("profiles")
+      .select("id, display_name")
+      .ilike("display_name", uname)
+      .limit(2);
     if (pErr) throw new Error(pErr.message);
-    if (!profile) throw new Error("No user with that email has signed up yet.");
-    const { error } = await supabase.from("board_members").insert({ board_id: data.boardId, user_id: profile.id, role: data.role });
+    if (!matches || matches.length === 0) throw new Error(`No user found with username "@${uname}".`);
+    if (matches.length > 1) throw new Error(`Multiple users match "@${uname}". Please be more specific.`);
+    const { error } = await supabase.from("board_members").insert({ board_id: data.boardId, user_id: matches[0].id, role: data.role });
     if (error) throw new Error(error.message);
     return { ok: true };
   });
