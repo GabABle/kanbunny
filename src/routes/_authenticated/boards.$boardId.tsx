@@ -10,13 +10,32 @@ import { Plus, Trash2, UserPlus, X, Clock, Bell, Filter } from "lucide-react";
 import {
   getBoard, createList, renameList, deleteList,
   createCard, updateCard, deleteCard, moveCard,
-  inviteMember, removeMember, searchProfiles, renameBoard,
+  inviteMember, removeMember, searchProfiles, renameBoard, updateBoardBackground,
 } from "@/lib/kanban.functions";
 import { toast } from "sonner";
 import { CardDialog } from "@/components/kanban/CardDialog";
 import { cn } from "@/lib/utils";
 import { useConfirm } from "@/components/ui/confirm-dialog";
 import { colorFor } from "@/lib/avatar-color";
+
+const BOARD_GRADIENTS = [
+  "linear-gradient(135deg, #6366f1, #ec4899)",
+  "linear-gradient(135deg, #0ea5e9, #22d3ee)",
+  "linear-gradient(135deg, #f59e0b, #ef4444)",
+  "linear-gradient(135deg, #10b981, #3b82f6)",
+  "linear-gradient(135deg, #8b5cf6, #6366f1)",
+  "linear-gradient(135deg, #f43f5e, #f97316)",
+  "linear-gradient(135deg, #14b8a6, #84cc16)",
+  "linear-gradient(135deg, #a855f7, #ec4899)",
+  "linear-gradient(135deg, #0f766e, #0ea5e9)",
+  "linear-gradient(135deg, #1e3a8a, #7c3aed)",
+  "linear-gradient(135deg, #be185d, #f59e0b)",
+  "linear-gradient(135deg, #064e3b, #0ea5e9)",
+];
+function randomGradient(exclude?: string | null) {
+  const pool = BOARD_GRADIENTS.filter((g) => g !== exclude);
+  return pool[Math.floor(Math.random() * pool.length)];
+}
 
 function UserFilterPopover({ members, selected, onChange }: { members: any[]; selected: Set<string>; onChange: (s: Set<string>) => void }) {
   const toggle = (id: string) => {
@@ -98,6 +117,7 @@ function BoardPage() {
   const renameListFn = useServerFn(renameList);
   const deleteListFn = useServerFn(deleteList);
   const renameBoardFn = useServerFn(renameBoard);
+  const updateBgFn = useServerFn(updateBoardBackground);
   const createCardFn = useServerFn(createCard);
   const updateCardFn = useServerFn(updateCard);
   const deleteCardFn = useServerFn(deleteCard);
@@ -191,6 +211,16 @@ function BoardPage() {
     },
     onError: (e, _v, ctx) => { if (ctx?.prev) qc.setQueryData(key, ctx.prev); toast.error(e.message); },
   });
+  const updateBgMut = useMutation({
+    mutationFn: (g: string) => updateBgFn({ data: { id: boardId, background_gradient: g } }),
+    onMutate: async (g) => {
+      await qc.cancelQueries({ queryKey: key });
+      const prev = qc.getQueryData<BoardData>(key);
+      patch((d) => ({ ...d, board: { ...d.board, background_gradient: g } as any }));
+      return { prev };
+    },
+    onError: (e, _v, ctx) => { if (ctx?.prev) qc.setQueryData(key, ctx.prev); toast.error(e.message); },
+  });
 
   const [newListTitle, setNewListTitle] = useState("");
   const [openCard, setOpenCard] = useState<string | null>(null);
@@ -229,8 +259,11 @@ function BoardPage() {
   };
 
   return (
-    <div className="flex h-[calc(100vh-48px)] flex-col bg-board text-board-foreground">
-      <div className="flex items-center justify-between bg-board-bar px-4 py-2 backdrop-blur">
+    <div
+      className="flex h-[calc(100vh-48px)] flex-col bg-board text-board-foreground"
+      style={(data.board as any).background_gradient ? { backgroundImage: (data.board as any).background_gradient } : undefined}
+    >
+      <div className="flex items-center justify-between bg-black/20 px-4 py-2 backdrop-blur">
         <div>
           <InlineRename
             value={data.board.title}
@@ -241,6 +274,16 @@ function BoardPage() {
           {data.board.description && <p className="text-xs text-board-foreground/70">{data.board.description}</p>}
         </div>
         <div className="flex items-center gap-2">
+          {canEdit && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => updateBgMut.mutate(randomGradient((data.board as any).background_gradient))}
+              title="Change board background"
+            >
+              🎨 Background
+            </Button>
+          )}
           <UserFilterPopover
             members={data.members as any}
             selected={filterUserIds}
@@ -354,7 +397,8 @@ function CardFront({ card, data, canEdit, onOpen, onDragStart, onDragEnd, isDrag
 }) {
   const labelIds = new Set(data.cardLabels.filter((cl: any) => cl.card_id === card.id).map((cl: any) => cl.label_id));
   const myLabels = data.labels.filter((l: any) => labelIds.has(l.id));
-  const assigneeIds = new Set(data.assignees.filter((a: any) => a.card_id === card.id).map((a: any) => a.user_id));
+  const assigneeIds = new Set<string>(data.assignees.filter((a: any) => a.card_id === card.id).map((a: any) => a.user_id));
+  if (card.created_by) assigneeIds.add(card.created_by);
   const myMembers = data.members.filter((m: any) => assigneeIds.has(m.user_id));
   const dueDate = card.due_date ? new Date(card.due_date) : null;
   const overdue = dueDate ? dueDate.getTime() < Date.now() : false;
@@ -426,7 +470,7 @@ function InlineRename({ value, onSave, disabled, className }: { value: string; o
       onChange={(e) => setV(e.target.value)}
       onBlur={() => { setEditing(false); if (v.trim() && v !== value) onSave(v.trim()); }}
       onKeyDown={(e) => { if (e.key === "Enter") (e.target as HTMLInputElement).blur(); if (e.key === "Escape") setEditing(false); }}
-      className={"rounded border border-border bg-white text-foreground px-1 py-0.5 outline-none " + (className ?? "")}
+      className={"rounded border border-transparent bg-transparent px-1 py-0.5 outline-none focus:outline-none " + (className ?? "")}
     />
   );
 }
