@@ -58,6 +58,7 @@ export function CardDialog({
   // ---- Card actions ----
   const updateFn = useServerFn(updateCard);
   const deleteFn = useServerFn(deleteCard);
+  const archiveFn = useServerFn(archiveCard);
   const update = useMutation({
     mutationFn: (v: any) => updateFn({ data: { id: card.id, ...v } }),
     onMutate: async (v) => {
@@ -73,6 +74,11 @@ export function CardDialog({
   const del = useMutation({
     mutationFn: () => deleteFn({ data: { id: card.id } }),
     onSuccess: () => { invalidateBoard(); onClose(); },
+    onError: (e) => toast.error(e.message),
+  });
+  const archive = useMutation({
+    mutationFn: () => archiveFn({ data: { id: card.id, archived: true } }),
+    onSuccess: () => { invalidateBoard(); onClose(); toast.success("Card archived"); },
     onError: (e) => toast.error(e.message),
   });
 
