@@ -99,7 +99,7 @@ export const getBoard = createServerFn({ method: "GET" })
       supabase.from("lists").select("id, title, position").eq("board_id", data.id).order("position"),
       supabase
         .from("cards")
-        .select("id, list_id, title, description, position, due_date, created_at")
+        .select("id, list_id, title, description, position, due_date, created_at, created_by")
         .in("list_id", (await supabase.from("lists").select("id").eq("board_id", data.id)).data?.map((l) => l.id) ?? [])
         .order("position"),
       supabase.from("labels").select("id, name, color").eq("board_id", data.id),
