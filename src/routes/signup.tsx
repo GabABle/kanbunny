@@ -1,7 +1,6 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { lovable } from "@/integrations/lovable";
 import { useAuth } from "@/hooks/use-auth";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -45,11 +44,6 @@ function SignupPage() {
     navigate({ to: "/boards" });
   };
 
-  const onGoogle = async () => {
-    const r = await lovable.auth.signInWithOAuth("google", { redirect_uri: window.location.origin + "/boards" });
-    if (r.error) toast.error(String(r.error.message ?? r.error));
-  };
-
   return (
     <div className="grid min-h-screen place-items-center bg-background px-4">
       <div className="w-full max-w-sm rounded-xl border border-border/60 bg-card p-6 shadow-sm">
@@ -70,10 +64,6 @@ function SignupPage() {
           </div>
           <Button type="submit" className="w-full" disabled={busy}>{busy ? "Creating…" : "Create account"}</Button>
         </form>
-        <div className="my-4 flex items-center gap-2 text-xs text-muted-foreground">
-          <div className="h-px flex-1 bg-border" /> or <div className="h-px flex-1 bg-border" />
-        </div>
-        <Button variant="outline" className="w-full" onClick={onGoogle}>Continue with Google</Button>
         <p className="mt-6 text-center text-sm text-muted-foreground">
           Have an account? <Link to="/login" className="text-foreground underline-offset-4 hover:underline">Sign in</Link>
         </p>
