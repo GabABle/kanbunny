@@ -39,7 +39,7 @@ const LABEL_COLORS = [
 
 type Card = { id: string; title: string; description: string | null; due_date: string | null; list_id: string; created_by?: string | null };
 type Label = { id: string; name: string; color: string };
-type Member = { user_id: string; role: string; profile: { id: string; display_name: string | null; email: string | null; avatar_url: string | null } | null };
+type Member = { user_id: string; role: string; profile: { id: string; display_name: string | null; email: string | null; avatar_url: string | null; avatar_color?: string | null } | null };
 
 export function CardDialog({
   card, listTitle, boardId, canEdit, labels, cardLabels, assignees, members, onClose,
