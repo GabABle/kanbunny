@@ -1260,13 +1260,13 @@ function OwnerPopover({ boardId, cardId, canEdit, members, ownerId }: {
   const current = members.find((m) => m.user_id === ownerId);
   const currentName = current?.profile?.display_name ?? current?.profile?.email ?? (ownerId ? "Unknown" : "No owner");
 
-  const q = query.trim().toLowerCase();
+  const q = query.trim().replace(/^@/, "").toLowerCase();
   const matches = members.filter((m) => {
     if (!q) return true;
     const n = (m.profile?.display_name ?? "").toLowerCase();
     const e = (m.profile?.email ?? "").toLowerCase();
-    return n.includes(q) || e.includes(q);
-  }).slice(0, 8);
+    return n.startsWith(q) || e.startsWith(q);
+  }).slice(0, 10);
 
   const setOwner = useMutation({
     mutationFn: (userId: string) => updFn({ data: { cardId, userId } }),
@@ -1301,7 +1301,7 @@ function OwnerPopover({ boardId, cardId, canEdit, members, ownerId }: {
             else if (e.key === "ArrowUp") { e.preventDefault(); setActive((a) => (a - 1 + matches.length) % matches.length); }
             else if (e.key === "Enter") { e.preventDefault(); setOwner.mutate(matches[active].user_id); }
           }}
-          placeholder="Type a name or email…"
+          placeholder="Type @ to see all members…"
           className="h-8 mb-2"
         />
         <div className="space-y-1 max-h-64 overflow-y-auto">
