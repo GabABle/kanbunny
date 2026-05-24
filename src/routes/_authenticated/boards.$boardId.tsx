@@ -18,6 +18,52 @@ import { cn } from "@/lib/utils";
 import { useConfirm } from "@/components/ui/confirm-dialog";
 import { avatarColor, colorFor } from "@/lib/avatar-color";
 
+function UserFilterPopover({ members, selected, onChange }: { members: any[]; selected: Set<string>; onChange: (s: Set<string>) => void }) {
+  const toggle = (id: string) => {
+    const next = new Set(selected);
+    if (next.has(id)) next.delete(id); else next.add(id);
+    onChange(next);
+  };
+  return (
+    <Popover>
+      <PopoverTrigger asChild>
+        <Button variant={selected.size > 0 ? "default" : "outline"} size="sm">
+          <Filter className="h-4 w-4" /> User{selected.size > 0 ? ` (${selected.size})` : ""}
+        </Button>
+      </PopoverTrigger>
+      <PopoverContent align="end" className="w-64">
+        <div className="space-y-2">
+          <div className="flex items-center justify-between">
+            <div className="text-sm font-medium">Filter by user</div>
+            {selected.size > 0 && (
+              <button className="text-xs text-muted-foreground hover:underline" onClick={() => onChange(new Set())}>Clear</button>
+            )}
+          </div>
+          <div className="max-h-72 space-y-1 overflow-y-auto">
+            {members.map((m) => {
+              const name = m.profile?.display_name ?? m.profile?.email ?? "User";
+              const on = selected.has(m.user_id);
+              return (
+                <button
+                  key={m.user_id}
+                  onClick={() => toggle(m.user_id)}
+                  className={cn("flex w-full items-center gap-2 rounded px-2 py-1.5 text-left text-sm hover:bg-accent", on && "bg-accent")}
+                >
+                  <span className="grid h-6 w-6 place-items-center rounded-full text-[10px] font-semibold text-white" style={{ backgroundColor: colorFor(m) }}>
+                    {name.slice(0, 1).toUpperCase()}
+                  </span>
+                  <span className="flex-1 truncate">{name}</span>
+                  {on && <span className="text-xs text-primary">✓</span>}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      </PopoverContent>
+    </Popover>
+  );
+}
+
 export const Route = createFileRoute("/_authenticated/boards/$boardId")({
   head: () => ({ meta: [{ title: "Board — Stack" }] }),
   errorComponent: ({ error }) => (
