@@ -164,4 +164,8 @@
     font-family: "Poppins", system-ui, -apple-system, "Segoe UI", sans-serif;
     -webkit-font-smoothing: antialiased;
   }
+
+  html, button, input, textarea, select, [role="dialog"], [data-radix-popper-content-wrapper] {
+    font-family: "Poppins", system-ui, -apple-system, "Segoe UI", sans-serif;
+  }
 }

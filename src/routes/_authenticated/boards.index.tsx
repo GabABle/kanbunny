@@ -17,7 +17,11 @@ export const Route = createFileRoute("/_authenticated/boards/")({
 
 function BoardsPage() {
   const list = useServerFn(listBoards);
-  const { data: boards = [], isLoading } = useQuery({ queryKey: ["boards"], queryFn: () => list() });
+  const { data: boards, isPending } = useQuery({
+    queryKey: ["boards"],
+    queryFn: () => list(),
+    staleTime: 60_000,
+  });
   const qc = useQueryClient();
   const navigate = useNavigate();
   const create = useServerFn(createBoard);
@@ -48,7 +52,7 @@ function BoardsPage() {
       <div className="flex items-end justify-between">
         <div>
           <h1 className="text-2xl font-semibold tracking-tight">Your boards</h1>
-          <p className="mt-1 text-sm text-muted-foreground">{boards.length} {boards.length === 1 ? "board" : "boards"}</p>
+          <p className="mt-1 text-sm text-muted-foreground">{boards?.length ?? 0} {(boards?.length ?? 0) === 1 ? "board" : "boards"}</p>
         </div>
         <Dialog open={open} onOpenChange={setOpen}>
           <DialogTrigger asChild>
@@ -70,13 +74,19 @@ function BoardsPage() {
         </Dialog>
       </div>
 
-      {boards.length === 0 ? (
+      {isPending && !boards ? (
+        <div className="mt-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+          {Array.from({ length: 3 }).map((_, i) => (
+            <div key={i} className="h-24 animate-pulse rounded-lg border border-border/60 bg-card" />
+          ))}
+        </div>
+      ) : (boards?.length ?? 0) === 0 ? (
         <div className="mt-10 rounded-xl border border-dashed border-border/60 p-12 text-center">
           <p className="text-sm text-muted-foreground">No boards yet. Create your first one to get started.</p>
         </div>
       ) : (
         <div className="mt-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-          {boards.map((b) => (
+          {boards!.map((b) => (
             <div key={b.id} className="group relative rounded-lg border border-border/60 bg-card p-4 transition hover:border-border">
               <Link to="/boards/$boardId" params={{ boardId: b.id }} className="block">
                 <h3 className="font-medium tracking-tight">{b.title}</h3>
