@@ -446,7 +446,7 @@ export const getCardComments = createServerFn({ method: "GET" })
     if (error) throw new Error(error.message);
     const ids = Array.from(new Set((rows ?? []).map((r) => r.user_id)));
     const profilesRes = ids.length
-      ? await supabase.from("profiles").select("id, display_name, avatar_url, email").in("id", ids)
+      ? await supabase.from("profiles").select("id, display_name, avatar_url, avatar_color, email").in("id", ids)
       : { data: [], error: null as any };
     if (profilesRes.error) throw new Error(profilesRes.error.message);
     const map = new Map((profilesRes.data ?? []).map((p: any) => [p.id, p]));
@@ -569,7 +569,7 @@ export const getCardActivities = createServerFn({ method: "GET" })
     if (error) throw new Error(error.message);
     const ids = Array.from(new Set((rows ?? []).map((r: any) => r.user_id)));
     const profilesRes = ids.length
-      ? await supabase.from("profiles").select("id, display_name, avatar_url, email").in("id", ids)
+      ? await supabase.from("profiles").select("id, display_name, avatar_url, avatar_color, email").in("id", ids)
       : { data: [], error: null as any };
     if (profilesRes.error) throw new Error(profilesRes.error.message);
     const map = new Map((profilesRes.data ?? []).map((p: any) => [p.id, p]));
@@ -617,7 +617,7 @@ export const getCardDetails = createServerFn({ method: "GET" })
       ...((activitiesRes.data ?? []) as any[]).map((r: any) => r.user_id),
     ]));
     const profilesRes = userIds.length
-      ? await supabase.from("profiles").select("id, display_name, avatar_url, email").in("id", userIds)
+      ? await supabase.from("profiles").select("id, display_name, avatar_url, avatar_color, email").in("id", userIds)
       : { data: [], error: null as any };
     if (profilesRes.error) throw new Error(profilesRes.error.message);
     const profileMap = new Map((profilesRes.data ?? []).map((p: any) => [p.id, p]));
