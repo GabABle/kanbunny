@@ -259,8 +259,11 @@ function BoardPage() {
   };
 
   return (
-    <div className="flex h-[calc(100vh-48px)] flex-col bg-board text-board-foreground">
-      <div className="flex items-center justify-between bg-board-bar px-4 py-2 backdrop-blur">
+    <div
+      className="flex h-[calc(100vh-48px)] flex-col text-board-foreground"
+      style={(data.board as any).background_gradient ? { backgroundImage: (data.board as any).background_gradient } : undefined}
+    >
+      <div className="flex items-center justify-between bg-black/20 px-4 py-2 backdrop-blur">
         <div>
           <InlineRename
             value={data.board.title}
@@ -271,6 +274,16 @@ function BoardPage() {
           {data.board.description && <p className="text-xs text-board-foreground/70">{data.board.description}</p>}
         </div>
         <div className="flex items-center gap-2">
+          {canEdit && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => updateBgMut.mutate(randomGradient((data.board as any).background_gradient))}
+              title="Change board background"
+            >
+              🎨 Background
+            </Button>
+          )}
           <UserFilterPopover
             members={data.members as any}
             selected={filterUserIds}
