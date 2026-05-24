@@ -573,6 +573,7 @@ function ChecklistBlock({ boardId, cardId, canEdit, checklist, items }: {
   const qc = useQueryClient();
   const key = ["checklists", cardId] as const;
   const inv = () => qc.invalidateQueries({ queryKey: key });
+  const confirmDlg = useConfirm();
 
   const addItemFn = useServerFn(addChecklistItem);
   const toggleFn = useServerFn(toggleChecklistItem);
@@ -652,7 +653,7 @@ function ChecklistBlock({ boardId, cardId, canEdit, checklist, items }: {
         <CheckSquare className="h-4 w-4" />
         <h3 className="font-semibold">{checklist.title}</h3>
         {canEdit && (
-          <Button size="sm" variant="ghost" className="ml-auto h-7" onClick={() => { if (confirm("Delete checklist?")) delList.mutate(); }}>Delete</Button>
+          <Button size="sm" variant="ghost" className="ml-auto h-7" onClick={async () => { if (await confirmDlg({ title: "Delete checklist?", destructive: true, confirmText: "Delete" })) delList.mutate(); }}>Delete</Button>
         )}
       </div>
       <div className="mb-3 flex items-center gap-2">
@@ -666,7 +667,7 @@ function ChecklistBlock({ boardId, cardId, canEdit, checklist, items }: {
             <span className={cn("flex-1 text-sm", i.done && "text-list-muted line-through")}>{i.text}</span>
             {canEdit && (
               <button
-                onClick={() => { if (confirm("Delete this item?")) delItem.mutate(i.id); }}
+                onClick={async () => { if (await confirmDlg({ title: "Delete this item?", destructive: true, confirmText: "Delete" })) delItem.mutate(i.id); }}
                 title="Delete item"
                 className="text-list-muted hover:text-destructive"
               >
@@ -751,6 +752,7 @@ function AttachmentButton({ cardId, canEdit }: { cardId: string; canEdit: boolea
 function AttachmentsBlock({ cardId, canEdit }: { cardId: string; canEdit: boolean }) {
   const { user } = useAuth();
   const qc = useQueryClient();
+  const confirmDlg = useConfirm();
   const key = ["attachments", cardId] as const;
   const listFn = useServerFn(listCardAttachments);
   const delFn = useServerFn(deleteCardAttachment);
@@ -799,7 +801,7 @@ function AttachmentsBlock({ cardId, canEdit }: { cardId: string; canEdit: boolea
             </div>
             <Button size="sm" variant="ghost" onClick={() => open(a.file_path)} title="Download"><Download className="h-4 w-4" /></Button>
             {(canEdit || a.user_id === user?.id) && (
-              <Button size="sm" variant="ghost" onClick={() => { if (confirm("Delete attachment?")) remove.mutate(a.id); }}>
+              <Button size="sm" variant="ghost" onClick={async () => { if (await confirmDlg({ title: "Delete attachment?", destructive: true, confirmText: "Delete" })) remove.mutate(a.id); }}>
                 <Trash2 className="h-4 w-4" />
               </Button>
             )}
@@ -888,7 +890,7 @@ function CommentsBlock({ cardId, canEdit, members }: { cardId: string; canEdit: 
   const [body, setBody] = useState("");
   const [replyTo, setReplyTo] = useState<string | null>(null);
   const [replyBody, setReplyBody] = useState("");
-  const [open, setOpen] = useState(false);
+  const [open, setOpen] = useState(true);
 
   // Group replies by parent
   const topLevel = (comments as any[]).filter((c) => !c.parent_id);
@@ -1000,6 +1002,7 @@ function CommentRow({
 }) {
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState(comment.body);
+  const confirmDlg = useConfirm();
   const name = comment.profile?.display_name ?? comment.profile?.email ?? "User";
   const initials = name.slice(0, 2).toUpperCase();
   const when = new Date(comment.created_at);
@@ -1039,7 +1042,7 @@ function CommentRow({
               <button type="button" className="hover:underline" onClick={onToggleReply}>Reply</button>
             )}
             {isOwn && <button type="button" className="hover:underline" onClick={() => setEditing(true)}>Edit</button>}
-            {isOwn && <button type="button" className="hover:underline" onClick={() => { if (confirm("Delete comment?")) onDelete(); }}>Delete</button>}
+            {isOwn && <button type="button" className="hover:underline" onClick={async () => { if (await confirmDlg({ title: "Delete comment?", destructive: true, confirmText: "Delete" })) onDelete(); }}>Delete</button>}
           </div>
         )}
         {replying && onSubmitReply && onReplyBodyChange && (
