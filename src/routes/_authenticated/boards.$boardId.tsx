@@ -558,11 +558,18 @@ function MembersPopover({ boardId, members, isOwner, onChange }: { boardId: stri
         <div className="space-y-3">
           <div className="text-sm font-medium">Board members</div>
           <div className="space-y-1">
-            {members.map((m) => (
+            {members.map((m) => {
+              const name = m.profile?.display_name ?? m.profile?.email ?? "User";
+              return (
               <div key={m.user_id} className="flex items-center justify-between rounded px-2 py-1 text-sm">
-                <div>
-                  <div>{m.profile?.display_name ?? m.profile?.email ?? "User"}</div>
-                  <div className="text-xs text-muted-foreground">{m.role}</div>
+                <div className="flex items-center gap-2 min-w-0">
+                  <span className="grid h-7 w-7 shrink-0 place-items-center rounded-full text-[11px] font-semibold text-white" style={{ backgroundColor: colorFor(m) }}>
+                    {name.slice(0, 1).toUpperCase()}
+                  </span>
+                  <div className="min-w-0">
+                    <div className="truncate">{name}</div>
+                    <div className="text-xs text-muted-foreground">{m.role}</div>
+                  </div>
                 </div>
                 {isOwner && m.role !== "owner" && (
                   <button onClick={() => handleRemove(m)} className="text-muted-foreground hover:text-destructive">
@@ -570,7 +577,8 @@ function MembersPopover({ boardId, members, isOwner, onChange }: { boardId: stri
                   </button>
                 )}
               </div>
-            ))}
+            );
+            })}
           </div>
           {isOwner && (
             <div className="border-t border-border/60 pt-3">
