@@ -106,21 +106,21 @@ export function CardDialog({
   // ---- Checklists ----
   const isRealCard = !card.id.startsWith("tmp-");
   const getDetailsFn = useServerFn(getCardDetails);
-  const { data: details, isLoading: detailsLoading } = useQuery({
-    queryKey: ["card-details", card.id],
+  // Single source of truth: the ["checklists", card.id] cache. Mutations in
+  // ChecklistAdd / ChecklistBlock write to this same key so create/delete
+  // actions reflect immediately.
+  const { data: cl, isLoading: detailsLoading } = useQuery({
+    queryKey: ["checklists", card.id],
     queryFn: async () => {
       const d = await getDetailsFn({ data: { cardId: card.id } });
-      // Prime per-section caches so child components render synchronously without flash
-      qc.setQueryData(["checklists", card.id], { checklists: d.checklists, items: d.items });
       qc.setQueryData(["comments", card.id], d.comments);
       qc.setQueryData(["attachments", card.id], d.attachments);
       qc.setQueryData(["activities", card.id], (d as any).activities ?? []);
-      return d;
+      return { checklists: d.checklists, items: d.items };
     },
     enabled: isRealCard,
     staleTime: 30_000,
   });
-  const cl = details ? { checklists: details.checklists, items: details.items } : undefined;
 
   return (
     <Dialog open onOpenChange={(o) => !o && onClose()}>
@@ -150,8 +150,10 @@ export function CardDialog({
               <div className="text-xs text-list-muted mt-1">in list <span className="underline">{listTitle}</span></div>
             </div>
 
-            {/* Labels + due + members chips */}
-            {(myLabels.length > 0 || dueDate || myAssignees.size > 0) && (
+          {/* Labels + due + members chips */}
+            {(myLabels.length > 0 || dueDate || myAssignees.size > 0) && (() => {
+              const dueSoon = dueDate ? (dueDate.getTime() - Date.now()) <= 3 * 24 * 3600 * 1000 : false;
+              return (
               <div className="flex flex-wrap gap-4">
                 {myLabels.length > 0 && (
                   <div>
@@ -166,9 +168,12 @@ export function CardDialog({
                 {dueDate && (
                   <div>
                     <div className="text-[11px] font-semibold uppercase text-list-muted mb-1">Due date</div>
-                    <div className="flex items-center gap-2 rounded bg-tcard px-2 py-1.5 text-sm">
+                    <div className={cn(
+                      "flex items-center gap-2 rounded px-2 py-1.5 text-sm",
+                      dueSoon ? "bg-destructive text-destructive-foreground" : "bg-tcard"
+                    )}>
                       <span>{dueDate.toLocaleString(undefined, { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" })}</span>
-                      {overdue && <span className="rounded bg-destructive px-1.5 py-0.5 text-[10px] font-semibold uppercase text-destructive-foreground">Overdue</span>}
+                      {overdue && <span className="rounded bg-black/30 px-1.5 py-0.5 text-[10px] font-semibold uppercase">Overdue</span>}
                     </div>
                   </div>
                 )}
@@ -183,7 +188,8 @@ export function CardDialog({
                   </div>
                 )}
               </div>
-            )}
+              );
+            })()}
 
             {/* Description */}
             <div>
@@ -242,16 +248,18 @@ export function CardDialog({
                 boardId={boardId} cardId={card.id} canEdit={canEdit}
                 members={members} myAssignees={myAssignees}
               />
-              <OwnerPopover
-                boardId={boardId} cardId={card.id} canEdit={canEdit}
-                members={members} ownerId={card.created_by ?? null}
-              />
               <ChecklistAdd boardId={boardId} cardId={card.id} canEdit={canEdit} />
-              <DueDatePopover
-                canEdit={canEdit}
-                dueDate={dueDate}
-                onChange={(d) => update.mutate({ due_date: d })}
-              />
+              <div className="grid grid-cols-2 gap-2">
+                <DueDatePopover
+                  canEdit={canEdit}
+                  dueDate={dueDate}
+                  onChange={(d) => update.mutate({ due_date: d })}
+                />
+                <OwnerPopover
+                  boardId={boardId} cardId={card.id} canEdit={canEdit}
+                  members={members} ownerId={card.created_by ?? null}
+                />
+              </div>
               <AttachmentButton cardId={card.id} canEdit={canEdit} />
             </div>
 
