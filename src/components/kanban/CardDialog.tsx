@@ -399,7 +399,7 @@ function LabelsPopover({ boardId, cardId, canEdit, labels, myLabelIds }: { board
                 <span>{l.name}</span>
                 {myLabelIds.has(l.id) && <Check className="h-4 w-4" />}
               </button>
-              <button onClick={() => { if (l.id.startsWith("tmp-")) return; if (confirm("Delete label?")) remove.mutate(l.id); }} className="text-muted-foreground hover:text-destructive">
+              <button onClick={async () => { if (l.id.startsWith("tmp-")) return; const c = await confirmDlg({ title: "Delete label?", destructive: true, confirmText: "Delete" }); if (c) remove.mutate(l.id); }} className="text-muted-foreground hover:text-destructive">
                 <Trash2 className="h-3.5 w-3.5" />
               </button>
             </div>
