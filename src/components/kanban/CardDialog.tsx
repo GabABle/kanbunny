@@ -19,10 +19,10 @@ import {
   createLabel, toggleCardLabel, deleteLabel,
   toggleAssignee,
   addChecklist, addChecklistItem, toggleChecklistItem,
-  deleteChecklistItem, deleteChecklist, getCardChecklists,
+  deleteChecklistItem, deleteChecklist,
   getCardComments, addCardComment, updateCardComment, deleteCardComment,
   listCardAttachments, addCardAttachment, deleteCardAttachment, getAttachmentUrl,
-  getCardActivities,
+  getCardActivities, getCardDetails,
 } from "@/lib/kanban.functions";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
@@ -104,14 +104,22 @@ export function CardDialog({
   const overdue = dueDate ? dueDate.getTime() < Date.now() : false;
 
   // ---- Checklists ----
-  const getChecklistsFn = useServerFn(getCardChecklists);
-  const checklistKey = ["checklists", card.id] as const;
   const isRealCard = !card.id.startsWith("tmp-");
-  const { data: cl } = useQuery({
-    queryKey: checklistKey,
-    queryFn: () => getChecklistsFn({ data: { cardId: card.id } }),
+  const getDetailsFn = useServerFn(getCardDetails);
+  const { data: details, isLoading: detailsLoading } = useQuery({
+    queryKey: ["card-details", card.id],
+    queryFn: async () => {
+      const d = await getDetailsFn({ data: { cardId: card.id } });
+      // Prime per-section caches so child components render synchronously without flash
+      qc.setQueryData(["checklists", card.id], { checklists: d.checklists, items: d.items });
+      qc.setQueryData(["comments", card.id], d.comments);
+      qc.setQueryData(["attachments", card.id], d.attachments);
+      return d;
+    },
     enabled: isRealCard,
+    staleTime: 30_000,
   });
+  const cl = details ? { checklists: details.checklists, items: details.items } : undefined;
 
   return (
     <Dialog open onOpenChange={(o) => !o && onClose()}>
@@ -194,7 +202,14 @@ export function CardDialog({
             </div>
 
             {/* Checklists */}
-            {cl?.checklists.map((checklist) => (
+            {isRealCard && detailsLoading && (
+              <div className="space-y-3">
+                <div className="h-4 w-32 animate-pulse rounded bg-tcard" />
+                <div className="h-20 animate-pulse rounded bg-tcard" />
+                <div className="h-16 animate-pulse rounded bg-tcard" />
+              </div>
+            )}
+            {!detailsLoading && cl?.checklists.map((checklist) => (
               <ChecklistBlock
                 key={checklist.id}
                 boardId={boardId}
@@ -206,9 +221,13 @@ export function CardDialog({
             ))}
 
             {/* Comments */}
-            <AttachmentsBlock cardId={card.id} canEdit={canEdit} />
-            <CommentsBlock cardId={card.id} canEdit={canEdit} members={members} />
-            <ActivityBlock cardId={card.id} />
+            {!detailsLoading && (
+              <>
+                <AttachmentsBlock cardId={card.id} canEdit={canEdit} />
+                <CommentsBlock cardId={card.id} canEdit={canEdit} members={members} />
+                <ActivityBlock cardId={card.id} />
+              </>
+            )}
           </div>
 
           {/* Sidebar */}
