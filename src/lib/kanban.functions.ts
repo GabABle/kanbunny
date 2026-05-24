@@ -118,7 +118,7 @@ export const getBoard = createServerFn({ method: "GET" })
 
     const memberIds = (membersRes.data ?? []).map((m: any) => m.user_id);
     const profilesRes = memberIds.length
-      ? await supabase.from("profiles").select("id, display_name, avatar_url, email").in("id", memberIds)
+      ? await supabase.from("profiles").select("id, display_name, avatar_url, avatar_color, email").in("id", memberIds)
       : { data: [], error: null as any };
     if (profilesRes.error) throw new Error(profilesRes.error.message);
     const profileMap = new Map((profilesRes.data ?? []).map((p: any) => [p.id, p]));
@@ -126,6 +126,21 @@ export const getBoard = createServerFn({ method: "GET" })
     // Determine role
     const me = (membersRes.data ?? []).find((m: any) => m.user_id === userId);
     const role = me?.role ?? (boardRes.data.owner_id === userId ? "owner" : "viewer");
+
+    // Cards with activity in the last 7 days (changes by anyone)
+    const cardIds = (cardsRes.data ?? []).map((c: any) => c.id);
+    let recentlyChangedCardIds: string[] = [];
+    if (cardIds.length) {
+      const since = new Date(Date.now() - 7 * 24 * 3600 * 1000).toISOString();
+      const actRes = await supabase
+        .from("card_activities")
+        .select("card_id")
+        .in("card_id", cardIds)
+        .gte("created_at", since);
+      if (!actRes.error) {
+        recentlyChangedCardIds = Array.from(new Set((actRes.data ?? []).map((a: any) => a.card_id)));
+      }
+    }
 
     return {
       board: boardRes.data,
@@ -135,6 +150,7 @@ export const getBoard = createServerFn({ method: "GET" })
       labels: labelsRes.data ?? [],
       cardLabels: cardLabelsRes.data ?? [],
       assignees: assigneesRes.data ?? [],
+      recentlyChangedCardIds,
       members: (membersRes.data ?? []).map((m: any) => ({
         user_id: m.user_id,
         role: m.role,
