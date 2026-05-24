@@ -359,8 +359,6 @@ function CardFront({ card, data, canEdit, onOpen, onDragStart, onDragEnd, isDrag
   const dueDate = card.due_date ? new Date(card.due_date) : null;
   const overdue = dueDate ? dueDate.getTime() < Date.now() : false;
   const dueSoon = dueDate ? (dueDate.getTime() - Date.now()) <= 3 * 24 * 3600 * 1000 : false;
-  const owner = card.created_by ? data.members.find((m: any) => m.user_id === card.created_by) : null;
-  const ownerName = owner?.profile?.display_name ?? owner?.profile?.email ?? null;
 
   return (
     <div
