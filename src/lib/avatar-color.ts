@@ -11,3 +11,9 @@ export function avatarColor(seed?: string | null): string {
   for (let i = 0; i < seed.length; i++) h = (h * 31 + seed.charCodeAt(i)) >>> 0;
   return PALETTE[h % PALETTE.length];
 }
+
+export function colorFor(
+  member?: { profile?: { avatar_color?: string | null } | null; user_id?: string | null } | null,
+): string {
+  return member?.profile?.avatar_color ?? avatarColor(member?.user_id);
+}
