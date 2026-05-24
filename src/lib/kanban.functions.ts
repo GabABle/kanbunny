@@ -645,3 +645,17 @@ export const updateCardOwner = createServerFn({ method: "POST" })
     await logActivity(supabase, userId, data.cardId, "owner_changed", { name: p?.display_name ?? p?.email });
     return { ok: true };
   });
+
+// ---------- Profile search (for @mention autosuggest) ----------
+export const searchProfiles = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d) => z.object({ query: z.string().max(120).optional() }).parse(d))
+  .handler(async ({ data, context }) => {
+    const { supabase } = context;
+    const q = (data.query ?? "").trim();
+    let req = supabase.from("profiles").select("id, display_name, email, avatar_url").limit(10);
+    if (q.length > 0) req = req.ilike("display_name", `${q}%`);
+    const { data: rows, error } = await req;
+    if (error) throw new Error(error.message);
+    return rows ?? [];
+  });

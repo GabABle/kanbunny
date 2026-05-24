@@ -10,7 +10,7 @@ import { Plus, Trash2, UserPlus, X, Clock } from "lucide-react";
 import {
   getBoard, createList, renameList, deleteList,
   createCard, updateCard, deleteCard, moveCard,
-  inviteMember, removeMember,
+  inviteMember, removeMember, searchProfiles,
 } from "@/lib/kanban.functions";
 import { toast } from "sonner";
 import { CardDialog } from "@/components/kanban/CardDialog";
@@ -418,12 +418,31 @@ function NewListForm({ value, setValue, onAdd }: { value: string; setValue: (v: 
 function MembersPopover({ boardId, members, isOwner, onChange }: { boardId: string; members: any[]; isOwner: boolean; onChange: () => void }) {
   const inviteFn = useServerFn(inviteMember);
   const removeFn = useServerFn(removeMember);
+  const searchFn = useServerFn(searchProfiles);
   const [username, setUsername] = useState("");
+  const [suggestions, setSuggestions] = useState<any[]>([]);
+  const [active, setActive] = useState(0);
+  const [showSuggest, setShowSuggest] = useState(false);
+  const memberIds = new Set(members.map((m) => m.user_id));
+
+  const runSearch = async (raw: string) => {
+    const trimmed = raw.trim();
+    if (!trimmed.startsWith("@")) { setSuggestions([]); setShowSuggest(false); return; }
+    const q = trimmed.slice(1);
+    try {
+      const rows = await searchFn({ data: { query: q } });
+      setSuggestions((rows as any[]).filter((r) => !memberIds.has(r.id)).slice(0, 8));
+      setActive(0);
+      setShowSuggest(true);
+    } catch { /* ignore */ }
+  };
+
   const inviteMut = useMutation({
-    mutationFn: () => inviteFn({ data: { boardId, username: username.replace(/^@/, "").trim(), role: "editor" } }),
-    onSuccess: () => { toast.success("Member added"); setUsername(""); onChange(); },
+    mutationFn: (name: string) => inviteFn({ data: { boardId, username: name, role: "editor" } }),
+    onSuccess: () => { toast.success("Member added"); setUsername(""); setSuggestions([]); setShowSuggest(false); onChange(); },
     onError: (e) => toast.error(e.message),
   });
+  const pick = (name: string) => { setUsername(`@${name}`); setShowSuggest(false); inviteMut.mutate(name); };
   const removeMut = useMutation({
     mutationFn: (userId: string) => removeFn({ data: { boardId, userId } }),
     onSuccess: onChange, onError: (e) => toast.error(e.message),
@@ -452,10 +471,49 @@ function MembersPopover({ boardId, members, isOwner, onChange }: { boardId: stri
             ))}
           </div>
           {isOwner && (
-            <form onSubmit={(e) => { e.preventDefault(); if (username.replace(/^@/, "").trim()) inviteMut.mutate(); }} className="flex gap-2 border-t border-border/60 pt-3">
-              <Input placeholder="@username" value={username} onChange={(e) => setUsername(e.target.value)} className="h-8" />
-              <Button type="submit" size="sm" disabled={inviteMut.isPending}>Add</Button>
-            </form>
+            <div className="border-t border-border/60 pt-3">
+              <form
+                onSubmit={(e) => { e.preventDefault(); const name = username.replace(/^@/, "").trim(); if (!name) return; if (showSuggest && suggestions[active]) pick(suggestions[active].display_name ?? name); else inviteMut.mutate(name); }}
+                className="flex gap-2"
+              >
+                <div className="relative flex-1">
+                  <Input
+                    placeholder="@username"
+                    value={username}
+                    onChange={(e) => { setUsername(e.target.value); runSearch(e.target.value); }}
+                    onFocus={() => runSearch(username)}
+                    onBlur={() => setTimeout(() => setShowSuggest(false), 150)}
+                    onKeyDown={(e) => {
+                      if (!showSuggest || suggestions.length === 0) return;
+                      if (e.key === "ArrowDown") { e.preventDefault(); setActive((a) => (a + 1) % suggestions.length); }
+                      else if (e.key === "ArrowUp") { e.preventDefault(); setActive((a) => (a - 1 + suggestions.length) % suggestions.length); }
+                      else if (e.key === "Escape") setShowSuggest(false);
+                    }}
+                    className="h-8"
+                  />
+                  {showSuggest && suggestions.length > 0 && (
+                    <div className="absolute left-0 right-0 top-full z-50 mt-1 max-h-56 overflow-y-auto rounded-md border bg-popover p-1 shadow-md">
+                      {suggestions.map((s, i) => (
+                        <button
+                          key={s.id}
+                          type="button"
+                          onMouseDown={(e) => { e.preventDefault(); pick(s.display_name ?? ""); }}
+                          onMouseEnter={() => setActive(i)}
+                          className={cn("flex w-full items-center gap-2 rounded px-2 py-1.5 text-left text-sm", i === active && "bg-accent text-accent-foreground")}
+                        >
+                          <div className="min-w-0 flex-1">
+                            <div className="truncate font-medium">{s.display_name ?? "Unnamed"}</div>
+                            {s.email && <div className="truncate text-xs text-muted-foreground">{s.email}</div>}
+                          </div>
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
+                <Button type="submit" size="sm" disabled={inviteMut.isPending}>Add</Button>
+              </form>
+              <p className="mt-1 text-xs text-muted-foreground">Type @ to browse users.</p>
+            </div>
           )}
         </div>
       </PopoverContent>
