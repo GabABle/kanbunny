@@ -109,6 +109,8 @@ export function CardDialog({
   // ---- Due date ----
   const dueDate = card.due_date ? new Date(card.due_date) : null;
   const overdue = dueDate ? dueDate.getTime() < Date.now() : false;
+  const owner = card.created_by ? members.find((m) => m.user_id === card.created_by) : null;
+  const ownerName = owner?.profile?.display_name ?? owner?.profile?.email ?? null;
 
   // ---- Checklists ----
   const isRealCard = !card.id.startsWith("tmp-");
@@ -157,8 +159,8 @@ export function CardDialog({
               <div className="text-xs text-list-muted mt-1">in list <span className="underline">{listTitle}</span></div>
             </div>
 
-          {/* Labels + due + members chips */}
-            {(myLabels.length > 0 || dueDate || myAssignees.size > 0) && (() => {
+          {/* Labels + due + owner + members chips */}
+            {(myLabels.length > 0 || dueDate || ownerName || myAssignees.size > 0) && (() => {
               const dueSoon = dueDate ? (dueDate.getTime() - Date.now()) <= 3 * 24 * 3600 * 1000 : false;
               return (
               <div className="flex flex-wrap gap-4">
@@ -181,6 +183,17 @@ export function CardDialog({
                     )}>
                       <span>{dueDate.toLocaleString(undefined, { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" })}</span>
                       {overdue && <span className="rounded bg-black/30 px-1.5 py-0.5 text-[10px] font-semibold uppercase">Overdue</span>}
+                    </div>
+                  </div>
+                )}
+                {ownerName && (
+                  <div>
+                    <div className="text-[11px] font-semibold uppercase text-list-muted mb-1">Owner</div>
+                    <div className="flex items-center gap-2 rounded bg-tcard px-2 py-1.5 text-sm">
+                      <span className="grid h-6 w-6 place-items-center rounded-full bg-primary text-[10px] font-semibold text-primary-foreground">
+                        {ownerName.slice(0, 1).toUpperCase()}
+                      </span>
+                      <span>{ownerName}</span>
                     </div>
                   </div>
                 )}
