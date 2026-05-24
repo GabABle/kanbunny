@@ -327,7 +327,7 @@ function CardFront({ card, data, canEdit, onOpen, onDragStart, onDragEnd, isDrag
         {ownerName && (
           <span
             className="grid h-5 w-5 shrink-0 place-items-center rounded-full text-[10px] font-semibold text-white ring-1 ring-border"
-            style={{ backgroundColor: avatarColor(owner?.user_id) }}
+            style={{ backgroundColor: colorFor(owner) }}
             title={`Owner: ${ownerName}`}
           >
             {ownerName.slice(0, 1).toUpperCase()}
@@ -351,7 +351,7 @@ function CardFront({ card, data, canEdit, onOpen, onDragStart, onDragEnd, isDrag
           {myMembers.slice(0, 3).map((m: any) => {
             const name = m.profile?.display_name ?? m.profile?.email ?? "?";
             return (
-              <span key={m.user_id} className="grid h-5 w-5 place-items-center rounded-full text-[10px] font-semibold text-white ring-2 ring-tcard" style={{ backgroundColor: avatarColor(m.user_id) }} title={name}>
+              <span key={m.user_id} className="grid h-5 w-5 place-items-center rounded-full text-[10px] font-semibold text-white ring-2 ring-tcard" style={{ backgroundColor: colorFor(m) }} title={name}>
                 {name.slice(0, 1).toUpperCase()}
               </span>
             );
