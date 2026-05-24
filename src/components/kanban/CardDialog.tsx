@@ -11,11 +11,12 @@ import { Progress } from "@/components/ui/progress";
 import { Calendar } from "@/components/ui/calendar";
 import { format } from "date-fns";
 import {
-  AlignLeft, CheckSquare, Clock, Tag, Trash2, Users, X, Plus, Check, MessageSquare, Paperclip, Download, FileIcon, Loader2, User as UserIcon,
+  AlignLeft, CheckSquare, Clock, Tag, Trash2, Users, X, Plus, Check, MessageSquare, Paperclip, Download, FileIcon, Loader2, User as UserIcon, Archive,
 } from "lucide-react";
 import { ChevronDown, ChevronRight, Activity } from "lucide-react";
 import {
   updateCard, deleteCard,
+  archiveCard,
   createLabel, toggleCardLabel, deleteLabel,
   toggleAssignee,
   addChecklist, addChecklistItem, toggleChecklistItem,
@@ -57,6 +58,7 @@ export function CardDialog({
   // ---- Card actions ----
   const updateFn = useServerFn(updateCard);
   const deleteFn = useServerFn(deleteCard);
+  const archiveFn = useServerFn(archiveCard);
   const update = useMutation({
     mutationFn: (v: any) => updateFn({ data: { id: card.id, ...v } }),
     onMutate: async (v) => {
@@ -72,6 +74,11 @@ export function CardDialog({
   const del = useMutation({
     mutationFn: () => deleteFn({ data: { id: card.id } }),
     onSuccess: () => { invalidateBoard(); onClose(); },
+    onError: (e) => toast.error(e.message),
+  });
+  const archive = useMutation({
+    mutationFn: () => archiveFn({ data: { id: card.id, archived: true } }),
+    onSuccess: () => { invalidateBoard(); onClose(); toast.success("Card archived"); },
     onError: (e) => toast.error(e.message),
   });
 
@@ -102,6 +109,8 @@ export function CardDialog({
   // ---- Due date ----
   const dueDate = card.due_date ? new Date(card.due_date) : null;
   const overdue = dueDate ? dueDate.getTime() < Date.now() : false;
+  const owner = card.created_by ? members.find((m) => m.user_id === card.created_by) : null;
+  const ownerName = owner?.profile?.display_name ?? owner?.profile?.email ?? null;
 
   // ---- Checklists ----
   const isRealCard = !card.id.startsWith("tmp-");
@@ -150,8 +159,8 @@ export function CardDialog({
               <div className="text-xs text-list-muted mt-1">in list <span className="underline">{listTitle}</span></div>
             </div>
 
-          {/* Labels + due + members chips */}
-            {(myLabels.length > 0 || dueDate || myAssignees.size > 0) && (() => {
+          {/* Labels + due + owner + members chips */}
+            {(myLabels.length > 0 || dueDate || ownerName || myAssignees.size > 0) && (() => {
               const dueSoon = dueDate ? (dueDate.getTime() - Date.now()) <= 3 * 24 * 3600 * 1000 : false;
               return (
               <div className="flex flex-wrap gap-4">
@@ -174,6 +183,17 @@ export function CardDialog({
                     )}>
                       <span>{dueDate.toLocaleString(undefined, { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" })}</span>
                       {overdue && <span className="rounded bg-black/30 px-1.5 py-0.5 text-[10px] font-semibold uppercase">Overdue</span>}
+                    </div>
+                  </div>
+                )}
+                {ownerName && (
+                  <div>
+                    <div className="text-[11px] font-semibold uppercase text-list-muted mb-1">Owner</div>
+                    <div className="flex items-center gap-2 rounded bg-tcard px-2 py-1.5 text-sm">
+                      <span className="grid h-6 w-6 place-items-center rounded-full bg-primary text-[10px] font-semibold text-primary-foreground">
+                        {ownerName.slice(0, 1).toUpperCase()}
+                      </span>
+                      <span>{ownerName}</span>
                     </div>
                   </div>
                 )}
@@ -240,6 +260,10 @@ export function CardDialog({
           <div className="space-y-4">
             <div className="text-[11px] font-semibold uppercase text-list-muted">Add to card</div>
             <div className="space-y-2">
+              <OwnerPopover
+                boardId={boardId} cardId={card.id} canEdit={canEdit}
+                members={members} ownerId={card.created_by ?? null}
+              />
               <LabelsPopover
                 boardId={boardId} cardId={card.id} canEdit={canEdit}
                 labels={labels} myLabelIds={myLabelIds}
@@ -249,23 +273,20 @@ export function CardDialog({
                 members={members} myAssignees={myAssignees}
               />
               <ChecklistAdd boardId={boardId} cardId={card.id} canEdit={canEdit} />
-              <div className="grid grid-cols-2 gap-2">
-                <DueDatePopover
-                  canEdit={canEdit}
-                  dueDate={dueDate}
-                  onChange={(d) => update.mutate({ due_date: d })}
-                />
-                <OwnerPopover
-                  boardId={boardId} cardId={card.id} canEdit={canEdit}
-                  members={members} ownerId={card.created_by ?? null}
-                />
-              </div>
+              <DueDatePopover
+                canEdit={canEdit}
+                dueDate={dueDate}
+                onChange={(d) => update.mutate({ due_date: d })}
+              />
               <AttachmentButton cardId={card.id} canEdit={canEdit} />
             </div>
 
             {canEdit && (
               <>
                 <div className="pt-3 text-[11px] font-semibold uppercase text-list-muted">Actions</div>
+                <Button variant="secondary" size="sm" className="w-full justify-start gap-2" onClick={() => { if (confirm("Archive this card? It will be hidden from the board.")) archive.mutate(); }}>
+                  <Archive className="h-4 w-4" /> Archive card
+                </Button>
                 <Button variant="destructive" size="sm" className="w-full justify-start" onClick={() => { if (confirm("Delete this card?")) del.mutate(); }}>
                   <Trash2 className="h-4 w-4" /> Delete card
                 </Button>
@@ -641,8 +662,12 @@ function ChecklistBlock({ boardId, cardId, canEdit, checklist, items }: {
             <Checkbox checked={i.done} onCheckedChange={(v) => toggle.mutate({ id: i.id, done: !!v })} disabled={!canEdit} />
             <span className={cn("flex-1 text-sm", i.done && "text-list-muted line-through")}>{i.text}</span>
             {canEdit && (
-              <button onClick={() => delItem.mutate(i.id)} className="opacity-0 group-hover:opacity-100 text-list-muted hover:text-destructive">
-                <X className="h-3.5 w-3.5" />
+              <button
+                onClick={() => { if (confirm("Delete this item?")) delItem.mutate(i.id); }}
+                title="Delete item"
+                className="text-list-muted hover:text-destructive"
+              >
+                <Trash2 className="h-3.5 w-3.5" />
               </button>
             )}
           </div>
@@ -860,6 +885,7 @@ function CommentsBlock({ cardId, canEdit, members }: { cardId: string; canEdit: 
   const [body, setBody] = useState("");
   const [replyTo, setReplyTo] = useState<string | null>(null);
   const [replyBody, setReplyBody] = useState("");
+  const [open, setOpen] = useState(false);
 
   // Group replies by parent
   const topLevel = (comments as any[]).filter((c) => !c.parent_id);
@@ -876,11 +902,19 @@ function CommentsBlock({ cardId, canEdit, members }: { cardId: string; canEdit: 
 
   return (
     <div>
-      <div className="mb-2 flex items-center gap-2">
+      <button
+        type="button"
+        onClick={() => setOpen((o) => !o)}
+        className="mb-2 flex w-full items-center gap-2 text-left font-semibold"
+      >
+        {open ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
         <MessageSquare className="h-4 w-4" />
-        <h3 className="font-semibold">Comments</h3>
-      </div>
-      {canEdit && (
+        <span>Comments</span>
+        <span className="ml-1 text-xs font-normal text-list-muted">
+          ({comments.length}) {open ? "(hide)" : "(show)"}
+        </span>
+      </button>
+      {open && canEdit && (
         <form
           onSubmit={(e) => { e.preventDefault(); const v = body.trim(); if (v) { add.mutate({ body: v }); setBody(""); } }}
           className="mb-4 space-y-2"
@@ -898,6 +932,7 @@ function CommentsBlock({ cardId, canEdit, members }: { cardId: string; canEdit: 
           </div>
         </form>
       )}
+      {open && (
       <div className="space-y-3">
         {topLevel.map((c: any) => (
           <div key={c.id} className="space-y-2">
@@ -942,6 +977,7 @@ function CommentsBlock({ cardId, canEdit, members }: { cardId: string; canEdit: 
         ))}
         {comments.length === 0 && <div className="text-xs text-list-muted">No comments yet.</div>}
       </div>
+      )}
     </div>
   );
 }

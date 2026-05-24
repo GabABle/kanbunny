@@ -101,6 +101,7 @@ export const getBoard = createServerFn({ method: "GET" })
         .from("cards")
         .select("id, list_id, title, description, position, due_date, created_at, created_by")
         .in("list_id", (await supabase.from("lists").select("id").eq("board_id", data.id)).data?.map((l) => l.id) ?? [])
+        .eq("archived" as any, false)
         .order("position"),
       supabase.from("labels").select("id, name, color").eq("board_id", data.id),
       supabase.from("card_labels").select("card_id, label_id"),
@@ -227,6 +228,18 @@ export const deleteCard = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     const { error } = await context.supabase.from("cards").delete().eq("id", data.id);
     if (error) throw new Error(error.message);
+    return { ok: true };
+  });
+
+export const archiveCard = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d) => z.object({ id: uuid, archived: z.boolean().optional() }).parse(d))
+  .handler(async ({ data, context }) => {
+    const { supabase, userId } = context;
+    const archived = data.archived ?? true;
+    const { error } = await supabase.from("cards").update({ archived } as any).eq("id", data.id);
+    if (error) throw new Error(error.message);
+    await logActivity(supabase, userId, data.id, archived ? "card_archived" : "card_unarchived", {});
     return { ok: true };
   });
 
