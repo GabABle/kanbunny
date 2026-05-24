@@ -540,3 +540,50 @@ export const getCardActivities = createServerFn({ method: "GET" })
     const map = new Map((profilesRes.data ?? []).map((p: any) => [p.id, p]));
     return (rows ?? []).map((r: any) => ({ ...r, profile: map.get(r.user_id) ?? null }));
   });
+
+// ---------- Combined card details (single round-trip on open) ----------
+export const getCardDetails = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d) => z.object({ cardId: uuid }).parse(d))
+  .handler(async ({ data, context }) => {
+    const { supabase } = context;
+    const cardId = data.cardId;
+
+    const [clsRes, commentsRes, attachmentsRes] = await Promise.all([
+      supabase.from("checklists").select("id, title, position").eq("card_id", cardId).order("position"),
+      supabase
+        .from("card_comments")
+        .select("id, card_id, user_id, body, created_at, updated_at, parent_id")
+        .eq("card_id", cardId)
+        .order("created_at", { ascending: false }),
+      supabase
+        .from("card_attachments")
+        .select("id, card_id, user_id, file_name, file_path, mime_type, size_bytes, created_at")
+        .eq("card_id", cardId)
+        .order("created_at", { ascending: false }),
+    ]);
+    for (const r of [clsRes, commentsRes, attachmentsRes]) {
+      if (r.error) throw new Error(r.error.message);
+    }
+
+    const clIds = (clsRes.data ?? []).map((c: any) => c.id);
+    const itemsRes = clIds.length
+      ? await supabase.from("checklist_items").select("id, checklist_id, text, done, position").in("checklist_id", clIds).order("position")
+      : { data: [], error: null as any };
+    if (itemsRes.error) throw new Error(itemsRes.error.message);
+
+    const userIds = Array.from(new Set((commentsRes.data ?? []).map((r: any) => r.user_id)));
+    const profilesRes = userIds.length
+      ? await supabase.from("profiles").select("id, display_name, avatar_url, email").in("id", userIds)
+      : { data: [], error: null as any };
+    if (profilesRes.error) throw new Error(profilesRes.error.message);
+    const profileMap = new Map((profilesRes.data ?? []).map((p: any) => [p.id, p]));
+    const comments = (commentsRes.data ?? []).map((r: any) => ({ ...r, profile: profileMap.get(r.user_id) ?? null }));
+
+    return {
+      checklists: clsRes.data ?? [],
+      items: itemsRes.data ?? [],
+      comments,
+      attachments: attachmentsRes.data ?? [],
+    };
+  });
