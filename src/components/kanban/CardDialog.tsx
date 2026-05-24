@@ -260,6 +260,10 @@ export function CardDialog({
           <div className="space-y-4">
             <div className="text-[11px] font-semibold uppercase text-list-muted">Add to card</div>
             <div className="space-y-2">
+              <OwnerPopover
+                boardId={boardId} cardId={card.id} canEdit={canEdit}
+                members={members} ownerId={card.created_by ?? null}
+              />
               <LabelsPopover
                 boardId={boardId} cardId={card.id} canEdit={canEdit}
                 labels={labels} myLabelIds={myLabelIds}
@@ -269,23 +273,20 @@ export function CardDialog({
                 members={members} myAssignees={myAssignees}
               />
               <ChecklistAdd boardId={boardId} cardId={card.id} canEdit={canEdit} />
-              <div className="grid grid-cols-2 gap-2">
-                <DueDatePopover
-                  canEdit={canEdit}
-                  dueDate={dueDate}
-                  onChange={(d) => update.mutate({ due_date: d })}
-                />
-                <OwnerPopover
-                  boardId={boardId} cardId={card.id} canEdit={canEdit}
-                  members={members} ownerId={card.created_by ?? null}
-                />
-              </div>
+              <DueDatePopover
+                canEdit={canEdit}
+                dueDate={dueDate}
+                onChange={(d) => update.mutate({ due_date: d })}
+              />
               <AttachmentButton cardId={card.id} canEdit={canEdit} />
             </div>
 
             {canEdit && (
               <>
                 <div className="pt-3 text-[11px] font-semibold uppercase text-list-muted">Actions</div>
+                <Button variant="secondary" size="sm" className="w-full justify-start gap-2" onClick={() => { if (confirm("Archive this card? It will be hidden from the board.")) archive.mutate(); }}>
+                  <Archive className="h-4 w-4" /> Archive card
+                </Button>
                 <Button variant="destructive" size="sm" className="w-full justify-start" onClick={() => { if (confirm("Delete this card?")) del.mutate(); }}>
                   <Trash2 className="h-4 w-4" /> Delete card
                 </Button>
