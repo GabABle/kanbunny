@@ -421,6 +421,8 @@ function MembersPopover({ boardId, members, isOwner, onChange }: { boardId: stri
   const inviteFn = useServerFn(inviteMember);
   const removeFn = useServerFn(removeMember);
   const searchFn = useServerFn(searchProfiles);
+  const qc = useQueryClient();
+  const confirmDlg = useConfirm();
   const [username, setUsername] = useState("");
   const [suggestions, setSuggestions] = useState<any[]>([]);
   const [active, setActive] = useState(0);
@@ -450,8 +452,23 @@ function MembersPopover({ boardId, members, isOwner, onChange }: { boardId: stri
   const pick = (name: string) => { setUsername(`@${name}`); setShowSuggest(false); inviteMut.mutate(name); };
   const removeMut = useMutation({
     mutationFn: (userId: string) => removeFn({ data: { boardId, userId } }),
-    onSuccess: onChange, onError: (e) => toast.error(e.message),
+    onMutate: async (userId: string) => {
+      await qc.cancelQueries({ queryKey: ["board", boardId] });
+      const prev = qc.getQueryData<any>(["board", boardId]);
+      qc.setQueryData<any>(["board", boardId], (d: any) =>
+        d ? { ...d, members: d.members.filter((m: any) => m.user_id !== userId) } : d,
+      );
+      return { prev };
+    },
+    onError: (e, _v, ctx) => { if (ctx?.prev) qc.setQueryData(["board", boardId], ctx.prev); toast.error(e.message); },
+    onSuccess: () => { toast.success("Member removed"); },
   });
+  const handleRemove = async (m: any) => {
+    const name = m.profile?.display_name ?? m.profile?.email ?? "this member";
+    if (await confirmDlg({ title: `Remove ${name}?`, description: "They will lose access to this board.", destructive: true, confirmText: "Remove" })) {
+      removeMut.mutate(m.user_id);
+    }
+  };
   return (
     <Popover>
       <PopoverTrigger asChild>
@@ -468,7 +485,7 @@ function MembersPopover({ boardId, members, isOwner, onChange }: { boardId: stri
                   <div className="text-xs text-muted-foreground">{m.role}</div>
                 </div>
                 {isOwner && m.role !== "owner" && (
-                  <button onClick={() => removeMut.mutate(m.user_id)} className="text-muted-foreground hover:text-destructive">
+                  <button onClick={() => handleRemove(m)} className="text-muted-foreground hover:text-destructive">
                     <X className="h-3.5 w-3.5" />
                   </button>
                 )}
