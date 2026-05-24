@@ -439,7 +439,10 @@ function MembersPopover({ boardId, members, isOwner, onChange }: { boardId: stri
 
   const inviteMut = useMutation({
     mutationFn: (name: string) => inviteFn({ data: { boardId, username: name, role: "editor" } }),
-    onSuccess: () => { toast.success("Member added"); setUsername(""); setSuggestions([]); setShowSuggest(false); onChange(); },
+    onSuccess: (res: any) => {
+      if (res && res.ok === false) { toast.error(res.error ?? "Failed to add member"); return; }
+      toast.success("Member added"); setUsername(""); setSuggestions([]); setShowSuggest(false); onChange();
+    },
     onError: (e) => toast.error(e.message),
   });
   const pick = (name: string) => { setUsername(`@${name}`); setShowSuggest(false); inviteMut.mutate(name); };
