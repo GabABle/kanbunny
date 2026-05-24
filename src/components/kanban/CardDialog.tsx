@@ -11,7 +11,7 @@ import { Progress } from "@/components/ui/progress";
 import { Calendar } from "@/components/ui/calendar";
 import { format } from "date-fns";
 import {
-  AlignLeft, CheckSquare, Clock, Tag, Trash2, Users, X, Plus, Check, MessageSquare, Paperclip, Download, FileIcon,
+  AlignLeft, CheckSquare, Clock, Tag, Trash2, Users, X, Plus, Check, MessageSquare, Paperclip, Download, FileIcon, Loader2, User as UserIcon,
 } from "lucide-react";
 import { ChevronDown, ChevronRight, Activity } from "lucide-react";
 import {
@@ -22,7 +22,7 @@ import {
   deleteChecklistItem, deleteChecklist,
   getCardComments, addCardComment, updateCardComment, deleteCardComment,
   listCardAttachments, addCardAttachment, deleteCardAttachment, getAttachmentUrl,
-  getCardActivities, getCardDetails,
+  getCardActivities, getCardDetails, updateCardOwner,
 } from "@/lib/kanban.functions";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
@@ -34,7 +34,7 @@ const LABEL_COLORS = [
   "#0079bf", "#00c2e0", "#51e898", "#ff78cb", "#344563",
 ];
 
-type Card = { id: string; title: string; description: string | null; due_date: string | null; list_id: string };
+type Card = { id: string; title: string; description: string | null; due_date: string | null; list_id: string; created_by?: string | null };
 type Label = { id: string; name: string; color: string };
 type Member = { user_id: string; role: string; profile: { id: string; display_name: string | null; email: string | null; avatar_url: string | null } | null };
 
@@ -114,6 +114,7 @@ export function CardDialog({
       qc.setQueryData(["checklists", card.id], { checklists: d.checklists, items: d.items });
       qc.setQueryData(["comments", card.id], d.comments);
       qc.setQueryData(["attachments", card.id], d.attachments);
+      qc.setQueryData(["activities", card.id], (d as any).activities ?? []);
       return d;
     },
     enabled: isRealCard,
@@ -124,7 +125,7 @@ export function CardDialog({
   return (
     <Dialog open onOpenChange={(o) => !o && onClose()}>
       <DialogContent
-        className="max-w-3xl gap-0 overflow-hidden p-0"
+        className="max-w-3xl gap-0 overflow-hidden p-0 font-montserrat"
         onOpenAutoFocus={(e) => {
           // Don't move focus into the dialog when it opens
           e.preventDefault();
@@ -203,10 +204,9 @@ export function CardDialog({
 
             {/* Checklists */}
             {isRealCard && detailsLoading && (
-              <div className="space-y-3">
-                <div className="h-4 w-32 animate-pulse rounded bg-tcard" />
-                <div className="h-20 animate-pulse rounded bg-tcard" />
-                <div className="h-16 animate-pulse rounded bg-tcard" />
+              <div className="flex flex-col items-center justify-center gap-2 rounded-md bg-tcard/60 py-10 text-list-muted">
+                <Loader2 className="h-6 w-6 animate-spin text-primary" />
+                <div className="text-xs">Loading checklists, comments and activity…</div>
               </div>
             )}
             {!detailsLoading && cl?.checklists.map((checklist) => (
@@ -241,6 +241,10 @@ export function CardDialog({
               <MembersPopover
                 boardId={boardId} cardId={card.id} canEdit={canEdit}
                 members={members} myAssignees={myAssignees}
+              />
+              <OwnerPopover
+                boardId={boardId} cardId={card.id} canEdit={canEdit}
+                members={members} ownerId={card.created_by ?? null}
               />
               <ChecklistAdd boardId={boardId} cardId={card.id} canEdit={canEdit} />
               <DueDatePopover
