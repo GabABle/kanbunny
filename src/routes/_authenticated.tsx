@@ -44,7 +44,7 @@ function AuthLayout() {
             <Button asChild variant={location.pathname === "/boards" ? "secondary" : "ghost"} size="sm">
               <Link to="/boards">Boards</Link>
             </Button>
-            <Button variant="ghost" size="sm" onClick={async () => { await signOut(); navigate({ to: "/" }); }}>
+            <Button variant="ghost" size="sm" onClick={() => { navigate({ to: "/" }); void signOut(); }}>
               <LogOut className="h-3.5 w-3.5" /> Sign out
             </Button>
           </nav>

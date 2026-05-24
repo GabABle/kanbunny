@@ -41,13 +41,14 @@ function SignupPage() {
         data: { display_name: name },
       },
     });
-    if (error) { setBusy(false); return toast.error(error.message); }
-    if (!data.session) {
-      const { error: signInError } = await supabase.auth.signInWithPassword({ email, password });
-      if (signInError) { setBusy(false); return toast.error(signInError.message); }
-    }
     setBusy(false);
-    navigate({ to: "/boards" });
+    if (error) return toast.error(error.message);
+    if (data.session) {
+      navigate({ to: "/boards" });
+    } else {
+      toast.success("Check your email to confirm your account before signing in.");
+      navigate({ to: "/login" });
+    }
   };
 
   return (
