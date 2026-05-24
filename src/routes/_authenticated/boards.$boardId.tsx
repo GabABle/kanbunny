@@ -281,7 +281,7 @@ function BoardPage() {
               onClick={() => updateBgMut.mutate(randomGradient((data.board as any).background_gradient))}
               title="Change board background"
             >
-              🎨 Background
+              🎨 Get Funky
             </Button>
           )}
           <UserFilterPopover
