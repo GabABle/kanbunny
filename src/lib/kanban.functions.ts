@@ -549,7 +549,7 @@ export const getCardDetails = createServerFn({ method: "GET" })
     const { supabase } = context;
     const cardId = data.cardId;
 
-    const [clsRes, commentsRes, attachmentsRes] = await Promise.all([
+    const [clsRes, commentsRes, attachmentsRes, activitiesRes] = await Promise.all([
       supabase.from("checklists").select("id, title, position").eq("card_id", cardId).order("position"),
       supabase
         .from("card_comments")
@@ -561,8 +561,13 @@ export const getCardDetails = createServerFn({ method: "GET" })
         .select("id, card_id, user_id, file_name, file_path, mime_type, size_bytes, created_at")
         .eq("card_id", cardId)
         .order("created_at", { ascending: false }),
+      supabase
+        .from("card_activities" as any)
+        .select("id, card_id, user_id, type, payload, created_at")
+        .eq("card_id", cardId)
+        .order("created_at", { ascending: false }),
     ]);
-    for (const r of [clsRes, commentsRes, attachmentsRes]) {
+    for (const r of [clsRes, commentsRes, attachmentsRes, activitiesRes]) {
       if (r.error) throw new Error(r.error.message);
     }
 
@@ -572,18 +577,52 @@ export const getCardDetails = createServerFn({ method: "GET" })
       : { data: [], error: null as any };
     if (itemsRes.error) throw new Error(itemsRes.error.message);
 
-    const userIds = Array.from(new Set((commentsRes.data ?? []).map((r: any) => r.user_id)));
+    const userIds = Array.from(new Set([
+      ...(commentsRes.data ?? []).map((r: any) => r.user_id),
+      ...((activitiesRes.data ?? []) as any[]).map((r: any) => r.user_id),
+    ]));
     const profilesRes = userIds.length
       ? await supabase.from("profiles").select("id, display_name, avatar_url, email").in("id", userIds)
       : { data: [], error: null as any };
     if (profilesRes.error) throw new Error(profilesRes.error.message);
     const profileMap = new Map((profilesRes.data ?? []).map((p: any) => [p.id, p]));
     const comments = (commentsRes.data ?? []).map((r: any) => ({ ...r, profile: profileMap.get(r.user_id) ?? null }));
+    const activities = ((activitiesRes.data ?? []) as any[]).map((r: any) => ({ ...r, profile: profileMap.get(r.user_id) ?? null }));
 
     return {
       checklists: clsRes.data ?? [],
       items: itemsRes.data ?? [],
       comments,
       attachments: attachmentsRes.data ?? [],
+      activities,
     };
+  });
+
+// ---------- Card owner ----------
+export const updateCardOwner = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d) => z.object({ cardId: uuid, userId: uuid }).parse(d))
+  .handler(async ({ data, context }) => {
+    const { supabase, userId } = context;
+    // Verify new owner is a member of the same board
+    const { data: cardRow, error: cErr } = await supabase
+      .from("cards").select("id, list_id").eq("id", data.cardId).maybeSingle();
+    if (cErr) throw new Error(cErr.message);
+    if (!cardRow) throw new Error("Card not found");
+    const { data: listRow } = await supabase
+      .from("lists").select("board_id").eq("id", cardRow.list_id).maybeSingle();
+    if (!listRow) throw new Error("List not found");
+    const { data: boardRow } = await supabase
+      .from("boards").select("owner_id").eq("id", listRow.board_id).maybeSingle();
+    const { data: memberRow } = await supabase
+      .from("board_members").select("user_id")
+      .eq("board_id", listRow.board_id).eq("user_id", data.userId).maybeSingle();
+    if (!memberRow && boardRow?.owner_id !== data.userId) {
+      throw new Error("User is not a member of this board");
+    }
+    const { error } = await supabase.from("cards").update({ created_by: data.userId }).eq("id", data.cardId);
+    if (error) throw new Error(error.message);
+    const { data: p } = await supabase.from("profiles").select("display_name, email").eq("id", data.userId).maybeSingle();
+    await logActivity(supabase, userId, data.cardId, "owner_changed", { name: p?.display_name ?? p?.email });
+    return { ok: true };
   });
