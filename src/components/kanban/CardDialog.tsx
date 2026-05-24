@@ -662,8 +662,12 @@ function ChecklistBlock({ boardId, cardId, canEdit, checklist, items }: {
             <Checkbox checked={i.done} onCheckedChange={(v) => toggle.mutate({ id: i.id, done: !!v })} disabled={!canEdit} />
             <span className={cn("flex-1 text-sm", i.done && "text-list-muted line-through")}>{i.text}</span>
             {canEdit && (
-              <button onClick={() => delItem.mutate(i.id)} className="opacity-0 group-hover:opacity-100 text-list-muted hover:text-destructive">
-                <X className="h-3.5 w-3.5" />
+              <button
+                onClick={() => { if (confirm("Delete this item?")) delItem.mutate(i.id); }}
+                title="Delete item"
+                className="text-list-muted hover:text-destructive"
+              >
+                <Trash2 className="h-3.5 w-3.5" />
               </button>
             )}
           </div>
