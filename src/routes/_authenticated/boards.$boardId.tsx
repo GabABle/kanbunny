@@ -16,6 +16,7 @@ import { toast } from "sonner";
 import { CardDialog } from "@/components/kanban/CardDialog";
 import { cn } from "@/lib/utils";
 import { useConfirm } from "@/components/ui/confirm-dialog";
+import { avatarColor } from "@/lib/avatar-color";
 
 export const Route = createFileRoute("/_authenticated/boards/$boardId")({
   head: () => ({ meta: [{ title: "Board — Stack" }] }),
@@ -296,7 +297,8 @@ function CardFront({ card, data, canEdit, onOpen, onDragStart, onDragEnd, isDrag
         <div className="flex-1 font-medium">{card.title}</div>
         {ownerName && (
           <span
-            className="grid h-5 w-5 shrink-0 place-items-center rounded-full bg-secondary text-[10px] font-semibold text-secondary-foreground ring-1 ring-border"
+            className="grid h-5 w-5 shrink-0 place-items-center rounded-full text-[10px] font-semibold text-white ring-1 ring-border"
+            style={{ backgroundColor: avatarColor(owner?.user_id) }}
             title={`Owner: ${ownerName}`}
           >
             {ownerName.slice(0, 1).toUpperCase()}
@@ -320,7 +322,7 @@ function CardFront({ card, data, canEdit, onOpen, onDragStart, onDragEnd, isDrag
           {myMembers.slice(0, 3).map((m: any) => {
             const name = m.profile?.display_name ?? m.profile?.email ?? "?";
             return (
-              <span key={m.user_id} className="grid h-5 w-5 place-items-center rounded-full bg-primary text-[10px] font-semibold text-primary-foreground ring-2 ring-tcard" title={name}>
+              <span key={m.user_id} className="grid h-5 w-5 place-items-center rounded-full text-[10px] font-semibold text-white ring-2 ring-tcard" style={{ backgroundColor: avatarColor(m.user_id) }} title={name}>
                 {name.slice(0, 1).toUpperCase()}
               </span>
             );
@@ -419,6 +421,8 @@ function MembersPopover({ boardId, members, isOwner, onChange }: { boardId: stri
   const inviteFn = useServerFn(inviteMember);
   const removeFn = useServerFn(removeMember);
   const searchFn = useServerFn(searchProfiles);
+  const qc = useQueryClient();
+  const confirmDlg = useConfirm();
   const [username, setUsername] = useState("");
   const [suggestions, setSuggestions] = useState<any[]>([]);
   const [active, setActive] = useState(0);
@@ -448,8 +452,23 @@ function MembersPopover({ boardId, members, isOwner, onChange }: { boardId: stri
   const pick = (name: string) => { setUsername(`@${name}`); setShowSuggest(false); inviteMut.mutate(name); };
   const removeMut = useMutation({
     mutationFn: (userId: string) => removeFn({ data: { boardId, userId } }),
-    onSuccess: onChange, onError: (e) => toast.error(e.message),
+    onMutate: async (userId: string) => {
+      await qc.cancelQueries({ queryKey: ["board", boardId] });
+      const prev = qc.getQueryData<any>(["board", boardId]);
+      qc.setQueryData<any>(["board", boardId], (d: any) =>
+        d ? { ...d, members: d.members.filter((m: any) => m.user_id !== userId) } : d,
+      );
+      return { prev };
+    },
+    onError: (e, _v, ctx) => { if (ctx?.prev) qc.setQueryData(["board", boardId], ctx.prev); toast.error(e.message); },
+    onSuccess: () => { toast.success("Member removed"); },
   });
+  const handleRemove = async (m: any) => {
+    const name = m.profile?.display_name ?? m.profile?.email ?? "this member";
+    if (await confirmDlg({ title: `Remove ${name}?`, description: "They will lose access to this board.", destructive: true, confirmText: "Remove" })) {
+      removeMut.mutate(m.user_id);
+    }
+  };
   return (
     <Popover>
       <PopoverTrigger asChild>
@@ -466,7 +485,7 @@ function MembersPopover({ boardId, members, isOwner, onChange }: { boardId: stri
                   <div className="text-xs text-muted-foreground">{m.role}</div>
                 </div>
                 {isOwner && m.role !== "owner" && (
-                  <button onClick={() => removeMut.mutate(m.user_id)} className="text-muted-foreground hover:text-destructive">
+                  <button onClick={() => handleRemove(m)} className="text-muted-foreground hover:text-destructive">
                     <X className="h-3.5 w-3.5" />
                   </button>
                 )}

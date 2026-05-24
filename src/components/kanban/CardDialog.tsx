@@ -30,6 +30,7 @@ import { cn } from "@/lib/utils";
 import { useAuth } from "@/hooks/use-auth";
 import { supabase } from "@/integrations/supabase/client";
 import { useConfirm } from "@/components/ui/confirm-dialog";
+import { avatarColor } from "@/lib/avatar-color";
 
 const LABEL_COLORS = [
   "#61bd4f", "#f2d600", "#ff9f1a", "#eb5a46", "#c377e0",
@@ -192,7 +193,7 @@ export function CardDialog({
                   <div>
                     <div className="text-[11px] font-semibold uppercase text-list-muted mb-1">Owner</div>
                     <div className="flex items-center gap-2 rounded px-2 py-1.5 text-sm">
-                      <span className="grid h-6 w-6 place-items-center rounded-full bg-primary text-[10px] font-semibold text-primary-foreground">
+                      <span className="grid h-6 w-6 place-items-center rounded-full text-[10px] font-semibold text-white" style={{ backgroundColor: avatarColor(owner?.user_id) }}>
                         {ownerName.slice(0, 1).toUpperCase()}
                       </span>
                       <span>{ownerName}</span>
@@ -305,7 +306,7 @@ function Avatar({ member }: { member: Member }) {
   const name = member.profile?.display_name ?? member.profile?.email ?? "?";
   const initials = name.slice(0, 2).toUpperCase();
   return (
-    <div className="grid h-7 w-7 place-items-center rounded-full bg-primary text-xs font-semibold text-primary-foreground" title={name}>
+    <div className="grid h-7 w-7 place-items-center rounded-full text-xs font-semibold text-white" style={{ backgroundColor: avatarColor(member.user_id) }} title={name}>
       {initials}
     </div>
   );
