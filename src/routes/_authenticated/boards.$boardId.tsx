@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { Plus, Trash2, UserPlus, X, Clock } from "lucide-react";
+import { Plus, Trash2, UserPlus, X, Clock, Users, Bell, Filter } from "lucide-react";
 import {
   getBoard, createList, renameList, deleteList,
   createCard, updateCard, deleteCard, moveCard,
@@ -16,7 +16,7 @@ import { toast } from "sonner";
 import { CardDialog } from "@/components/kanban/CardDialog";
 import { cn } from "@/lib/utils";
 import { useConfirm } from "@/components/ui/confirm-dialog";
-import { avatarColor } from "@/lib/avatar-color";
+import { avatarColor, colorFor } from "@/lib/avatar-color";
 
 export const Route = createFileRoute("/_authenticated/boards/$boardId")({
   head: () => ({ meta: [{ title: "Board — Stack" }] }),
@@ -139,6 +139,8 @@ function BoardPage() {
   const [openCard, setOpenCard] = useState<string | null>(null);
   const [dragOverList, setDragOverList] = useState<string | null>(null);
   const [draggingCard, setDraggingCard] = useState<string | null>(null);
+  const [filterUserIds, setFilterUserIds] = useState<Set<string>>(new Set());
+  const [onlyChanged, setOnlyChanged] = useState(false);
 
   if (isLoading || !data) {
     return <div className="grid min-h-[60vh] place-items-center text-sm text-muted-foreground">Loading…</div>;
@@ -147,7 +149,21 @@ function BoardPage() {
   const openedCard = data.cards.find((c) => c.id === openCard);
   const openedList = openedCard ? data.lists.find((l) => l.id === openedCard.list_id) : null;
 
-  const cardsByList = (listId: string) => data.cards.filter((c) => c.list_id === listId).sort((a, b) => a.position - b.position);
+  const changedSet = new Set<string>((data as any).recentlyChangedCardIds ?? []);
+  const passesFilters = (cardId: string) => {
+    if (onlyChanged && !changedSet.has(cardId)) return false;
+    if (filterUserIds.size > 0) {
+      const ids = new Set(data.assignees.filter((a: any) => a.card_id === cardId).map((a: any) => a.user_id));
+      let ok = false;
+      filterUserIds.forEach((u) => { if (ids.has(u)) ok = true; });
+      if (!ok) return false;
+    }
+    return true;
+  };
+  const cardsByList = (listId: string) =>
+    data.cards
+      .filter((c) => c.list_id === listId && passesFilters(c.id))
+      .sort((a, b) => a.position - b.position);
 
   const moveCardTo = (cardId: string, targetListId: string) => {
     const targetCards = cardsByList(targetListId);
@@ -163,6 +179,19 @@ function BoardPage() {
           {data.board.description && <p className="text-xs text-board-foreground/70">{data.board.description}</p>}
         </div>
         <div className="flex items-center gap-2">
+          <UserFilterPopover
+            members={data.members as any}
+            selected={filterUserIds}
+            onChange={setFilterUserIds}
+          />
+          <Button
+            variant={onlyChanged ? "default" : "outline"}
+            size="sm"
+            onClick={() => setOnlyChanged((v) => !v)}
+            title="Show only cards with recent changes (last 7 days)"
+          >
+            <Bell className="h-4 w-4" /> Changes{onlyChanged ? ` (${changedSet.size})` : ""}
+          </Button>
           <MembersPopover boardId={boardId} members={data.members} isOwner={data.role === "owner"} onChange={invalidate} />
         </div>
       </div>
