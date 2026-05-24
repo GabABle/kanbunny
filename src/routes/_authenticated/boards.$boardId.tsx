@@ -470,7 +470,7 @@ function InlineRename({ value, onSave, disabled, className }: { value: string; o
       onChange={(e) => setV(e.target.value)}
       onBlur={() => { setEditing(false); if (v.trim() && v !== value) onSave(v.trim()); }}
       onKeyDown={(e) => { if (e.key === "Enter") (e.target as HTMLInputElement).blur(); if (e.key === "Escape") setEditing(false); }}
-      className={"rounded border border-border bg-white text-foreground px-1 py-0.5 outline-none " + (className ?? "")}
+      className={"rounded border border-transparent bg-transparent px-1 py-0.5 outline-none focus:outline-none " + (className ?? "")}
     />
   );
 }
