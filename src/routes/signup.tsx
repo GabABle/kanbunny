@@ -6,9 +6,12 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
+import { useServerFn } from "@tanstack/react-start";
+import { acceptBoardInvite } from "@/lib/invites.functions";
 
 export const Route = createFileRoute("/signup")({
   head: () => ({ meta: [{ title: "Sign up — Kanbunny" }] }),
+  validateSearch: (s: Record<string, unknown>) => ({ invite: typeof s.invite === "string" ? s.invite : undefined }),
   component: SignupPage,
 });
 
@@ -16,14 +19,28 @@ function SignupPage() {
   const { user } = useAuth();
   const navigate = useNavigate();
   const router = useRouter();
+  const search = Route.useSearch();
+  const acceptFn = useServerFn(acceptBoardInvite);
+  const inviteToken = search.invite ?? (typeof window !== "undefined" ? localStorage.getItem("pendingInviteToken") ?? undefined : undefined);
+  useEffect(() => { if (inviteToken) try { localStorage.setItem("pendingInviteToken", inviteToken); } catch {} }, [inviteToken]);
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [busy, setBusy] = useState(false);
 
   useEffect(() => {
-    if (user) navigate({ to: "/boards" });
-  }, [user, navigate]);
+    if (!user) return;
+    if (inviteToken) {
+      acceptFn({ data: { token: inviteToken } })
+        .then((res) => {
+          try { localStorage.removeItem("pendingInviteToken"); } catch {}
+          navigate({ to: "/boards/$boardId", params: { boardId: res.boardId } });
+        })
+        .catch(() => navigate({ to: "/boards" }));
+    } else {
+      navigate({ to: "/boards" });
+    }
+  }, [user, inviteToken, navigate, acceptFn]);
 
   useEffect(() => {
     router.preloadRoute({ to: "/login" });
@@ -33,17 +50,26 @@ function SignupPage() {
   const onSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setBusy(true);
+    const redirectPath = inviteToken ? `/invite/${inviteToken}` : "/boards";
     const { data, error } = await supabase.auth.signUp({
       email,
       password,
       options: {
-        emailRedirectTo: window.location.origin + "/boards",
+        emailRedirectTo: window.location.origin + redirectPath,
         data: { display_name: name },
       },
     });
     setBusy(false);
     if (error) return toast.error(error.message);
     if (data.session) {
+      if (inviteToken) {
+        try {
+          const res = await acceptFn({ data: { token: inviteToken } });
+          try { localStorage.removeItem("pendingInviteToken"); } catch {}
+          navigate({ to: "/boards/$boardId", params: { boardId: res.boardId } });
+          return;
+        } catch { /* fall through */ }
+      }
       navigate({ to: "/boards" });
     } else {
       toast.success("Check your email to confirm your account before signing in.");
