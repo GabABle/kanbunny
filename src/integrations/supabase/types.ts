@@ -463,6 +463,7 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      accept_board_invite: { Args: { _token: string }; Returns: string }
       board_of_card: { Args: { _card_id: string }; Returns: string }
       board_of_checklist: { Args: { _checklist_id: string }; Returns: string }
       board_of_list: { Args: { _list_id: string }; Returns: string }
