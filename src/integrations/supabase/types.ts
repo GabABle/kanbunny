@@ -14,6 +14,44 @@ export type Database = {
   }
   public: {
     Tables: {
+      board_invites: {
+        Row: {
+          board_id: string
+          created_at: string
+          created_by: string
+          expires_at: string | null
+          id: string
+          role: Database["public"]["Enums"]["board_role"]
+          token: string
+        }
+        Insert: {
+          board_id: string
+          created_at?: string
+          created_by: string
+          expires_at?: string | null
+          id?: string
+          role?: Database["public"]["Enums"]["board_role"]
+          token: string
+        }
+        Update: {
+          board_id?: string
+          created_at?: string
+          created_by?: string
+          expires_at?: string | null
+          id?: string
+          role?: Database["public"]["Enums"]["board_role"]
+          token?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "board_invites_board_id_fkey"
+            columns: ["board_id"]
+            isOneToOne: false
+            referencedRelation: "boards"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       board_members: {
         Row: {
           board_id: string
