@@ -7,6 +7,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import { Loader2 } from "lucide-react";
+import { useServerFn } from "@tanstack/react-start";
+import { acceptBoardInvite } from "@/lib/invites.functions";
 
 export const Route = createFileRoute("/login")({
   head: () => ({ meta: [{ title: "Sign in — Kanbunny" }] }),
@@ -17,13 +19,25 @@ function LoginPage() {
   const { user } = useAuth();
   const navigate = useNavigate();
   const router = useRouter();
+  const acceptFn = useServerFn(acceptBoardInvite);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [busy, setBusy] = useState(false);
 
   useEffect(() => {
-    if (user) navigate({ to: "/boards" });
-  }, [user, navigate]);
+    if (!user) return;
+    const token = typeof window !== "undefined" ? localStorage.getItem("pendingInviteToken") : null;
+    if (token) {
+      acceptFn({ data: { token } })
+        .then((res) => {
+          try { localStorage.removeItem("pendingInviteToken"); } catch {}
+          navigate({ to: "/boards/$boardId", params: { boardId: res.boardId } });
+        })
+        .catch(() => navigate({ to: "/boards" }));
+    } else {
+      navigate({ to: "/boards" });
+    }
+  }, [user, navigate, acceptFn]);
 
   useEffect(() => {
     router.preloadRoute({ to: "/signup" });

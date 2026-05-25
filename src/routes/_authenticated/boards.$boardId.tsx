@@ -6,12 +6,13 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { Plus, Trash2, UserPlus, X, Clock, Bell, Filter } from "lucide-react";
+import { Plus, Trash2, UserPlus, X, Clock, Bell, Filter, Link2 } from "lucide-react";
 import {
   getBoard, createList, renameList, deleteList,
   createCard, updateCard, deleteCard, moveCard,
   inviteMember, removeMember, searchProfiles, renameBoard, updateBoardBackground,
 } from "@/lib/kanban.functions";
+import { createBoardInvite } from "@/lib/invites.functions";
 import { toast } from "sonner";
 import { CardDialog } from "@/components/kanban/CardDialog";
 import { cn } from "@/lib/utils";
@@ -545,6 +546,7 @@ function MembersPopover({ boardId, members, isOwner, onChange }: { boardId: stri
   const inviteFn = useServerFn(inviteMember);
   const removeFn = useServerFn(removeMember);
   const searchFn = useServerFn(searchProfiles);
+  const createInviteFn = useServerFn(createBoardInvite);
   const qc = useQueryClient();
   const confirmDlg = useConfirm();
   const [username, setUsername] = useState("");
@@ -593,6 +595,14 @@ function MembersPopover({ boardId, members, isOwner, onChange }: { boardId: stri
       removeMut.mutate(m.user_id);
     }
   };
+  const copyInviteLink = async () => {
+    try {
+      const { token } = await createInviteFn({ data: { boardId, role: "editor" } });
+      const url = `${window.location.origin}/invite/${token}`;
+      try { await navigator.clipboard.writeText(url); toast.success("Invite link copied to clipboard"); }
+      catch { toast.message("Invite link", { description: url }); }
+    } catch (e: any) { toast.error(e.message ?? "Failed to create invite"); }
+  };
   return (
     <Popover>
       <PopoverTrigger asChild>
@@ -626,6 +636,9 @@ function MembersPopover({ boardId, members, isOwner, onChange }: { boardId: stri
           </div>
           {isOwner && (
             <div className="border-t border-border/60 pt-3">
+              <Button type="button" variant="outline" size="sm" className="mb-3 w-full" onClick={copyInviteLink}>
+                <Link2 className="h-4 w-4" /> Copy invite link
+              </Button>
               <form
                 onSubmit={(e) => { e.preventDefault(); const name = username.replace(/^@/, "").trim(); if (!name) return; if (showSuggest && suggestions[active]) pick(suggestions[active].display_name ?? name); else inviteMut.mutate(name); }}
                 className="flex gap-2"
