@@ -6,12 +6,13 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { Plus, Trash2, UserPlus, X, Clock, Bell, Filter } from "lucide-react";
+import { Plus, Trash2, UserPlus, X, Clock, Bell, Filter, Link2 } from "lucide-react";
 import {
   getBoard, createList, renameList, deleteList,
   createCard, updateCard, deleteCard, moveCard,
   inviteMember, removeMember, searchProfiles, renameBoard, updateBoardBackground,
 } from "@/lib/kanban.functions";
+import { createBoardInvite } from "@/lib/invites.functions";
 import { toast } from "sonner";
 import { CardDialog } from "@/components/kanban/CardDialog";
 import { cn } from "@/lib/utils";
