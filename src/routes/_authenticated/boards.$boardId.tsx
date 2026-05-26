@@ -229,6 +229,7 @@ function BoardPage() {
   const [sortModes, setSortModes] = useState<Record<string, "manual" | "date-asc" | "date-desc">>({});
   const [filterUserIds, setFilterUserIds] = useState<Set<string>>(new Set());
   const [onlyChanged, setOnlyChanged] = useState(false);
+  const hydrated = useHydrated();
 
   if (isLoading || !data) {
     return <div className="grid min-h-[60vh] place-items-center text-sm text-muted-foreground">Loading…</div>;
