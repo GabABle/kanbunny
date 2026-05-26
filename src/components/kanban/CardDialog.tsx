@@ -162,8 +162,8 @@ export function CardDialog({
               <div className="text-xs text-list-muted mt-1">in list <span className="underline">{listTitle}</span></div>
             </div>
 
-          {/* Labels + due + owner + members chips */}
-            {(myLabels.length > 0 || dueDate || ownerName || myAssignees.size > 0) && (() => {
+          {/* Labels + due + owner chips */}
+            {(myLabels.length > 0 || dueDate || ownerName) && (() => {
               const dueSoon = dueDate ? (dueDate.getTime() - Date.now()) <= 3 * 24 * 3600 * 1000 : false;
               return (
               <div className="flex flex-wrap gap-4">
