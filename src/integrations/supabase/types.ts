@@ -480,6 +480,10 @@ export type Database = {
         Returns: boolean
       }
       pick_avatar_color: { Args: { _seed: string }; Returns: string }
+      shares_board_with: {
+        Args: { _profile_id: string; _viewer_id: string }
+        Returns: boolean
+      }
     }
     Enums: {
       board_role: "owner" | "editor" | "viewer" | "member"
