@@ -13,7 +13,7 @@ export const createBoardInvite = createServerFn({ method: "POST" })
   .inputValidator((d) =>
     z.object({
       boardId: uuid,
-      role: z.enum(["editor", "viewer"]).default("editor"),
+      role: z.enum(["editor", "viewer", "member"]).default("member"),
     }).parse(d),
   )
   .handler(async ({ data, context }) => {
