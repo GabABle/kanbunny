@@ -1,7 +1,8 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useMutation, useQueryClient, useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { Fragment, useState } from "react";
+import { useState } from "react";
+import { DragDropContext, Droppable, Draggable, type DropResult } from "@hello-pangea/dnd";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -225,8 +226,6 @@ function BoardPage() {
 
   const [newListTitle, setNewListTitle] = useState("");
   const [openCard, setOpenCard] = useState<string | null>(null);
-  const [dragOver, setDragOver] = useState<{ listId: string; index: number } | null>(null);
-  const [draggingCard, setDraggingCard] = useState<string | null>(null);
   const [sortModes, setSortModes] = useState<Record<string, "manual" | "date-asc" | "date-desc">>({});
   const [filterUserIds, setFilterUserIds] = useState<Set<string>>(new Set());
   const [onlyChanged, setOnlyChanged] = useState(false);
@@ -265,25 +264,27 @@ function BoardPage() {
     });
   };
 
-  const handleDropOn = (listId: string) => {
-    if (!draggingCard) return;
-    const visible = cardsByList(listId).filter((c) => c.id !== draggingCard);
+  const handleDragEnd = (result: DropResult) => {
+    const { source, destination, draggableId } = result;
+    if (!destination) return;
+    if (source.droppableId === destination.droppableId && source.index === destination.index) return;
+    const destListId = destination.droppableId;
+    // Build the destination list as it currently is, excluding the dragged card
+    const destCards = cardsByList(destListId).filter((c) => c.id !== draggableId);
     let position: number;
-    if (sortModeFor(listId) !== "manual") {
-      const last = visible[visible.length - 1];
+    if (sortModeFor(destListId) !== "manual") {
+      const last = destCards[destCards.length - 1];
       position = (last?.position ?? 0) + 1000;
     } else {
-      const idx = dragOver?.listId === listId ? Math.min(dragOver.index, visible.length) : visible.length;
-      const prev = visible[idx - 1]?.position;
-      const next = visible[idx]?.position;
+      const idx = Math.min(Math.max(destination.index, 0), destCards.length);
+      const prev = destCards[idx - 1]?.position;
+      const next = destCards[idx]?.position;
       if (prev != null && next != null) position = (prev + next) / 2;
       else if (prev != null) position = prev + 1000;
       else if (next != null) position = next - 1000;
       else position = 1000;
     }
-    moveCardMut.mutate({ id: draggingCard, listId, position });
-    setDragOver(null);
-    setDraggingCard(null);
+    moveCardMut.mutate({ id: draggableId, listId: destListId, position });
   };
 
   return (
@@ -330,6 +331,7 @@ function BoardPage() {
       </div>
 
       <div className="flex-1 overflow-x-auto">
+        <DragDropContext onDragEnd={handleDragEnd}>
         <div className="flex h-full items-start gap-3 p-4">
           {data.lists.sort((a, b) => a.position - b.position).map((list) => {
             const visible = cardsByList(list.id);
@@ -339,23 +341,6 @@ function BoardPage() {
             <div
               key={list.id}
               className="flex w-72 flex-none flex-col rounded-xl bg-list text-list-foreground shadow-sm max-h-full"
-              onDragOver={(e) => {
-                e.preventDefault();
-                e.dataTransfer.dropEffect = "move";
-                const endIdx = visible.filter((c) => c.id !== draggingCard).length;
-                if (dragOver?.listId !== list.id || dragOver.index !== endIdx) {
-                  setDragOver({ listId: list.id, index: endIdx });
-                }
-              }}
-              onDragLeave={(e) => {
-                if (!e.currentTarget.contains(e.relatedTarget as Node)) {
-                  setDragOver((cur) => (cur?.listId === list.id ? null : cur));
-                }
-              }}
-              onDrop={(e) => {
-                e.preventDefault();
-                handleDropOn(list.id);
-              }}
             >
               <div className="flex items-center justify-between px-3 pt-2 pb-1">
                 <InlineRename
@@ -385,66 +370,45 @@ function BoardPage() {
                   </button>
                 )}
               </div>
-              <div className="flex flex-1 flex-col gap-2 overflow-y-auto px-2 pb-2">
-                {(() => {
-                  const rendered = visible.filter((c) => c.id !== draggingCard);
-                  const showPh =
-                    !!draggingCard &&
-                    mode === "manual" &&
-                    dragOver?.listId === list.id;
-                  const phIndex = showPh ? Math.min(Math.max(dragOver!.index, 0), rendered.length) : -1;
-                  const Placeholder = (
-                    <div className="h-12 rounded-md border-2 border-dashed border-primary bg-primary/10" />
-                  );
-                  return (
-                    <>
-                      {rendered.map((card, i) => (
-                        <Fragment key={card.id}>
-                          {phIndex === i && Placeholder}
-                          <CardFront
-                            card={card}
-                            data={data}
-                            canEdit={canEdit}
-                            onOpen={() => setOpenCard(card.id)}
-                            onDragStart={() => setDraggingCard(card.id)}
-                            onDragEnd={() => { setDraggingCard(null); setDragOver(null); }}
-                            isDragging={false}
-                            onDragOverCard={(pos) => {
-                              if (mode !== "manual" || !draggingCard) return;
-                              const target = pos === "before" ? i : i + 1;
-                              if (dragOver?.listId !== list.id || dragOver.index !== target) {
-                                setDragOver({ listId: list.id, index: target });
-                              }
-                            }}
-                          />
-                        </Fragment>
-                      ))}
-                      {phIndex === rendered.length && Placeholder}
-                      {/* Render the dragged source itself hidden so it stays in the DOM for HTML5 drag image but doesn't take layout */}
-                      {draggingCard && visible.some((c) => c.id === draggingCard) && (() => {
-                        const dc = visible.find((c) => c.id === draggingCard)!;
-                        return (
-                          <div style={{ display: "none" }} aria-hidden>
+              <Droppable droppableId={list.id} isDropDisabled={!canEdit}>
+                {(dropProvided, dropSnapshot) => (
+                  <div
+                    ref={dropProvided.innerRef}
+                    {...dropProvided.droppableProps}
+                    className={cn(
+                      "flex flex-1 flex-col gap-2 overflow-y-auto px-2 pb-2 transition-colors",
+                      dropSnapshot.isDraggingOver && "bg-black/5",
+                    )}
+                  >
+                    {visible.map((card, i) => (
+                      <Draggable
+                        key={card.id}
+                        draggableId={card.id}
+                        index={i}
+                        isDragDisabled={!canEdit || mode !== "manual"}
+                      >
+                        {(dragProvided, dragSnapshot) => (
+                          <div
+                            ref={dragProvided.innerRef}
+                            {...dragProvided.draggableProps}
+                            {...dragProvided.dragHandleProps}
+                          >
                             <CardFront
-                              card={dc}
+                              card={card}
                               data={data}
                               canEdit={canEdit}
-                              onOpen={() => {}}
-                              onDragStart={() => setDraggingCard(dc.id)}
-                              onDragEnd={() => { setDraggingCard(null); setDragOver(null); }}
-                              isDragging
+                              onOpen={() => setOpenCard(card.id)}
+                              isDragging={dragSnapshot.isDragging}
                             />
                           </div>
-                        );
-                      })()}
-                      {/* Cross-list drop fallback when list is empty / non-manual sort */}
-                      {draggingCard && mode !== "manual" && dragOver?.listId === list.id &&
-                        !visible.some((c) => c.id === draggingCard) && Placeholder}
-                      {canEdit && <NewCardForm onAdd={(title) => createCardMut.mutate({ listId: list.id, title })} />}
-                    </>
-                  );
-                })()}
-              </div>
+                        )}
+                      </Draggable>
+                    ))}
+                    {dropProvided.placeholder}
+                    {canEdit && <NewCardForm onAdd={(title) => createCardMut.mutate({ listId: list.id, title })} />}
+                  </div>
+                )}
+              </Droppable>
             </div>
             );
           })}
@@ -455,6 +419,7 @@ function BoardPage() {
             </div>
           )}
         </div>
+        </DragDropContext>
       </div>
 
       {openedCard && openedList && (
@@ -474,10 +439,9 @@ function BoardPage() {
   );
 }
 
-function CardFront({ card, data, canEdit, onOpen, onDragStart, onDragEnd, isDragging, onDragOverCard }: {
+function CardFront({ card, data, canEdit: _canEdit, onOpen, isDragging }: {
   card: any; data: any; canEdit: boolean; onOpen: () => void;
-  onDragStart?: () => void; onDragEnd?: () => void; isDragging?: boolean;
-  onDragOverCard?: (pos: "before" | "after") => void;
+  isDragging?: boolean;
 }) {
   const labelIds = new Set(data.cardLabels.filter((cl: any) => cl.card_id === card.id).map((cl: any) => cl.label_id));
   const myLabels = data.labels.filter((l: any) => labelIds.has(l.id));
@@ -489,24 +453,9 @@ function CardFront({ card, data, canEdit, onOpen, onDragStart, onDragEnd, isDrag
   return (
     <div
       onClick={onOpen}
-      draggable={canEdit}
-      onDragStart={(e) => {
-        e.dataTransfer.setData("text/card-id", card.id);
-        e.dataTransfer.effectAllowed = "move";
-        onDragStart?.();
-      }}
-      onDragEnd={() => onDragEnd?.()}
-      onDragOver={(e) => {
-        if (!onDragOverCard) return;
-        e.preventDefault();
-        e.stopPropagation();
-        const rect = e.currentTarget.getBoundingClientRect();
-        const before = e.clientY - rect.top < rect.height / 2;
-        onDragOverCard(before ? "before" : "after");
-      }}
       className={cn(
         "cursor-pointer rounded-md bg-tcard text-tcard-foreground p-2 text-sm shadow-sm hover:ring-2 hover:ring-primary/40",
-        isDragging && "opacity-40",
+        isDragging && "ring-2 ring-primary shadow-lg",
       )}
     >
       {myLabels.length > 0 && (
