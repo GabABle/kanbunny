@@ -200,16 +200,6 @@ export function CardDialog({
                     </div>
                   </div>
                 )}
-                {myAssignees.size > 0 && (
-                  <div>
-                    <div className="text-[11px] font-semibold uppercase text-list-muted mb-1">Members</div>
-                    <div className="flex gap-1">
-                      {members.filter((m) => myAssignees.has(m.user_id)).map((m) => (
-                        <Avatar key={m.user_id} member={m} />
-                      ))}
-                    </div>
-                  </div>
-                )}
               </div>
               );
             })()}
@@ -270,10 +260,6 @@ export function CardDialog({
               <LabelsPopover
                 boardId={boardId} cardId={card.id} canEdit={canEdit}
                 labels={labels} myLabelIds={myLabelIds}
-              />
-              <MembersPopover
-                boardId={boardId} cardId={card.id} canEdit={canEdit}
-                members={members} myAssignees={myAssignees}
               />
               <ChecklistAdd boardId={boardId} cardId={card.id} canEdit={canEdit} />
               <DueDatePopover
