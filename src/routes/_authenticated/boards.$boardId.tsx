@@ -458,7 +458,7 @@ function BoardPage() {
   );
 }
 
-function CardFront({ card, data, canEdit, onOpen, onDragStart, onDragEnd, isDragging }: {
+function CardFront({ card, data, canEdit, onOpen, onDragStart, onDragEnd, isDragging, onDragOverCard }: {
   card: any; data: any; canEdit: boolean; onOpen: () => void;
   onDragStart?: () => void; onDragEnd?: () => void; isDragging?: boolean;
   onDragOverCard?: (pos: "before" | "after") => void;
@@ -480,6 +480,14 @@ function CardFront({ card, data, canEdit, onOpen, onDragStart, onDragEnd, isDrag
         onDragStart?.();
       }}
       onDragEnd={() => onDragEnd?.()}
+      onDragOver={(e) => {
+        if (!onDragOverCard) return;
+        e.preventDefault();
+        e.stopPropagation();
+        const rect = e.currentTarget.getBoundingClientRect();
+        const before = e.clientY - rect.top < rect.height / 2;
+        onDragOverCard(before ? "before" : "after");
+      }}
       className={cn(
         "cursor-pointer rounded-md bg-tcard text-tcard-foreground p-2 text-sm shadow-sm hover:ring-2 hover:ring-primary/40 transition",
         isDragging && "opacity-40",
