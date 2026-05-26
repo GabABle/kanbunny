@@ -20,7 +20,7 @@ import {
   createLabel, toggleCardLabel, deleteLabel,
   toggleAssignee,
   addChecklist, addChecklistItem, toggleChecklistItem,
-  deleteChecklistItem, deleteChecklist,
+  deleteChecklistItem, deleteChecklist, renameChecklist,
   getCardComments, addCardComment, updateCardComment, deleteCardComment,
   listCardAttachments, addCardAttachment, deleteCardAttachment, getAttachmentUrl,
   getCardActivities, getCardDetails, updateCardOwner,
@@ -580,6 +580,7 @@ function ChecklistBlock({ boardId, cardId, canEdit, checklist, items }: {
   const toggleFn = useServerFn(toggleChecklistItem);
   const deleteItemFn = useServerFn(deleteChecklistItem);
   const deleteListFn = useServerFn(deleteChecklist);
+  const renameListFn = useServerFn(renameChecklist);
 
   const patchItems = (fn: (items: any[]) => any[]) =>
     qc.setQueryData<any>(key, (d: any) => (d ? { ...d, items: fn(d.items) } : d));
@@ -641,9 +642,24 @@ function ChecklistBlock({ boardId, cardId, canEdit, checklist, items }: {
     },
     onError: (e, _v, ctx) => { if (ctx?.prev) qc.setQueryData(key, ctx.prev); toast.error(e.message); },
   });
+  const renameList = useMutation({
+    mutationFn: (title: string) => renameListFn({ data: { id: checklist.id, title } }),
+    onMutate: async (title) => {
+      await qc.cancelQueries({ queryKey: key });
+      const prev = qc.getQueryData<any>(key);
+      qc.setQueryData<any>(key, (d: any) => {
+        if (!d) return d;
+        return { ...d, checklists: d.checklists.map((c: any) => (c.id === checklist.id ? { ...c, title } : c)) };
+      });
+      return { prev };
+    },
+    onError: (e, _v, ctx) => { if (ctx?.prev) qc.setQueryData(key, ctx.prev); toast.error(e.message); },
+  });
 
   const [adding, setAdding] = useState(false);
   const [text, setText] = useState("");
+  const [editingTitle, setEditingTitle] = useState(false);
+  const [titleDraft, setTitleDraft] = useState(checklist.title);
   const total = items.length;
   const done = items.filter((i) => i.done).length;
   const pct = total === 0 ? 0 : Math.round((done / total) * 100);
@@ -652,7 +668,31 @@ function ChecklistBlock({ boardId, cardId, canEdit, checklist, items }: {
     <div>
       <div className="mb-2 flex items-center gap-2">
         <CheckSquare className="h-4 w-4" />
-        <h3 className="font-semibold">{checklist.title}</h3>
+        {editingTitle && canEdit ? (
+          <Input
+            autoFocus
+            value={titleDraft}
+            onChange={(e) => setTitleDraft(e.target.value)}
+            onBlur={() => {
+              const t = titleDraft.trim();
+              if (t && t !== checklist.title) renameList.mutate(t);
+              setEditingTitle(false);
+            }}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") { e.preventDefault(); (e.target as HTMLInputElement).blur(); }
+              if (e.key === "Escape") { setTitleDraft(checklist.title); setEditingTitle(false); }
+            }}
+            className="h-7 max-w-xs"
+          />
+        ) : (
+          <h3
+            className={cn("font-semibold", canEdit && "cursor-pointer rounded px-1 hover:bg-black/5")}
+            onClick={() => { if (canEdit) { setTitleDraft(checklist.title); setEditingTitle(true); } }}
+            title={canEdit ? "Click to rename" : undefined}
+          >
+            {checklist.title}
+          </h3>
+        )}
         {canEdit && (
           <Button size="sm" variant="ghost" className="ml-auto h-7" onClick={async () => { if (await confirmDlg({ title: "Delete checklist?", destructive: true, confirmText: "Delete" })) delList.mutate(); }}>Delete</Button>
         )}
