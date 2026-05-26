@@ -9,6 +9,7 @@ import { toast } from "sonner";
 import { Loader2 } from "lucide-react";
 import { useServerFn } from "@tanstack/react-start";
 import { acceptBoardInvite } from "@/lib/invites.functions";
+import logo from "@/assets/logo.png";
 
 export const Route = createFileRoute("/login")({
   head: () => ({ meta: [{ title: "Sign in — Flowjoe" }] }),
@@ -64,6 +65,9 @@ function LoginPage() {
         </div>
       )}
       <div className="w-full max-w-sm rounded-xl border border-border/60 bg-card p-6 shadow-sm">
+        <div className="mb-4 flex justify-center">
+          <img src={logo} alt="Flowjoe" className="h-12 w-12" />
+        </div>
         <h1 className="text-xl font-semibold tracking-tight">Welcome back</h1>
         <p className="mt-1 text-sm text-muted-foreground">Sign in to your boards.</p>
         <form onSubmit={onSubmit} className="mt-6 space-y-4">
