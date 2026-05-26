@@ -9,7 +9,7 @@ export default $config({
     };
   },
   async run() {
-    const web = new sst.aws.TanstackStart("Web", {
+    const web = new sst.aws.TanStackStart("Web", {
       environment: {
         VITE_SUPABASE_URL: process.env.VITE_SUPABASE_URL!,
         VITE_SUPABASE_PUBLISHABLE_KEY: process.env.VITE_SUPABASE_PUBLISHABLE_KEY!,
