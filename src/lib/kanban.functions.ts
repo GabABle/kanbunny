@@ -1,6 +1,7 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import { sendAssignedEmail } from "@/lib/email/send-assigned";
 
 const uuid = z.string().uuid();
 
