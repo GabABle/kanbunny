@@ -7,7 +7,7 @@ export default $config({
     };
   },
   async run() {
-    new sst.aws.StaticSite("Web", {
+    const site = new sst.aws.StaticSite("Web", {
       build: {
         command: "bun run build",
         output: "dist",
@@ -18,5 +18,9 @@ export default $config({
         VITE_SUPABASE_PROJECT_ID: process.env.VITE_SUPABASE_PROJECT_ID!,
       },
     });
+
+    return {
+      url: site.url,
+    };
   },
 });
