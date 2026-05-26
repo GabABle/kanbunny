@@ -482,7 +482,7 @@ export type Database = {
       pick_avatar_color: { Args: { _seed: string }; Returns: string }
     }
     Enums: {
-      board_role: "owner" | "editor" | "viewer"
+      board_role: "owner" | "editor" | "viewer" | "member"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -610,7 +610,7 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
-      board_role: ["owner", "editor", "viewer"],
+      board_role: ["owner", "editor", "viewer", "member"],
     },
   },
 } as const

@@ -59,7 +59,7 @@ export const createBoard = createServerFn({ method: "POST" })
       .single();
     if (error) throw new Error(error.message);
     // Seed three default lists
-    const seeds = ["To do", "In progress", "Done"].map((title, i) => ({
+    const seeds = ["Backlog", "In progress", "Done"].map((title, i) => ({
       board_id: board.id,
       title,
       position: (i + 1) * 1000,
@@ -320,7 +320,7 @@ export const toggleCardLabel = createServerFn({ method: "POST" })
 // ---------- Members ----------
 export const inviteMember = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((d) => z.object({ boardId: uuid, username: z.string().min(1).max(120), role: z.enum(["editor", "viewer"]) }).parse(d))
+  .inputValidator((d) => z.object({ boardId: uuid, username: z.string().min(1).max(120), role: z.enum(["editor", "viewer", "member"]) }).parse(d))
   .handler(async ({ data, context }) => {
     const { supabase } = context;
     const uname = data.username.trim();

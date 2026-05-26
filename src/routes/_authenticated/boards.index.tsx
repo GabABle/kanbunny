@@ -107,23 +107,27 @@ function BoardsPage() {
       ) : (
         <div className="mt-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
           {boards!.map((b) => (
-            <div
+            <Link
               key={b.id}
-              className="group relative overflow-hidden rounded-lg border border-border/60 p-4 text-white shadow-sm transition hover:border-border hover:shadow-md"
+              to="/boards/$boardId"
+              params={{ boardId: b.id }}
+              className="group relative block overflow-hidden rounded-lg border border-border/60 p-4 text-white shadow-sm transition hover:border-border hover:shadow-md"
               style={{ backgroundImage: gradientFor(b.id) }}
             >
-              <Link to="/boards/$boardId" params={{ boardId: b.id }} className="block">
-                <h3 className="font-medium tracking-tight drop-shadow">{b.title}</h3>
-                {b.description && <p className="mt-1 line-clamp-2 text-sm text-white/85">{b.description}</p>}
-              </Link>
+              <h3 className="font-medium tracking-tight drop-shadow">{b.title}</h3>
+              {b.description && <p className="mt-1 line-clamp-2 text-sm text-white/85">{b.description}</p>}
               <button
-                onClick={async () => { if (await confirmDlg({ title: `Delete "${b.title}"?`, destructive: true, confirmText: "Delete" })) delMut.mutate(b.id); }}
+                onClick={async (e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  if (await confirmDlg({ title: `Delete "${b.title}"?`, destructive: true, confirmText: "Delete" })) delMut.mutate(b.id);
+                }}
                 className="absolute right-2 top-2 rounded-md bg-black/30 p-1.5 text-white shadow-sm backdrop-blur-sm transition hover:bg-black/50"
                 aria-label="Delete"
               >
                 <Trash2 className="h-4 w-4" />
               </button>
-            </div>
+            </Link>
           ))}
         </div>
       )}
