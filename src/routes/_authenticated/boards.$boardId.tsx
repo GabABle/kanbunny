@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { Plus, Trash2, UserPlus, X, Clock, Bell, Filter, Link2, ArrowDownUp, ArrowDown, ArrowUp } from "lucide-react";
+import { Plus, Trash2, UserPlus, X, Clock, Bell, Filter, Link2, CalendarClock } from "lucide-react";
 import {
   getBoard, createList, renameList, deleteList,
   createCard, updateCard, deleteCard, moveCard,
@@ -226,7 +226,7 @@ function BoardPage() {
 
   const [newListTitle, setNewListTitle] = useState("");
   const [openCard, setOpenCard] = useState<string | null>(null);
-  const [sortModes, setSortModes] = useState<Record<string, "manual" | "date-asc" | "date-desc">>({});
+  const [sortModes, setSortModes] = useState<Record<string, "manual" | "date-asc">>({});
   const [filterUserIds, setFilterUserIds] = useState<Set<string>>(new Set());
   const [onlyChanged, setOnlyChanged] = useState(false);
   const hydrated = useHydrated();
@@ -251,20 +251,15 @@ function BoardPage() {
   };
   const sortModeFor = (listId: string) => sortModes[listId] ?? "manual";
   const cycleSort = (listId: string) =>
-    setSortModes((s) => {
-      const cur = s[listId] ?? "manual";
-      const next = cur === "manual" ? "date-asc" : cur === "date-asc" ? "date-desc" : "manual";
-      return { ...s, [listId]: next };
-    });
+    setSortModes((s) => ({ ...s, [listId]: (s[listId] ?? "manual") === "manual" ? "date-asc" : "manual" }));
   const cardsByList = (listId: string) => {
     const arr = data.cards.filter((c) => c.list_id === listId && passesFilters(c));
     const mode = sortModeFor(listId);
     if (mode === "manual") return arr.sort((a, b) => a.position - b.position);
-    const dir = mode === "date-asc" ? 1 : -1;
     return arr.sort((a, b) => {
       const av = a.due_date ? new Date(a.due_date).getTime() : Number.POSITIVE_INFINITY;
       const bv = b.due_date ? new Date(b.due_date).getTime() : Number.POSITIVE_INFINITY;
-      return dir * (av - bv);
+      return av - bv;
     });
   };
 
@@ -340,7 +335,6 @@ function BoardPage() {
           {data.lists.sort((a, b) => a.position - b.position).map((list) => {
             const visible = cardsByList(list.id);
             const mode = sortModeFor(list.id);
-            const SortIcon = mode === "manual" ? ArrowDownUp : mode === "date-asc" ? ArrowDown : ArrowUp;
             return (
             <div
               key={list.id}
@@ -355,14 +349,15 @@ function BoardPage() {
                 />
                 <button
                   onClick={() => cycleSort(list.id)}
-                  title={mode === "manual" ? "Sort by date (ascending)" : mode === "date-asc" ? "Sort by date (descending)" : "Manual order"}
+                  title={mode === "date-asc" ? "Sorted by date (nearest first) — click to disable" : "Sort by date (nearest first)"}
                   className={cn(
                     "rounded p-1 text-list-muted hover:bg-black/5 hover:text-list-foreground",
-                    mode !== "manual" && "text-primary",
+                    mode === "date-asc" && "bg-primary/15 text-primary hover:bg-primary/20 hover:text-primary",
                   )}
-                  aria-label="Sort cards"
+                  aria-label="Sort cards by date"
+                  aria-pressed={mode === "date-asc"}
                 >
-                  <SortIcon className="h-3.5 w-3.5" />
+                  <CalendarClock className="h-3.5 w-3.5" />
                 </button>
                 {canEdit && (
                   <button
