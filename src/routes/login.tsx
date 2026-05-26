@@ -65,11 +65,12 @@ function LoginPage() {
         </div>
       )}
       <div className="w-full max-w-sm rounded-xl border border-border/60 bg-card p-6 shadow-sm">
-        <div className="mb-4 flex justify-center">
-          <img src={logo} alt="Flowjoe" className="h-12 w-12" />
+        <div className="mb-4 flex flex-col items-center gap-2">
+          <img src={logo} alt="Flowjoe" className="h-12 w-12 rounded-xl" />
+          <span className="text-sm font-semibold tracking-tight">Flowjoe</span>
         </div>
-        <h1 className="text-xl font-semibold tracking-tight">Welcome back</h1>
-        <p className="mt-1 text-sm text-muted-foreground">Sign in to your boards.</p>
+        <h1 className="text-xl font-semibold tracking-tight text-center">Welcome back</h1>
+        <p className="mt-1 text-sm text-muted-foreground text-center">Sign in to your boards.</p>
         <form onSubmit={onSubmit} className="mt-6 space-y-4">
           <div className="space-y-2">
             <Label htmlFor="email">Email</Label>
