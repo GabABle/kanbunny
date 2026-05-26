@@ -16,7 +16,7 @@ export default $config({
   async run() {
     const web = new sst.aws.TanStackStart("Web", {
       server: {
-        streaming: false,
+        streaming: true,
       },
       environment: {
         VITE_SUPABASE_URL: process.env.VITE_SUPABASE_URL!,
