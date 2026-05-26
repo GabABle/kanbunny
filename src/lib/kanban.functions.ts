@@ -1,6 +1,7 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import { sendAssignedEmail } from "@/lib/email/send-assigned";
 
 const uuid = z.string().uuid();
 
@@ -359,6 +360,34 @@ export const toggleAssignee = createServerFn({ method: "POST" })
     }
     const { data: p } = await supabase.from("profiles").select("display_name, email").eq("id", data.userId).maybeSingle();
     await logActivity(supabase, userId, data.cardId, data.on ? "member_added" : "member_removed", { name: p?.display_name ?? p?.email });
+    if (data.on && p?.email) {
+      try {
+        const { data: card } = await supabase.from("cards").select("title, list_id").eq("id", data.cardId).maybeSingle();
+        let boardTitle: string | null = null;
+        let boardId: string | null = null;
+        if (card?.list_id) {
+          const { data: list } = await supabase.from("lists").select("board_id").eq("id", card.list_id).maybeSingle();
+          if (list?.board_id) {
+            boardId = list.board_id;
+            const { data: b } = await supabase.from("boards").select("title").eq("id", list.board_id).maybeSingle();
+            boardTitle = b?.title ?? null;
+          }
+        }
+        const { data: actor } = await supabase.from("profiles").select("display_name, email").eq("id", userId).maybeSingle();
+        const actorName = actor?.display_name ?? actor?.email ?? "Someone";
+        const cardTitle = card?.title ?? "a card";
+        await sendAssignedEmail({
+          to: p.email,
+          recipientName: p.display_name ?? null,
+          actorName,
+          cardTitle,
+          boardTitle,
+          boardId,
+        });
+      } catch (e) {
+        console.error("Failed to send assignee email:", e);
+      }
+    }
     return { ok: true };
   });
 
