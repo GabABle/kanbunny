@@ -951,7 +951,7 @@ function CommentsBlock({ cardId, canEdit, members }: { cardId: string; canEdit: 
           onSubmit={(e) => { e.preventDefault(); const v = body.trim(); if (v) { add.mutate({ body: v }); setBody(""); } }}
           className="mb-4 space-y-2"
         >
-          <MentionTextarea
+          <MentionField
             value={body}
             onChange={setBody}
             members={members}
@@ -1074,7 +1074,7 @@ function CommentRow({
         )}
         {replying && onSubmitReply && onReplyBodyChange && (
           <div className="mt-2 space-y-2">
-            <MentionTextarea
+            <MentionField
               value={replyBody ?? ""}
               onChange={onReplyBodyChange}
               members={members}
