@@ -449,6 +449,15 @@ export const deleteChecklist = createServerFn({ method: "POST" })
     return { ok: true };
   });
 
+export const renameChecklist = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d) => z.object({ id: uuid, title: z.string().min(1).max(120) }).parse(d))
+  .handler(async ({ data, context }) => {
+    const { error } = await context.supabase.from("checklists").update({ title: data.title }).eq("id", data.id);
+    if (error) throw new Error(error.message);
+    return { ok: true };
+  });
+
 export const deleteLabel = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d) => z.object({ id: uuid }).parse(d))
