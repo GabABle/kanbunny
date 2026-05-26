@@ -10,7 +10,7 @@ import { useServerFn } from "@tanstack/react-start";
 import { acceptBoardInvite } from "@/lib/invites.functions";
 
 export const Route = createFileRoute("/signup")({
-  head: () => ({ meta: [{ title: "Sign up — Kanbunny" }] }),
+  head: () => ({ meta: [{ title: "Sign up — Flowjoe" }] }),
   validateSearch: (s: Record<string, unknown>) => ({ invite: typeof s.invite === "string" ? s.invite : undefined }),
   component: SignupPage,
 });

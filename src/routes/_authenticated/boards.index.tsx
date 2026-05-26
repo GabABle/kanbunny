@@ -30,7 +30,7 @@ function gradientFor(id: string) {
 }
 
 export const Route = createFileRoute("/_authenticated/boards/")({
-  head: () => ({ meta: [{ title: "Your boards — Kanbunny" }] }),
+  head: () => ({ meta: [{ title: "Your boards — Flowjoe" }] }),
   component: BoardsPage,
 });
 

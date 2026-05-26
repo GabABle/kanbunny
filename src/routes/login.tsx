@@ -11,7 +11,7 @@ import { useServerFn } from "@tanstack/react-start";
 import { acceptBoardInvite } from "@/lib/invites.functions";
 
 export const Route = createFileRoute("/login")({
-  head: () => ({ meta: [{ title: "Sign in — Kanbunny" }] }),
+  head: () => ({ meta: [{ title: "Sign in — Flowjoe" }] }),
   component: LoginPage,
 });
 

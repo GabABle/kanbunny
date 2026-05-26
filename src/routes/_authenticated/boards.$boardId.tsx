@@ -85,7 +85,7 @@ function UserFilterPopover({ members, selected, onChange }: { members: any[]; se
 }
 
 export const Route = createFileRoute("/_authenticated/boards/$boardId")({
-  head: () => ({ meta: [{ title: "Board — Kanbunny" }] }),
+  head: () => ({ meta: [{ title: "Board — Flowjoe" }] }),
   errorComponent: ({ error }) => (
     <div className="grid min-h-[60vh] place-items-center px-4 text-center">
       <div>
