@@ -81,8 +81,9 @@ function SignupPage() {
   return (
     <div className="grid min-h-screen place-items-center bg-background px-4">
       <div className="w-full max-w-sm rounded-xl border border-border/60 bg-card p-6 shadow-sm">
-        <div className="mb-4 flex justify-center">
-          <img src={logo} alt="Flowjoe" className="h-12 w-12" />
+        <div className="mb-4 flex flex-col items-center gap-2">
+          <img src={logo} alt="Flowjoe" className="h-12 w-12 rounded-xl" />
+          <span className="text-sm font-semibold tracking-tight">Flowjoe</span>
         </div>
         <h1 className="text-xl font-semibold tracking-tight">Create your account</h1>
         <p className="mt-1 text-sm text-muted-foreground">Start building boards in seconds.</p>
