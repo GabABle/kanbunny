@@ -13,8 +13,5 @@ export default defineConfig({
   ],
   nitro: {
     preset: "aws-lambda",
-    awsLambda: {
-      streaming: true,
-    },
   },
 });
