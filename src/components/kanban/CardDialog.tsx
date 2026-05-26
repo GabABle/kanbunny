@@ -242,6 +242,7 @@ export function CardDialog({
                 canEdit={canEdit}
                 checklist={checklist}
                 items={cl.items.filter((i) => i.checklist_id === checklist.id)}
+                members={members}
               />
             ))}
 
@@ -267,7 +268,7 @@ export function CardDialog({
                 boardId={boardId} cardId={card.id} canEdit={canEdit}
                 labels={labels} myLabelIds={myLabelIds}
               />
-              <ChecklistAdd boardId={boardId} cardId={card.id} canEdit={canEdit} />
+              <ChecklistAdd boardId={boardId} cardId={card.id} canEdit={canEdit} members={members} />
               <DueDatePopover
                 canEdit={canEdit}
                 dueDate={dueDate}
