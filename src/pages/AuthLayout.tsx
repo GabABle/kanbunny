@@ -1,36 +1,13 @@
-import { createFileRoute, Outlet, Link, useNavigate, useLocation, redirect } from "@tanstack/react-router";
-import { useEffect } from "react";
+import { Link, Outlet, useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/use-auth";
-import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { LogOut } from "lucide-react";
 import logo from "@/assets/logo.png";
 
-export const Route = createFileRoute("/_authenticated")({
-  ssr: false,
-  beforeLoad: async () => {
-    const { data, error } = await supabase.auth.getUser();
-
-    if (error || !data.user) {
-      throw redirect({ to: "/login" });
-    }
-  },
-  component: AuthLayout,
-});
-
-function AuthLayout() {
-  const { user, loading, signOut } = useAuth();
+export default function AuthLayout() {
+  const { signOut } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
-
-  useEffect(() => {
-    if (!loading && !user) navigate({ to: "/login" });
-  }, [loading, user, navigate]);
-
-  if (loading || !user) {
-    return <div className="grid min-h-screen place-items-center text-sm text-muted-foreground">Loading…</div>;
-  }
-
   return (
     <div className="flex min-h-screen flex-col bg-background text-foreground">
       <header className="border-b border-border/60">
@@ -43,15 +20,13 @@ function AuthLayout() {
             <Button asChild variant={location.pathname === "/boards" ? "secondary" : "ghost"} size="sm">
               <Link to="/boards">Boards</Link>
             </Button>
-            <Button variant="ghost" size="sm" onClick={() => { navigate({ to: "/" }); void signOut(); }}>
+            <Button variant="ghost" size="sm" onClick={async () => { await signOut(); navigate("/"); }}>
               <LogOut className="h-3.5 w-3.5" /> Sign out
             </Button>
           </nav>
         </div>
       </header>
-      <div className="flex-1">
-        <Outlet />
-      </div>
+      <div className="flex-1"><Outlet /></div>
     </div>
   );
 }
