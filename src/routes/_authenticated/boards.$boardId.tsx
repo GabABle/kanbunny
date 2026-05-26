@@ -1,4 +1,4 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, useHydrated } from "@tanstack/react-router";
 import { useMutation, useQueryClient, useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { useState } from "react";
@@ -231,6 +231,9 @@ function BoardPage() {
   const [onlyChanged, setOnlyChanged] = useState(false);
 
   if (isLoading || !data) {
+    return <div className="grid min-h-[60vh] place-items-center text-sm text-muted-foreground">Loading…</div>;
+  }
+  if (!hydrated) {
     return <div className="grid min-h-[60vh] place-items-center text-sm text-muted-foreground">Loading…</div>;
   }
   const canEdit = data.role === "owner" || data.role === "editor" || data.role === "member";
