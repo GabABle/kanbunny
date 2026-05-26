@@ -151,13 +151,18 @@ export function CardDialog({
           <div className="space-y-5 min-w-0">
             {/* Title */}
             <div>
-              <input
+              <MentionField
+                multiline={false}
                 value={title}
-                disabled={!canEdit}
-                onChange={(e) => setTitle(e.target.value)}
+                onChange={setTitle}
                 onBlur={saveTitle}
-                onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); (e.target as HTMLInputElement).blur(); } if (e.key === "Escape") { setTitle(card.title); (e.target as HTMLInputElement).blur(); } }}
-                className="w-full bg-transparent text-xl font-semibold outline-none border border-transparent focus:border-transparent focus:outline-none rounded px-1 -mx-1"
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") { e.preventDefault(); (e.target as HTMLInputElement).blur(); }
+                  if (e.key === "Escape") { setTitle(card.title); (e.target as HTMLInputElement).blur(); }
+                }}
+                disabled={!canEdit}
+                members={members}
+                className="w-full bg-transparent text-xl font-semibold outline-none border border-transparent focus:border-transparent focus:outline-none rounded px-1 -mx-1 h-auto shadow-none"
               />
               <div className="text-xs text-list-muted mt-1">in list <span className="underline">{listTitle}</span></div>
             </div>
@@ -210,13 +215,14 @@ export function CardDialog({
                 <AlignLeft className="h-4 w-4" />
                 <h3 className="font-semibold">Description</h3>
               </div>
-              <Textarea
+              <MentionField
                 value={descDraft}
-                disabled={!canEdit}
-                onChange={(e) => setDescDraft(e.target.value)}
+                onChange={setDescDraft}
                 onBlur={saveDesc}
                 onKeyDown={(e) => { if (e.key === "Escape") { setDescDraft(card.description ?? ""); (e.target as HTMLTextAreaElement).blur(); } }}
-                placeholder="Add a more detailed description…"
+                disabled={!canEdit}
+                members={members}
+                placeholder="Add a more detailed description… use @ to mention"
                 className="min-h-[100px] bg-tcard text-tcard-foreground"
               />
             </div>
@@ -236,6 +242,7 @@ export function CardDialog({
                 canEdit={canEdit}
                 checklist={checklist}
                 items={cl.items.filter((i) => i.checklist_id === checklist.id)}
+                members={members}
               />
             ))}
 
@@ -261,7 +268,7 @@ export function CardDialog({
                 boardId={boardId} cardId={card.id} canEdit={canEdit}
                 labels={labels} myLabelIds={myLabelIds}
               />
-              <ChecklistAdd boardId={boardId} cardId={card.id} canEdit={canEdit} />
+              <ChecklistAdd boardId={boardId} cardId={card.id} canEdit={canEdit} members={members} />
               <DueDatePopover
                 canEdit={canEdit}
                 dueDate={dueDate}
@@ -509,7 +516,7 @@ function DueDatePopover({ canEdit, dueDate, onChange }: { canEdit: boolean; dueD
   );
 }
 
-function ChecklistAdd({ boardId, cardId, canEdit }: { boardId: string; cardId: string; canEdit: boolean }) {
+function ChecklistAdd({ boardId, cardId, canEdit, members }: { boardId: string; cardId: string; canEdit: boolean; members: Member[] }) {
   const qc = useQueryClient();
   const fn = useServerFn(addChecklist);
   const key = ["checklists", cardId] as const;
@@ -544,7 +551,7 @@ function ChecklistAdd({ boardId, cardId, canEdit }: { boardId: string; cardId: s
           className="space-y-2"
         >
           <div className="text-sm font-medium">Add checklist</div>
-          <Input autoFocus value={title} onChange={(e) => setTitle(e.target.value)} />
+          <MentionField multiline={false} autoFocus value={title} onChange={setTitle} members={members} />
           <Button type="submit" size="sm">Add</Button>
         </form>
       </PopoverContent>
@@ -552,10 +559,11 @@ function ChecklistAdd({ boardId, cardId, canEdit }: { boardId: string; cardId: s
   );
 }
 
-function ChecklistBlock({ boardId, cardId, canEdit, checklist, items }: {
+function ChecklistBlock({ boardId, cardId, canEdit, checklist, items, members }: {
   boardId: string; cardId: string; canEdit: boolean;
   checklist: { id: string; title: string };
   items: { id: string; text: string; done: boolean }[];
+  members: Member[];
 }) {
   const qc = useQueryClient();
   const key = ["checklists", cardId] as const;
@@ -655,10 +663,12 @@ function ChecklistBlock({ boardId, cardId, canEdit, checklist, items }: {
       <div className="mb-2 flex items-center gap-2">
         <CheckSquare className="h-4 w-4" />
         {editingTitle && canEdit ? (
-          <Input
+          <MentionField
+            multiline={false}
             autoFocus
             value={titleDraft}
-            onChange={(e) => setTitleDraft(e.target.value)}
+            onChange={setTitleDraft}
+            members={members}
             onBlur={() => {
               const t = titleDraft.trim();
               if (t && t !== checklist.title) renameList.mutate(t);
@@ -711,12 +721,19 @@ function ChecklistBlock({ boardId, cardId, canEdit, checklist, items }: {
               onSubmit={(e) => { e.preventDefault(); if (text.trim()) { addItem.mutate(text.trim()); setText(""); } }}
               className="space-y-2"
             >
-              <Textarea
+              <MentionField
                 autoFocus
                 value={text}
-                onChange={(e) => setText(e.target.value)}
-                onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); if (text.trim()) { addItem.mutate(text.trim()); setText(""); } } if (e.key === "Escape") { setAdding(false); setText(""); } }}
-                placeholder="Add an item"
+                onChange={setText}
+                members={members}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" && !e.shiftKey) {
+                    e.preventDefault();
+                    if (text.trim()) { addItem.mutate(text.trim()); setText(""); }
+                  }
+                  if (e.key === "Escape") { setAdding(false); setText(""); }
+                }}
+                placeholder="Add an item — use @ to mention"
                 className="min-h-[60px] bg-tcard text-tcard-foreground"
               />
               <div className="flex gap-2">
@@ -951,7 +968,7 @@ function CommentsBlock({ cardId, canEdit, members }: { cardId: string; canEdit: 
           onSubmit={(e) => { e.preventDefault(); const v = body.trim(); if (v) { add.mutate({ body: v }); setBody(""); } }}
           className="mb-4 space-y-2"
         >
-          <MentionTextarea
+          <MentionField
             value={body}
             onChange={setBody}
             members={members}
@@ -1074,7 +1091,7 @@ function CommentRow({
         )}
         {replying && onSubmitReply && onReplyBodyChange && (
           <div className="mt-2 space-y-2">
-            <MentionTextarea
+            <MentionField
               value={replyBody ?? ""}
               onChange={onReplyBodyChange}
               members={members}
@@ -1092,16 +1109,24 @@ function CommentRow({
   );
 }
 
-function MentionTextarea({
+function MentionField({
   value, onChange, members, placeholder, onSubmit,
+  multiline = true, disabled, autoFocus, onBlur, onKeyDown: onKeyDownExtra,
+  className,
 }: {
   value: string;
   onChange: (v: string) => void;
   members: Member[];
   placeholder?: string;
   onSubmit?: () => void;
+  multiline?: boolean;
+  disabled?: boolean;
+  autoFocus?: boolean;
+  onBlur?: () => void;
+  onKeyDown?: (e: React.KeyboardEvent<HTMLTextAreaElement | HTMLInputElement>) => void;
+  className?: string;
 }) {
-  const ref = useRef<HTMLTextAreaElement>(null);
+  const ref = useRef<HTMLTextAreaElement | HTMLInputElement | null>(null);
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
   const [anchor, setAnchor] = useState<number | null>(null);
@@ -1147,31 +1172,52 @@ function MentionTextarea({
     requestAnimationFrame(() => {
       const newPos = (before + insert).length;
       ref.current?.focus();
-      ref.current?.setSelectionRange(newPos, newPos);
+      (ref.current as any)?.setSelectionRange?.(newPos, newPos);
     });
+  };
+
+  const sharedKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement | HTMLInputElement>) => {
+    if (open && matches.length > 0) {
+      if (e.key === "ArrowDown") { e.preventDefault(); setActive((a) => (a + 1) % matches.length); return; }
+      if (e.key === "ArrowUp") { e.preventDefault(); setActive((a) => (a - 1 + matches.length) % matches.length); return; }
+      if (e.key === "Enter" || e.key === "Tab") { e.preventDefault(); insertMention(matches[active]); return; }
+      if (e.key === "Escape") { e.preventDefault(); setOpen(false); return; }
+    }
+    if (multiline && e.key === "Enter" && (e.metaKey || e.ctrlKey)) {
+      e.preventDefault();
+      onSubmit?.();
+      return;
+    }
+    onKeyDownExtra?.(e);
   };
 
   return (
     <div className="relative">
-      <Textarea
-        ref={ref}
-        value={value}
-        onChange={(e) => handleChange(e.target.value)}
-        onKeyDown={(e) => {
-          if (open && matches.length > 0) {
-            if (e.key === "ArrowDown") { e.preventDefault(); setActive((a) => (a + 1) % matches.length); return; }
-            if (e.key === "ArrowUp") { e.preventDefault(); setActive((a) => (a - 1 + matches.length) % matches.length); return; }
-            if (e.key === "Enter" || e.key === "Tab") { e.preventDefault(); insertMention(matches[active]); return; }
-            if (e.key === "Escape") { e.preventDefault(); setOpen(false); return; }
-          }
-          if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) {
-            e.preventDefault();
-            onSubmit?.();
-          }
-        }}
-        placeholder={placeholder}
-        className="min-h-[70px] bg-tcard text-tcard-foreground"
-      />
+      {multiline ? (
+        <Textarea
+          ref={ref as React.RefObject<HTMLTextAreaElement>}
+          value={value}
+          disabled={disabled}
+          autoFocus={autoFocus}
+          onBlur={onBlur}
+          onChange={(e) => handleChange(e.target.value)}
+          onKeyDown={sharedKeyDown}
+          placeholder={placeholder}
+          className={cn("min-h-[70px] bg-tcard text-tcard-foreground", className)}
+        />
+      ) : (
+        <Input
+          ref={ref as React.RefObject<HTMLInputElement>}
+          value={value}
+          disabled={disabled}
+          autoFocus={autoFocus}
+          onBlur={onBlur}
+          onChange={(e) => handleChange(e.target.value)}
+          onKeyDown={sharedKeyDown}
+          placeholder={placeholder}
+          className={className}
+        />
+      )}
       {open && matches.length > 0 && (
         <div className="absolute left-2 top-full z-50 mt-1 w-64 overflow-hidden rounded-md border bg-popover text-popover-foreground shadow-md">
           {matches.map((m, i) => {
