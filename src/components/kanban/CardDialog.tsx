@@ -151,13 +151,18 @@ export function CardDialog({
           <div className="space-y-5 min-w-0">
             {/* Title */}
             <div>
-              <input
+              <MentionField
+                multiline={false}
                 value={title}
-                disabled={!canEdit}
-                onChange={(e) => setTitle(e.target.value)}
+                onChange={setTitle}
                 onBlur={saveTitle}
-                onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); (e.target as HTMLInputElement).blur(); } if (e.key === "Escape") { setTitle(card.title); (e.target as HTMLInputElement).blur(); } }}
-                className="w-full bg-transparent text-xl font-semibold outline-none border border-transparent focus:border-transparent focus:outline-none rounded px-1 -mx-1"
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") { e.preventDefault(); (e.target as HTMLInputElement).blur(); }
+                  if (e.key === "Escape") { setTitle(card.title); (e.target as HTMLInputElement).blur(); }
+                }}
+                disabled={!canEdit}
+                members={members}
+                className="w-full bg-transparent text-xl font-semibold outline-none border border-transparent focus:border-transparent focus:outline-none rounded px-1 -mx-1 h-auto shadow-none"
               />
               <div className="text-xs text-list-muted mt-1">in list <span className="underline">{listTitle}</span></div>
             </div>
@@ -210,13 +215,14 @@ export function CardDialog({
                 <AlignLeft className="h-4 w-4" />
                 <h3 className="font-semibold">Description</h3>
               </div>
-              <Textarea
+              <MentionField
                 value={descDraft}
-                disabled={!canEdit}
-                onChange={(e) => setDescDraft(e.target.value)}
+                onChange={setDescDraft}
                 onBlur={saveDesc}
                 onKeyDown={(e) => { if (e.key === "Escape") { setDescDraft(card.description ?? ""); (e.target as HTMLTextAreaElement).blur(); } }}
-                placeholder="Add a more detailed description…"
+                disabled={!canEdit}
+                members={members}
+                placeholder="Add a more detailed description… use @ to mention"
                 className="min-h-[100px] bg-tcard text-tcard-foreground"
               />
             </div>
