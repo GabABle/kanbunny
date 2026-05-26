@@ -1,13 +1,14 @@
-import { createServerFn } from "@tanstack/react-start";
-import { z } from "zod";
-import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
-import { sendAssignedEmail } from "@/lib/email/send-assigned";
+import { supabase } from "@/integrations/supabase/client";
 
-const uuid = z.string().uuid();
+async function currentUserId(): Promise<string> {
+  const { data } = await supabase.auth.getSession();
+  const id = data.session?.user?.id;
+  if (!id) throw new Error("Not authenticated");
+  return id;
+}
 
 // ---------- Activity helper ----------
 async function logActivity(
-  supabase: any,
   userId: string,
   cardId: string,
   type: string,
@@ -25,85 +26,61 @@ async function logActivity(
   }
 }
 
-async function cardIdFromChecklist(supabase: any, checklistId: string): Promise<string | null> {
+async function cardIdFromChecklist(checklistId: string): Promise<string | null> {
   const { data } = await supabase.from("checklists").select("card_id").eq("id", checklistId).maybeSingle();
   return data?.card_id ?? null;
 }
-async function cardIdFromItem(supabase: any, itemId: string): Promise<string | null> {
-  const { data } = await supabase.from("checklist_items").select("checklist_id").eq("id", itemId).maybeSingle();
-  if (!data) return null;
-  return cardIdFromChecklist(supabase, data.checklist_id);
-}
 // ---------- Boards ----------
-export const listBoards = createServerFn({ method: "GET" })
-  .middleware([requireSupabaseAuth])
-  .handler(async ({ context }) => {
-    const { supabase } = context;
-    const { data, error } = await supabase
-      .from("boards")
-      .select("id, title, description, owner_id, created_at")
-      .order("created_at", { ascending: false });
-    if (error) throw new Error(error.message);
-    return data ?? [];
-  });
+export async function listBoards() {
+  const { data, error } = await supabase
+    .from("boards")
+    .select("id, title, description, owner_id, created_at")
+    .order("created_at", { ascending: false });
+  if (error) throw new Error(error.message);
+  return data ?? [];
+}
 
-export const createBoard = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
-  .inputValidator((d) => z.object({ title: z.string().min(1).max(120), description: z.string().max(500).optional() }).parse(d))
-  .handler(async ({ data, context }) => {
-    const { supabase, userId } = context;
-    const { data: board, error } = await supabase
-      .from("boards")
-      .insert({ title: data.title, description: data.description ?? null, owner_id: userId })
-      .select()
-      .single();
-    if (error) throw new Error(error.message);
-    // Seed three default lists
-    const seeds = ["Backlog", "In progress", "Done"].map((title, i) => ({
-      board_id: board.id,
-      title,
-      position: (i + 1) * 1000,
-    }));
-    await supabase.from("lists").insert(seeds);
-    return board;
-  });
+export async function createBoard(data: { title: string; description?: string }) {
+  const userId = await currentUserId();
+  const { data: board, error } = await supabase
+    .from("boards")
+    .insert({ title: data.title, description: data.description ?? null, owner_id: userId })
+    .select()
+    .single();
+  if (error) throw new Error(error.message);
+  const seeds = ["Backlog", "In progress", "Done"].map((title, i) => ({
+    board_id: board.id,
+    title,
+    position: (i + 1) * 1000,
+  }));
+  await supabase.from("lists").insert(seeds);
+  return board;
+}
 
-export const deleteBoard = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
-  .inputValidator((d) => z.object({ id: uuid }).parse(d))
-  .handler(async ({ data, context }) => {
-    const { error } = await context.supabase.from("boards").delete().eq("id", data.id);
-    if (error) throw new Error(error.message);
-    return { ok: true };
-  });
+export async function deleteBoard(data: { id: string }) {
+  const { error } = await supabase.from("boards").delete().eq("id", data.id);
+  if (error) throw new Error(error.message);
+  return { ok: true };
+}
 
-export const renameBoard = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
-  .inputValidator((d) => z.object({ id: uuid, title: z.string().min(1).max(120) }).parse(d))
-  .handler(async ({ data, context }) => {
-    const { error } = await context.supabase.from("boards").update({ title: data.title }).eq("id", data.id);
-    if (error) throw new Error(error.message);
-    return { ok: true };
-  });
+export async function renameBoard(data: { id: string; title: string }) {
+  const { error } = await supabase.from("boards").update({ title: data.title }).eq("id", data.id);
+  if (error) throw new Error(error.message);
+  return { ok: true };
+}
 
-export const updateBoardBackground = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
-  .inputValidator((d) => z.object({ id: uuid, background_gradient: z.string().max(500).nullable() }).parse(d))
-  .handler(async ({ data, context }) => {
-    const { error } = await context.supabase
-      .from("boards")
-      .update({ background_gradient: data.background_gradient } as any)
-      .eq("id", data.id);
-    if (error) throw new Error(error.message);
-    return { ok: true };
-  });
+export async function updateBoardBackground(data: { id: string; background_gradient: string | null }) {
+  const { error } = await supabase
+    .from("boards")
+    .update({ background_gradient: data.background_gradient } as any)
+    .eq("id", data.id);
+  if (error) throw new Error(error.message);
+  return { ok: true };
+}
 
 // ---------- Board detail ----------
-export const getBoard = createServerFn({ method: "GET" })
-  .middleware([requireSupabaseAuth])
-  .inputValidator((d) => z.object({ id: uuid }).parse(d))
-  .handler(async ({ data, context }) => {
-    const { supabase, userId } = context;
+export async function getBoard(data: { id: string }) {
+    const userId = await currentUserId();
     const boardRes = await supabase.from("boards").select("id, title, description, owner_id, created_at, background_gradient").eq("id", data.id).maybeSingle();
     if (boardRes.error) throw new Error(boardRes.error.message);
     if (!boardRes.data) throw new Error("Board not found");
@@ -170,7 +147,7 @@ export const getBoard = createServerFn({ method: "GET" })
         profile: profileMap.get(m.user_id) ?? null,
       })),
     };
-  });
+}
 
 // ---------- Lists ----------
 export const createList = createServerFn({ method: "POST" })
