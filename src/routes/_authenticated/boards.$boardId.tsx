@@ -335,13 +335,6 @@ function BoardPage() {
             const visible = cardsByList(list.id);
             const mode = sortModeFor(list.id);
             const SortIcon = mode === "manual" ? ArrowDownUp : mode === "date-asc" ? ArrowDown : ArrowUp;
-            const showPlaceholderAt = (i: number) =>
-              !!draggingCard &&
-              mode === "manual" &&
-              dragOver?.listId === list.id &&
-              dragOver.index === i &&
-              visible[i]?.id !== draggingCard &&
-              visible[i - 1]?.id !== draggingCard;
             return (
             <div
               key={list.id}
