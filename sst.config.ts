@@ -6,17 +6,14 @@ export default $config({
       name: "flowjoe",
       removal: input?.stage === "production" ? "retain" : "remove",
       home: "aws",
-      providers: {
-        aws: {
-          region: "ap-southeast-1",
-        },
-      },
+      providers: { aws: { region: "ap-southeast-1" } },
     };
   },
   async run() {
-    const web = new sst.aws.TanStackStart("Web", {
-      server: {
-        streaming: true,
+    const web = new sst.aws.StaticSite("Web", {
+      build: {
+        command: "bun run build",
+        output: "dist",
       },
       environment: {
         VITE_SUPABASE_URL: process.env.VITE_SUPABASE_URL!,
@@ -24,9 +21,6 @@ export default $config({
         VITE_SUPABASE_PROJECT_ID: process.env.VITE_SUPABASE_PROJECT_ID!,
       },
     });
-
-    return {
-      url: web.url,
-    };
+    return { url: web.url };
   },
 });
