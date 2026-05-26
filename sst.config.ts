@@ -6,6 +6,11 @@ export default $config({
       name: "flowjoe",
       removal: input?.stage === "production" ? "retain" : "remove",
       home: "aws",
+      providers: {
+        aws: {
+          region: "ap-southeast-1",
+        },
+      },
     };
   },
   async run() {

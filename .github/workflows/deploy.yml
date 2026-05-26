@@ -28,7 +28,7 @@ jobs:
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v4
         with:
-          aws-region: us-east-1
+          aws-region: ap-southeast-1
           # Option A (recommended): OIDC role
           role-to-assume: ${{ secrets.AWS_DEPLOY_ROLE_ARN }}
           # Option B: static keys — comment role-to-assume above and uncomment below
