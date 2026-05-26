@@ -8,7 +8,7 @@ import { acceptBoardInvite } from "@/lib/invites.functions";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/invite/$token")({
-  head: () => ({ meta: [{ title: "Join board — Kanbunny" }] }),
+  head: () => ({ meta: [{ title: "Join board — Flowjoe" }] }),
   component: InvitePage,
 });
 
