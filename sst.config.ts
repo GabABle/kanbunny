@@ -1,3 +1,5 @@
+/// <reference path="./.sst/platform/config.d.ts" />
+
 export default $config({
   app(input) {
     return {
@@ -7,11 +9,7 @@ export default $config({
     };
   },
   async run() {
-    const site = new sst.aws.StaticSite("Web", {
-      build: {
-        command: "bun run build",
-        output: "dist",
-      },
+    const web = new sst.aws.TanstackStart("Web", {
       environment: {
         VITE_SUPABASE_URL: process.env.VITE_SUPABASE_URL!,
         VITE_SUPABASE_PUBLISHABLE_KEY: process.env.VITE_SUPABASE_PUBLISHABLE_KEY!,
@@ -20,7 +18,7 @@ export default $config({
     });
 
     return {
-      url: site.url,
+      url: web.url,
     };
   },
 });
