@@ -1092,16 +1092,24 @@ function CommentRow({
   );
 }
 
-function MentionTextarea({
+function MentionField({
   value, onChange, members, placeholder, onSubmit,
+  multiline = true, disabled, autoFocus, onBlur, onKeyDown: onKeyDownExtra,
+  className,
 }: {
   value: string;
   onChange: (v: string) => void;
   members: Member[];
   placeholder?: string;
   onSubmit?: () => void;
+  multiline?: boolean;
+  disabled?: boolean;
+  autoFocus?: boolean;
+  onBlur?: () => void;
+  onKeyDown?: (e: React.KeyboardEvent<HTMLTextAreaElement | HTMLInputElement>) => void;
+  className?: string;
 }) {
-  const ref = useRef<HTMLTextAreaElement>(null);
+  const ref = useRef<HTMLTextAreaElement | HTMLInputElement | null>(null);
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
   const [anchor, setAnchor] = useState<number | null>(null);
@@ -1147,31 +1155,52 @@ function MentionTextarea({
     requestAnimationFrame(() => {
       const newPos = (before + insert).length;
       ref.current?.focus();
-      ref.current?.setSelectionRange(newPos, newPos);
+      (ref.current as any)?.setSelectionRange?.(newPos, newPos);
     });
+  };
+
+  const sharedKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement | HTMLInputElement>) => {
+    if (open && matches.length > 0) {
+      if (e.key === "ArrowDown") { e.preventDefault(); setActive((a) => (a + 1) % matches.length); return; }
+      if (e.key === "ArrowUp") { e.preventDefault(); setActive((a) => (a - 1 + matches.length) % matches.length); return; }
+      if (e.key === "Enter" || e.key === "Tab") { e.preventDefault(); insertMention(matches[active]); return; }
+      if (e.key === "Escape") { e.preventDefault(); setOpen(false); return; }
+    }
+    if (multiline && e.key === "Enter" && (e.metaKey || e.ctrlKey)) {
+      e.preventDefault();
+      onSubmit?.();
+      return;
+    }
+    onKeyDownExtra?.(e);
   };
 
   return (
     <div className="relative">
-      <Textarea
-        ref={ref}
-        value={value}
-        onChange={(e) => handleChange(e.target.value)}
-        onKeyDown={(e) => {
-          if (open && matches.length > 0) {
-            if (e.key === "ArrowDown") { e.preventDefault(); setActive((a) => (a + 1) % matches.length); return; }
-            if (e.key === "ArrowUp") { e.preventDefault(); setActive((a) => (a - 1 + matches.length) % matches.length); return; }
-            if (e.key === "Enter" || e.key === "Tab") { e.preventDefault(); insertMention(matches[active]); return; }
-            if (e.key === "Escape") { e.preventDefault(); setOpen(false); return; }
-          }
-          if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) {
-            e.preventDefault();
-            onSubmit?.();
-          }
-        }}
-        placeholder={placeholder}
-        className="min-h-[70px] bg-tcard text-tcard-foreground"
-      />
+      {multiline ? (
+        <Textarea
+          ref={ref as React.RefObject<HTMLTextAreaElement>}
+          value={value}
+          disabled={disabled}
+          autoFocus={autoFocus}
+          onBlur={onBlur}
+          onChange={(e) => handleChange(e.target.value)}
+          onKeyDown={sharedKeyDown}
+          placeholder={placeholder}
+          className={cn("min-h-[70px] bg-tcard text-tcard-foreground", className)}
+        />
+      ) : (
+        <Input
+          ref={ref as React.RefObject<HTMLInputElement>}
+          value={value}
+          disabled={disabled}
+          autoFocus={autoFocus}
+          onBlur={onBlur}
+          onChange={(e) => handleChange(e.target.value)}
+          onKeyDown={sharedKeyDown}
+          placeholder={placeholder}
+          className={className}
+        />
+      )}
       {open && matches.length > 0 && (
         <div className="absolute left-2 top-full z-50 mt-1 w-64 overflow-hidden rounded-md border bg-popover text-popover-foreground shadow-md">
           {matches.map((m, i) => {
