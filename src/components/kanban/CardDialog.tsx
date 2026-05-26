@@ -663,10 +663,12 @@ function ChecklistBlock({ boardId, cardId, canEdit, checklist, items, members }:
       <div className="mb-2 flex items-center gap-2">
         <CheckSquare className="h-4 w-4" />
         {editingTitle && canEdit ? (
-          <Input
+          <MentionField
+            multiline={false}
             autoFocus
             value={titleDraft}
-            onChange={(e) => setTitleDraft(e.target.value)}
+            onChange={setTitleDraft}
+            members={members}
             onBlur={() => {
               const t = titleDraft.trim();
               if (t && t !== checklist.title) renameList.mutate(t);
@@ -719,12 +721,19 @@ function ChecklistBlock({ boardId, cardId, canEdit, checklist, items, members }:
               onSubmit={(e) => { e.preventDefault(); if (text.trim()) { addItem.mutate(text.trim()); setText(""); } }}
               className="space-y-2"
             >
-              <Textarea
+              <MentionField
                 autoFocus
                 value={text}
-                onChange={(e) => setText(e.target.value)}
-                onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); if (text.trim()) { addItem.mutate(text.trim()); setText(""); } } if (e.key === "Escape") { setAdding(false); setText(""); } }}
-                placeholder="Add an item"
+                onChange={setText}
+                members={members}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" && !e.shiftKey) {
+                    e.preventDefault();
+                    if (text.trim()) { addItem.mutate(text.trim()); setText(""); }
+                  }
+                  if (e.key === "Escape") { setAdding(false); setText(""); }
+                }}
+                placeholder="Add an item — use @ to mention"
                 className="min-h-[60px] bg-tcard text-tcard-foreground"
               />
               <div className="flex gap-2">
