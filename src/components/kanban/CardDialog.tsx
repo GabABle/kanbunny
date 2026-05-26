@@ -516,7 +516,7 @@ function DueDatePopover({ canEdit, dueDate, onChange }: { canEdit: boolean; dueD
   );
 }
 
-function ChecklistAdd({ boardId, cardId, canEdit }: { boardId: string; cardId: string; canEdit: boolean }) {
+function ChecklistAdd({ boardId, cardId, canEdit, members }: { boardId: string; cardId: string; canEdit: boolean; members: Member[] }) {
   const qc = useQueryClient();
   const fn = useServerFn(addChecklist);
   const key = ["checklists", cardId] as const;
@@ -551,7 +551,7 @@ function ChecklistAdd({ boardId, cardId, canEdit }: { boardId: string; cardId: s
           className="space-y-2"
         >
           <div className="text-sm font-medium">Add checklist</div>
-          <Input autoFocus value={title} onChange={(e) => setTitle(e.target.value)} />
+          <MentionField multiline={false} autoFocus value={title} onChange={setTitle} members={members} />
           <Button type="submit" size="sm">Add</Button>
         </form>
       </PopoverContent>
@@ -559,10 +559,11 @@ function ChecklistAdd({ boardId, cardId, canEdit }: { boardId: string; cardId: s
   );
 }
 
-function ChecklistBlock({ boardId, cardId, canEdit, checklist, items }: {
+function ChecklistBlock({ boardId, cardId, canEdit, checklist, items, members }: {
   boardId: string; cardId: string; canEdit: boolean;
   checklist: { id: string; title: string };
   items: { id: string; text: string; done: boolean }[];
+  members: Member[];
 }) {
   const qc = useQueryClient();
   const key = ["checklists", cardId] as const;
