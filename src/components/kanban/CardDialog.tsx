@@ -162,8 +162,8 @@ export function CardDialog({
               <div className="text-xs text-list-muted mt-1">in list <span className="underline">{listTitle}</span></div>
             </div>
 
-          {/* Labels + due + owner + members chips */}
-            {(myLabels.length > 0 || dueDate || ownerName || myAssignees.size > 0) && (() => {
+          {/* Labels + due + owner chips */}
+            {(myLabels.length > 0 || dueDate || ownerName) && (() => {
               const dueSoon = dueDate ? (dueDate.getTime() - Date.now()) <= 3 * 24 * 3600 * 1000 : false;
               return (
               <div className="flex flex-wrap gap-4">
@@ -197,16 +197,6 @@ export function CardDialog({
                         {ownerName.slice(0, 1).toUpperCase()}
                       </span>
                       <span>{ownerName}</span>
-                    </div>
-                  </div>
-                )}
-                {myAssignees.size > 0 && (
-                  <div>
-                    <div className="text-[11px] font-semibold uppercase text-list-muted mb-1">Members</div>
-                    <div className="flex gap-1">
-                      {members.filter((m) => myAssignees.has(m.user_id)).map((m) => (
-                        <Avatar key={m.user_id} member={m} />
-                      ))}
                     </div>
                   </div>
                 )}
@@ -270,10 +260,6 @@ export function CardDialog({
               <LabelsPopover
                 boardId={boardId} cardId={card.id} canEdit={canEdit}
                 labels={labels} myLabelIds={myLabelIds}
-              />
-              <MembersPopover
-                boardId={boardId} cardId={card.id} canEdit={canEdit}
-                members={members} myAssignees={myAssignees}
               />
               <ChecklistAdd boardId={boardId} cardId={card.id} canEdit={canEdit} />
               <DueDatePopover
