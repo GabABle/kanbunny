@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useServerFn } from "@tanstack/react-start";
+
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -59,9 +59,9 @@ export function CardDialog({
   const confirm = useConfirm();
 
   // ---- Card actions ----
-  const updateFn = useServerFn(updateCard);
-  const deleteFn = useServerFn(deleteCard);
-  const archiveFn = useServerFn(archiveCard);
+  const updateFn = updateCard;
+  const deleteFn = deleteCard;
+  const archiveFn = archiveCard;
   const update = useMutation({
     mutationFn: (v: any) => updateFn({ data: { id: card.id, ...v } }),
     onMutate: async (v) => {
@@ -117,7 +117,7 @@ export function CardDialog({
 
   // ---- Checklists ----
   const isRealCard = !card.id.startsWith("tmp-");
-  const getDetailsFn = useServerFn(getCardDetails);
+  const getDetailsFn = getCardDetails;
   // Single source of truth: the ["checklists", card.id] cache. Mutations in
   // ChecklistAdd / ChecklistBlock write to this same key so create/delete
   // actions reflect immediately.
@@ -315,9 +315,9 @@ function SidebarButton({ icon: Icon, children, ...rest }: any) {
 
 function LabelsPopover({ boardId, cardId, canEdit, labels, myLabelIds }: { boardId: string; cardId: string; canEdit: boolean; labels: Label[]; myLabelIds: Set<string> }) {
   const qc = useQueryClient();
-  const toggleFn = useServerFn(toggleCardLabel);
-  const createFn = useServerFn(createLabel);
-  const deleteFn = useServerFn(deleteLabel);
+  const toggleFn = toggleCardLabel;
+  const createFn = createLabel;
+  const deleteFn = deleteLabel;
   const confirmDlg = useConfirm();
   const inv = () => qc.invalidateQueries({ queryKey: ["board", boardId] });
 
@@ -431,7 +431,7 @@ function LabelsPopover({ boardId, cardId, canEdit, labels, myLabelIds }: { board
 
 function MembersPopover({ boardId, cardId, canEdit, members, myAssignees }: { boardId: string; cardId: string; canEdit: boolean; members: Member[]; myAssignees: Set<string> }) {
   const qc = useQueryClient();
-  const toggleFn = useServerFn(toggleAssignee);
+  const toggleFn = toggleAssignee;
   const toggle = useMutation({
     mutationFn: (v: { userId: string; on: boolean }) => toggleFn({ data: { cardId, ...v } }),
     onMutate: async (v) => {
@@ -518,7 +518,7 @@ function DueDatePopover({ canEdit, dueDate, onChange }: { canEdit: boolean; dueD
 
 function ChecklistAdd({ boardId, cardId, canEdit, members }: { boardId: string; cardId: string; canEdit: boolean; members: Member[] }) {
   const qc = useQueryClient();
-  const fn = useServerFn(addChecklist);
+  const fn = addChecklist;
   const key = ["checklists", cardId] as const;
   const mut = useMutation({
     mutationFn: (title: string) => fn({ data: { cardId, title } }),
@@ -570,11 +570,11 @@ function ChecklistBlock({ boardId, cardId, canEdit, checklist, items, members }:
   const inv = () => qc.invalidateQueries({ queryKey: key });
   const confirmDlg = useConfirm();
 
-  const addItemFn = useServerFn(addChecklistItem);
-  const toggleFn = useServerFn(toggleChecklistItem);
-  const deleteItemFn = useServerFn(deleteChecklistItem);
-  const deleteListFn = useServerFn(deleteChecklist);
-  const renameListFn = useServerFn(renameChecklist);
+  const addItemFn = addChecklistItem;
+  const toggleFn = toggleChecklistItem;
+  const deleteItemFn = deleteChecklistItem;
+  const deleteListFn = deleteChecklist;
+  const renameListFn = renameChecklist;
 
   const patchItems = (fn: (items: any[]) => any[]) =>
     qc.setQueryData<any>(key, (d: any) => (d ? { ...d, items: fn(d.items) } : d));
@@ -753,7 +753,7 @@ function ChecklistBlock({ boardId, cardId, canEdit, checklist, items, members }:
 function AttachmentButton({ cardId, canEdit }: { cardId: string; canEdit: boolean }) {
   const ref = useRef<HTMLInputElement>(null);
   const qc = useQueryClient();
-  const addFn = useServerFn(addCardAttachment);
+  const addFn = addCardAttachment;
   const key = ["attachments", cardId] as const;
   const [uploading, setUploading] = useState(false);
 
@@ -798,9 +798,9 @@ function AttachmentsBlock({ cardId, canEdit }: { cardId: string; canEdit: boolea
   const qc = useQueryClient();
   const confirmDlg = useConfirm();
   const key = ["attachments", cardId] as const;
-  const listFn = useServerFn(listCardAttachments);
-  const delFn = useServerFn(deleteCardAttachment);
-  const urlFn = useServerFn(getAttachmentUrl);
+  const listFn = listCardAttachments;
+  const delFn = deleteCardAttachment;
+  const urlFn = getAttachmentUrl;
   const { data: attachments = [] } = useQuery({
     queryKey: key,
     queryFn: () => listFn({ data: { cardId } }),
@@ -866,10 +866,10 @@ function CommentsBlock({ cardId, canEdit, members }: { cardId: string; canEdit: 
   const { user } = useAuth();
   const qc = useQueryClient();
   const key = ["comments", cardId] as const;
-  const getFn = useServerFn(getCardComments);
-  const addFn = useServerFn(addCardComment);
-  const updFn = useServerFn(updateCardComment);
-  const delFn = useServerFn(deleteCardComment);
+  const getFn = getCardComments;
+  const addFn = addCardComment;
+  const updFn = updateCardComment;
+  const delFn = deleteCardComment;
 
   const { data: comments = [] } = useQuery({
     queryKey: key,
@@ -1246,7 +1246,7 @@ function MentionField({
 
 function ActivityBlock({ cardId }: { cardId: string }) {
   const [open, setOpen] = useState(false);
-  const getFn = useServerFn(getCardActivities);
+  const getFn = getCardActivities;
   const { data: activities = [] } = useQuery({
     queryKey: ["activities", cardId],
     queryFn: () => getFn({ data: { cardId } }),
@@ -1325,7 +1325,7 @@ function OwnerPopover({ boardId, cardId, canEdit, members, ownerId }: {
   boardId: string; cardId: string; canEdit: boolean; members: Member[]; ownerId: string | null;
 }) {
   const qc = useQueryClient();
-  const updFn = useServerFn(updateCardOwner);
+  const updFn = updateCardOwner;
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
   const [active, setActive] = useState(0);
