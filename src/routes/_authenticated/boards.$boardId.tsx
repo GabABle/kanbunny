@@ -401,7 +401,7 @@ function BoardPage() {
                     <CardFront
                       card={card}
                       data={data}
-                      canEdit={canEdit && mode === "manual"}
+                      canEdit={canEdit}
                       onOpen={() => setOpenCard(card.id)}
                       onDragStart={() => setDraggingCard(card.id)}
                       onDragEnd={() => { setDraggingCard(null); setDragOver(null); }}
