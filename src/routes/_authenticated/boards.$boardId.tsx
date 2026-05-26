@@ -233,7 +233,7 @@ function BoardPage() {
   if (isLoading || !data) {
     return <div className="grid min-h-[60vh] place-items-center text-sm text-muted-foreground">Loading…</div>;
   }
-  const canEdit = data.role === "owner" || data.role === "editor";
+  const canEdit = data.role === "owner" || data.role === "editor" || data.role === "member";
   const openedCard = data.cards.find((c) => c.id === openCard);
   const openedList = openedCard ? data.lists.find((l) => l.id === openedCard.list_id) : null;
 
@@ -568,7 +568,7 @@ function MembersPopover({ boardId, members, isOwner, onChange }: { boardId: stri
   };
 
   const inviteMut = useMutation({
-    mutationFn: (name: string) => inviteFn({ data: { boardId, username: name, role: "editor" } }),
+    mutationFn: (name: string) => inviteFn({ data: { boardId, username: name, role: "member" } }),
     onSuccess: (res: any) => {
       if (res && res.ok === false) { toast.error(res.error ?? "Failed to add member"); return; }
       toast.success("Member added"); setUsername(""); setSuggestions([]); setShowSuggest(false); onChange();
@@ -597,7 +597,7 @@ function MembersPopover({ boardId, members, isOwner, onChange }: { boardId: stri
   };
   const copyInviteLink = async () => {
     try {
-      const { token } = await createInviteFn({ data: { boardId, role: "editor" } });
+      const { token } = await createInviteFn({ data: { boardId, role: "member" } });
       const url = `${window.location.origin}/invite/${token}`;
       try { await navigator.clipboard.writeText(url); toast.success("Invite link copied to clipboard"); }
       catch { toast.message("Invite link", { description: url }); }
