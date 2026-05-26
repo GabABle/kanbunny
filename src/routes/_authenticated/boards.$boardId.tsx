@@ -1,12 +1,12 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useMutation, useQueryClient, useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { useState } from "react";
+import { Fragment, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { Plus, Trash2, UserPlus, X, Clock, Bell, Filter, Link2 } from "lucide-react";
+import { Plus, Trash2, UserPlus, X, Clock, Bell, Filter, Link2, ArrowDownUp, ArrowDown, ArrowUp } from "lucide-react";
 import {
   getBoard, createList, renameList, deleteList,
   createCard, updateCard, deleteCard, moveCard,
@@ -225,8 +225,9 @@ function BoardPage() {
 
   const [newListTitle, setNewListTitle] = useState("");
   const [openCard, setOpenCard] = useState<string | null>(null);
-  const [dragOverList, setDragOverList] = useState<string | null>(null);
+  const [dragOver, setDragOver] = useState<{ listId: string; index: number } | null>(null);
   const [draggingCard, setDraggingCard] = useState<string | null>(null);
+  const [sortModes, setSortModes] = useState<Record<string, "manual" | "date-asc" | "date-desc">>({});
   const [filterUserIds, setFilterUserIds] = useState<Set<string>>(new Set());
   const [onlyChanged, setOnlyChanged] = useState(false);
 
@@ -238,25 +239,51 @@ function BoardPage() {
   const openedList = openedCard ? data.lists.find((l) => l.id === openedCard.list_id) : null;
 
   const changedSet = new Set<string>((data as any).recentlyChangedCardIds ?? []);
-  const passesFilters = (cardId: string) => {
-    if (onlyChanged && !changedSet.has(cardId)) return false;
+  const passesFilters = (card: any) => {
+    if (onlyChanged && !changedSet.has(card.id)) return false;
     if (filterUserIds.size > 0) {
-      const ids = new Set(data.assignees.filter((a: any) => a.card_id === cardId).map((a: any) => a.user_id));
-      let ok = false;
-      filterUserIds.forEach((u) => { if (ids.has(u)) ok = true; });
-      if (!ok) return false;
+      if (!card.created_by || !filterUserIds.has(card.created_by)) return false;
     }
     return true;
   };
-  const cardsByList = (listId: string) =>
-    data.cards
-      .filter((c) => c.list_id === listId && passesFilters(c.id))
-      .sort((a, b) => a.position - b.position);
+  const sortModeFor = (listId: string) => sortModes[listId] ?? "manual";
+  const cycleSort = (listId: string) =>
+    setSortModes((s) => {
+      const cur = s[listId] ?? "manual";
+      const next = cur === "manual" ? "date-asc" : cur === "date-asc" ? "date-desc" : "manual";
+      return { ...s, [listId]: next };
+    });
+  const cardsByList = (listId: string) => {
+    const arr = data.cards.filter((c) => c.list_id === listId && passesFilters(c));
+    const mode = sortModeFor(listId);
+    if (mode === "manual") return arr.sort((a, b) => a.position - b.position);
+    const dir = mode === "date-asc" ? 1 : -1;
+    return arr.sort((a, b) => {
+      const av = a.due_date ? new Date(a.due_date).getTime() : Number.POSITIVE_INFINITY;
+      const bv = b.due_date ? new Date(b.due_date).getTime() : Number.POSITIVE_INFINITY;
+      return dir * (av - bv);
+    });
+  };
 
-  const moveCardTo = (cardId: string, targetListId: string) => {
-    const targetCards = cardsByList(targetListId);
-    const lastPos = targetCards[targetCards.length - 1]?.position ?? 0;
-    moveCardMut.mutate({ id: cardId, listId: targetListId, position: lastPos + 1000 });
+  const handleDropOn = (listId: string) => {
+    if (!draggingCard) return;
+    const visible = cardsByList(listId).filter((c) => c.id !== draggingCard);
+    let position: number;
+    if (sortModeFor(listId) !== "manual") {
+      const last = visible[visible.length - 1];
+      position = (last?.position ?? 0) + 1000;
+    } else {
+      const idx = dragOver?.listId === listId ? Math.min(dragOver.index, visible.length) : visible.length;
+      const prev = visible[idx - 1]?.position;
+      const next = visible[idx]?.position;
+      if (prev != null && next != null) position = (prev + next) / 2;
+      else if (prev != null) position = prev + 1000;
+      else if (next != null) position = next - 1000;
+      else position = 1000;
+    }
+    moveCardMut.mutate({ id: draggingCard, listId, position });
+    setDragOver(null);
+    setDraggingCard(null);
   };
 
   return (
@@ -304,23 +331,37 @@ function BoardPage() {
 
       <div className="flex-1 overflow-x-auto">
         <div className="flex h-full items-start gap-3 p-4">
-          {data.lists.sort((a, b) => a.position - b.position).map((list) => (
+          {data.lists.sort((a, b) => a.position - b.position).map((list) => {
+            const visible = cardsByList(list.id);
+            const mode = sortModeFor(list.id);
+            const SortIcon = mode === "manual" ? ArrowDownUp : mode === "date-asc" ? ArrowDown : ArrowUp;
+            const showPlaceholderAt = (i: number) =>
+              !!draggingCard &&
+              mode === "manual" &&
+              dragOver?.listId === list.id &&
+              dragOver.index === i &&
+              visible[i]?.id !== draggingCard &&
+              visible[i - 1]?.id !== draggingCard;
+            return (
             <div
               key={list.id}
               className="flex w-72 flex-none flex-col rounded-xl bg-list text-list-foreground shadow-sm max-h-full"
-              onDragOver={(e) => { e.preventDefault(); e.dataTransfer.dropEffect = "move"; if (dragOverList !== list.id) setDragOverList(list.id); }}
+              onDragOver={(e) => {
+                e.preventDefault();
+                e.dataTransfer.dropEffect = "move";
+                const endIdx = visible.filter((c) => c.id !== draggingCard).length;
+                if (dragOver?.listId !== list.id || dragOver.index !== endIdx) {
+                  setDragOver({ listId: list.id, index: endIdx });
+                }
+              }}
               onDragLeave={(e) => {
-                // Only clear if leaving the list container entirely
                 if (!e.currentTarget.contains(e.relatedTarget as Node)) {
-                  setDragOverList((cur) => (cur === list.id ? null : cur));
+                  setDragOver((cur) => (cur?.listId === list.id ? null : cur));
                 }
               }}
               onDrop={(e) => {
                 e.preventDefault();
-                const cardId = e.dataTransfer.getData("text/card-id");
-                if (cardId) moveCardTo(cardId, list.id);
-                setDragOverList(null);
-                setDraggingCard(null);
+                handleDropOn(list.id);
               }}
             >
               <div className="flex items-center justify-between px-3 pt-2 pb-1">
@@ -330,6 +371,17 @@ function BoardPage() {
                   onSave={(t) => renameListMut.mutate({ id: list.id, title: t })}
                   className="flex-1 text-sm font-semibold"
                 />
+                <button
+                  onClick={() => cycleSort(list.id)}
+                  title={mode === "manual" ? "Sort by date (ascending)" : mode === "date-asc" ? "Sort by date (descending)" : "Manual order"}
+                  className={cn(
+                    "rounded p-1 text-list-muted hover:bg-black/5 hover:text-list-foreground",
+                    mode !== "manual" && "text-primary",
+                  )}
+                  aria-label="Sort cards"
+                >
+                  <SortIcon className="h-3.5 w-3.5" />
+                </button>
                 {canEdit && (
                   <button
                     onClick={async () => { if (await confirmDlg({ title: "Delete this list?", description: "All its cards will be removed.", destructive: true, confirmText: "Delete" })) deleteListMut.mutate(list.id); }}
@@ -341,31 +393,45 @@ function BoardPage() {
                 )}
               </div>
               <div className="flex flex-1 flex-col gap-2 overflow-y-auto px-2 pb-2">
-                {cardsByList(list.id).map((card) => (
-                  <CardFront
-                    key={card.id}
-                    card={card}
-                    data={data}
-                    canEdit={canEdit}
-                    onOpen={() => setOpenCard(card.id)}
-                    onDragStart={() => setDraggingCard(card.id)}
-                    onDragEnd={() => { setDraggingCard(null); setDragOverList(null); }}
-                    isDragging={draggingCard === card.id}
-                  />
+                {visible.map((card, i) => (
+                  <Fragment key={card.id}>
+                    {showPlaceholderAt(i) && (
+                      <div className="h-12 rounded-md border-2 border-dashed border-primary/40 bg-primary/5" />
+                    )}
+                    <CardFront
+                      card={card}
+                      data={data}
+                      canEdit={canEdit && mode === "manual"}
+                      onOpen={() => setOpenCard(card.id)}
+                      onDragStart={() => setDraggingCard(card.id)}
+                      onDragEnd={() => { setDraggingCard(null); setDragOver(null); }}
+                      isDragging={draggingCard === card.id}
+                      onDragOverCard={(pos) => {
+                        if (mode !== "manual" || !draggingCard) return;
+                        const cardsWithoutDragged = visible.filter((c) => c.id !== draggingCard);
+                        const baseIdx = cardsWithoutDragged.findIndex((c) => c.id === card.id);
+                        const target = pos === "before" ? baseIdx : baseIdx + 1;
+                        if (target < 0) return;
+                        if (dragOver?.listId !== list.id || dragOver.index !== target) {
+                          setDragOver({ listId: list.id, index: target });
+                        }
+                      }}
+                    />
+                  </Fragment>
                 ))}
-                {draggingCard && dragOverList === list.id && draggingCard && (
-                  // Only show placeholder if dragged card isn't already in this list at the end
-                  (() => {
-                    const inList = cardsByList(list.id).some((c) => c.id === draggingCard);
-                    const last = cardsByList(list.id).slice(-1)[0];
-                    if (inList && last?.id === draggingCard) return null;
-                    return <div className="h-12 rounded-md border-2 border-dashed border-primary/40 bg-primary/5" />;
-                  })()
+                {showPlaceholderAt(visible.length) && (
+                  <div className="h-12 rounded-md border-2 border-dashed border-primary/40 bg-primary/5" />
                 )}
+                {/* Cross-list drop fallback when list is empty / non-manual sort */}
+                {draggingCard && mode !== "manual" && dragOver?.listId === list.id &&
+                  !visible.some((c) => c.id === draggingCard) && (
+                    <div className="h-12 rounded-md border-2 border-dashed border-primary/40 bg-primary/5" />
+                  )}
                 {canEdit && <NewCardForm onAdd={(title) => createCardMut.mutate({ listId: list.id, title })} />}
               </div>
             </div>
-          ))}
+            );
+          })}
 
           {canEdit && (
             <div className="w-72 flex-none">
@@ -395,12 +461,11 @@ function BoardPage() {
 function CardFront({ card, data, canEdit, onOpen, onDragStart, onDragEnd, isDragging }: {
   card: any; data: any; canEdit: boolean; onOpen: () => void;
   onDragStart?: () => void; onDragEnd?: () => void; isDragging?: boolean;
+  onDragOverCard?: (pos: "before" | "after") => void;
 }) {
   const labelIds = new Set(data.cardLabels.filter((cl: any) => cl.card_id === card.id).map((cl: any) => cl.label_id));
   const myLabels = data.labels.filter((l: any) => labelIds.has(l.id));
-  const assigneeIds = new Set<string>(data.assignees.filter((a: any) => a.card_id === card.id).map((a: any) => a.user_id));
-  if (card.created_by) assigneeIds.add(card.created_by);
-  const myMembers = data.members.filter((m: any) => assigneeIds.has(m.user_id));
+  const myMembers = card.created_by ? data.members.filter((m: any) => m.user_id === card.created_by) : [];
   const dueDate = card.due_date ? new Date(card.due_date) : null;
   const overdue = dueDate ? dueDate.getTime() < Date.now() : false;
   const dueSoon = dueDate ? (dueDate.getTime() - Date.now()) <= 3 * 24 * 3600 * 1000 : false;
