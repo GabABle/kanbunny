@@ -63,7 +63,7 @@ export function CardDialog({
   const deleteFn = deleteCard;
   const archiveFn = archiveCard;
   const update = useMutation({
-    mutationFn: (v: any) => updateFn({ data: { id: card.id, ...v } }),
+    mutationFn: (v: any) => updateFn({ id: card.id, ...v }),
     onMutate: async (v) => {
       await qc.cancelQueries({ queryKey: ["board", boardId] });
       const prev = qc.getQueryData<any>(["board", boardId]);
@@ -75,12 +75,12 @@ export function CardDialog({
     onError: (e, _v, ctx) => { if (ctx?.prev) qc.setQueryData(["board", boardId], ctx.prev); toast.error(e.message); },
   });
   const del = useMutation({
-    mutationFn: () => deleteFn({ data: { id: card.id } }),
+    mutationFn: () => deleteFn({ id: card.id }),
     onSuccess: () => { invalidateBoard(); onClose(); },
     onError: (e) => toast.error(e.message),
   });
   const archive = useMutation({
-    mutationFn: () => archiveFn({ data: { id: card.id, archived: true } }),
+    mutationFn: () => archiveFn({ id: card.id, archived: true }),
     onSuccess: () => { invalidateBoard(); onClose(); toast.success("Card archived"); },
     onError: (e) => toast.error(e.message),
   });
@@ -124,7 +124,7 @@ export function CardDialog({
   const { data: cl, isLoading: detailsLoading } = useQuery({
     queryKey: ["checklists", card.id],
     queryFn: async () => {
-      const d = await getDetailsFn({ data: { cardId: card.id } });
+      const d = await getDetailsFn({ cardId: card.id });
       qc.setQueryData(["comments", card.id], d.comments);
       qc.setQueryData(["attachments", card.id], d.attachments);
       qc.setQueryData(["activities", card.id], (d as any).activities ?? []);
@@ -322,7 +322,7 @@ function LabelsPopover({ boardId, cardId, canEdit, labels, myLabelIds }: { board
   const inv = () => qc.invalidateQueries({ queryKey: ["board", boardId] });
 
   const toggle = useMutation({
-    mutationFn: (v: { labelId: string; on: boolean }) => toggleFn({ data: { cardId, ...v } }),
+    mutationFn: (v: { labelId: string; on: boolean }) => toggleFn({ cardId, ...v }),
     onMutate: async (v) => {
       await qc.cancelQueries({ queryKey: ["board", boardId] });
       const prev = qc.getQueryData<any>(["board", boardId]);
@@ -338,7 +338,7 @@ function LabelsPopover({ boardId, cardId, canEdit, labels, myLabelIds }: { board
     onError: (e, _v, ctx) => { if (ctx?.prev) qc.setQueryData(["board", boardId], ctx.prev); toast.error(e.message); },
   });
   const create = useMutation({
-    mutationFn: (v: { name: string; color: string }) => createFn({ data: { boardId, ...v } }),
+    mutationFn: (v: { name: string; color: string }) => createFn({ boardId, ...v }),
     onMutate: async (v) => {
       await qc.cancelQueries({ queryKey: ["board", boardId] });
       const prev = qc.getQueryData<any>(["board", boardId]);
@@ -352,7 +352,7 @@ function LabelsPopover({ boardId, cardId, canEdit, labels, myLabelIds }: { board
     onSettled: inv,
   });
   const remove = useMutation({
-    mutationFn: (id: string) => deleteFn({ data: { id } }),
+    mutationFn: (id: string) => deleteFn({ id }),
     onMutate: async (id) => {
       await qc.cancelQueries({ queryKey: ["board", boardId] });
       const prev = qc.getQueryData<any>(["board", boardId]);
@@ -433,7 +433,7 @@ function MembersPopover({ boardId, cardId, canEdit, members, myAssignees }: { bo
   const qc = useQueryClient();
   const toggleFn = toggleAssignee;
   const toggle = useMutation({
-    mutationFn: (v: { userId: string; on: boolean }) => toggleFn({ data: { cardId, ...v } }),
+    mutationFn: (v: { userId: string; on: boolean }) => toggleFn({ cardId, ...v }),
     onMutate: async (v) => {
       await qc.cancelQueries({ queryKey: ["board", boardId] });
       const prev = qc.getQueryData<any>(["board", boardId]);
@@ -521,7 +521,7 @@ function ChecklistAdd({ boardId, cardId, canEdit, members }: { boardId: string; 
   const fn = addChecklist;
   const key = ["checklists", cardId] as const;
   const mut = useMutation({
-    mutationFn: (title: string) => fn({ data: { cardId, title } }),
+    mutationFn: (title: string) => fn({ cardId, title }),
     onMutate: async (title) => {
       await qc.cancelQueries({ queryKey: key });
       const prev = qc.getQueryData<any>(key);
@@ -580,7 +580,7 @@ function ChecklistBlock({ boardId, cardId, canEdit, checklist, items, members }:
     qc.setQueryData<any>(key, (d: any) => (d ? { ...d, items: fn(d.items) } : d));
 
   const addItem = useMutation({
-    mutationFn: (text: string) => addItemFn({ data: { checklistId: checklist.id, text } }),
+    mutationFn: (text: string) => addItemFn({ checklistId: checklist.id, text }),
     onMutate: async (text) => {
       await qc.cancelQueries({ queryKey: key });
       const prev = qc.getQueryData<any>(key);
@@ -600,7 +600,7 @@ function ChecklistBlock({ boardId, cardId, canEdit, checklist, items, members }:
     },
   });
   const toggle = useMutation({
-    mutationFn: (v: { id: string; done: boolean }) => toggleFn({ data: v }),
+    mutationFn: (v: { id: string; done: boolean }) => toggleFn(v),
     onMutate: async (v) => {
       await qc.cancelQueries({ queryKey: key });
       const prev = qc.getQueryData<any>(key);
@@ -610,7 +610,7 @@ function ChecklistBlock({ boardId, cardId, canEdit, checklist, items, members }:
     onError: (e, _v, ctx) => { if (ctx?.prev) qc.setQueryData(key, ctx.prev); toast.error(e.message); },
   });
   const delItem = useMutation({
-    mutationFn: (id: string) => deleteItemFn({ data: { id } }),
+    mutationFn: (id: string) => deleteItemFn({ id }),
     onMutate: async (id) => {
       await qc.cancelQueries({ queryKey: key });
       const prev = qc.getQueryData<any>(key);
@@ -620,7 +620,7 @@ function ChecklistBlock({ boardId, cardId, canEdit, checklist, items, members }:
     onError: (e, _v, ctx) => { if (ctx?.prev) qc.setQueryData(key, ctx.prev); toast.error(e.message); },
   });
   const delList = useMutation({
-    mutationFn: () => deleteListFn({ data: { id: checklist.id } }),
+    mutationFn: () => deleteListFn({ id: checklist.id }),
     onMutate: async () => {
       await qc.cancelQueries({ queryKey: key });
       const prev = qc.getQueryData<any>(key);
@@ -637,7 +637,7 @@ function ChecklistBlock({ boardId, cardId, canEdit, checklist, items, members }:
     onError: (e, _v, ctx) => { if (ctx?.prev) qc.setQueryData(key, ctx.prev); toast.error(e.message); },
   });
   const renameList = useMutation({
-    mutationFn: (title: string) => renameListFn({ data: { id: checklist.id, title } }),
+    mutationFn: (title: string) => renameListFn({ id: checklist.id, title }),
     onMutate: async (title) => {
       await qc.cancelQueries({ queryKey: key });
       const prev = qc.getQueryData<any>(key);
@@ -768,7 +768,7 @@ function AttachmentButton({ cardId, canEdit }: { cardId: string; canEdit: boolea
         upsert: false,
       });
       if (error) throw error;
-      await addFn({ data: { cardId, file_path: path, file_name: file.name, mime_type: file.type || null, size_bytes: file.size } });
+      await addFn({ cardId, file_path: path, file_name: file.name, mime_type: file.type || null, size_bytes: file.size });
       qc.invalidateQueries({ queryKey: key });
     } catch (e: any) {
       toast.error(e.message ?? "Upload failed");
@@ -803,11 +803,11 @@ function AttachmentsBlock({ cardId, canEdit }: { cardId: string; canEdit: boolea
   const urlFn = getAttachmentUrl;
   const { data: attachments = [] } = useQuery({
     queryKey: key,
-    queryFn: () => listFn({ data: { cardId } }),
+    queryFn: () => listFn({ cardId }),
     enabled: /^[0-9a-f-]{36}$/i.test(cardId),
   });
   const remove = useMutation({
-    mutationFn: (id: string) => delFn({ data: { id } }),
+    mutationFn: (id: string) => delFn({ id }),
     onMutate: async (id) => {
       await qc.cancelQueries({ queryKey: key });
       const prev = qc.getQueryData<any[]>(key);
@@ -819,7 +819,7 @@ function AttachmentsBlock({ cardId, canEdit }: { cardId: string; canEdit: boolea
   });
   const open = async (path: string) => {
     try {
-      const { url } = await urlFn({ data: { file_path: path } });
+      const { url } = await urlFn({ file_path: path });
       window.open(url, "_blank", "noopener,noreferrer");
     } catch (e: any) { toast.error(e.message); }
   };
@@ -873,13 +873,13 @@ function CommentsBlock({ cardId, canEdit, members }: { cardId: string; canEdit: 
 
   const { data: comments = [] } = useQuery({
     queryKey: key,
-    queryFn: () => getFn({ data: { cardId } }),
+    queryFn: () => getFn({ cardId }),
     refetchOnWindowFocus: false,
     enabled: /^[0-9a-f-]{36}$/i.test(cardId),
   });
 
   const add = useMutation({
-    mutationFn: (v: { body: string; parent_id?: string | null }) => addFn({ data: { cardId, body: v.body, parent_id: v.parent_id ?? null } }),
+    mutationFn: (v: { body: string; parent_id?: string | null }) => addFn({ cardId, body: v.body, parent_id: v.parent_id ?? null }),
     onMutate: async (v) => {
       await qc.cancelQueries({ queryKey: key });
       const prev = qc.getQueryData<any[]>(key);
@@ -906,7 +906,7 @@ function CommentsBlock({ cardId, canEdit, members }: { cardId: string; canEdit: 
   });
 
   const update = useMutation({
-    mutationFn: (v: { id: string; body: string }) => updFn({ data: v }),
+    mutationFn: (v: { id: string; body: string }) => updFn(v),
     onMutate: async (v) => {
       await qc.cancelQueries({ queryKey: key });
       const prev = qc.getQueryData<any[]>(key);
@@ -920,7 +920,7 @@ function CommentsBlock({ cardId, canEdit, members }: { cardId: string; canEdit: 
   });
 
   const remove = useMutation({
-    mutationFn: (id: string) => delFn({ data: { id } }),
+    mutationFn: (id: string) => delFn({ id }),
     onMutate: async (id) => {
       await qc.cancelQueries({ queryKey: key });
       const prev = qc.getQueryData<any[]>(key);
@@ -1249,7 +1249,7 @@ function ActivityBlock({ cardId }: { cardId: string }) {
   const getFn = getCardActivities;
   const { data: activities = [] } = useQuery({
     queryKey: ["activities", cardId],
-    queryFn: () => getFn({ data: { cardId } }),
+    queryFn: () => getFn({ cardId }),
     enabled: open,
   });
   return (
@@ -1342,7 +1342,7 @@ function OwnerPopover({ boardId, cardId, canEdit, members, ownerId }: {
   }).slice(0, 10);
 
   const setOwner = useMutation({
-    mutationFn: (userId: string) => updFn({ data: { cardId, userId } }),
+    mutationFn: (userId: string) => updFn({ cardId, userId }),
     onMutate: async (userId) => {
       await qc.cancelQueries({ queryKey: ["board", boardId] });
       const prev = qc.getQueryData<any>(["board", boardId]);
