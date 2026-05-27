@@ -335,10 +335,11 @@ export async function getCardChecklists(data: { cardId: string }) {
   if (cls.error) throw new Error(cls.error.message);
   const ids = (cls.data ?? []).map((c) => c.id);
   const items = ids.length
-    ? await supabase.from("checklist_items").select("id, checklist_id, text, done, position").in("checklist_id", ids).order("position")
+    ? await supabase.from("checklist_items").select("id, checklist_id, text, done, position, due_date").in("checklist_id", ids).order("position")
     : { data: [], error: null as any };
   if (items.error) throw new Error(items.error.message);
   return { checklists: cls.data ?? [], items: items.data ?? [] };
+
 }
 
 // ---------- Comments ----------

@@ -313,7 +313,7 @@ function BoardPage() {
       style={(data.board as any).background_gradient ? { backgroundImage: (data.board as any).background_gradient } : undefined}
     >
       <div className="flex items-center justify-between bg-black/20 px-4 py-2 backdrop-blur">
-        <div>
+        <div className="flex flex-col">
           <InlineRename
             value={data.board.title}
             disabled={!canEdit}
