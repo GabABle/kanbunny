@@ -6,13 +6,12 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { Plus, Trash2, UserPlus, X, Clock, Bell, Filter, Link2, CalendarClock, Zap, Loader2 } from "lucide-react";
+import { Plus, Trash2, UserPlus, X, Clock, Bell, Filter, Link2, CalendarClock } from "lucide-react";
 import {
-  getBoard, createList, renameList, deleteList,
+  getBoard, createList, renameList, deleteList, moveList,
   createCard, updateCard, deleteCard, moveCard,
   inviteMember, removeMember, searchProfiles, renameBoard, updateBoardBackground,
 } from "@/lib/kanban.functions";
-import { startSprint } from "@/lib/agent.functions";
 import { createBoardInvite } from "@/lib/invites.functions";
 import { toast } from "sonner";
 import { CardDialog } from "@/components/kanban/CardDialog";
@@ -111,6 +110,7 @@ function BoardPage() {
   const updateCardFn = updateCard;
   const deleteCardFn = deleteCard;
   const moveCardFn = moveCard;
+  const moveListFn = moveList;
 
   const tmpId = () => `tmp-${Math.random().toString(36).slice(2)}`;
 
@@ -190,6 +190,16 @@ function BoardPage() {
     },
     onError: (e, _v, ctx) => { if (ctx?.prev) qc.setQueryData(key, ctx.prev); toast.error(e.message); },
   });
+  const moveListMut = useMutation({
+    mutationFn: (v: { id: string; position: number }) => moveListFn(v),
+    onMutate: async (v) => {
+      await qc.cancelQueries({ queryKey: key });
+      const prev = qc.getQueryData<BoardData>(key);
+      patch((d) => ({ ...d, lists: d.lists.map((l) => (l.id === v.id ? { ...l, position: v.position } : l)) }));
+      return { prev };
+    },
+    onError: (e, _v, ctx) => { if (ctx?.prev) qc.setQueryData(key, ctx.prev); toast.error(e.message); },
+  });
   const renameBoardMut = useMutation({
     mutationFn: (title: string) => renameBoardFn({ id: boardId, title }),
     onMutate: async (title) => {
@@ -209,22 +219,6 @@ function BoardPage() {
       return { prev };
     },
     onError: (e, _v, ctx) => { if (ctx?.prev) qc.setQueryData(key, ctx.prev); toast.error(e.message); },
-  });
-
-  // ── SWE Agent ──
-  const startSprintMut = useMutation({
-    mutationFn: () => startSprint({ board_id: boardId }),
-    onSuccess: (result: any) => {
-      invalidate();
-      if (result?.results?.length) {
-        const done = result.results.filter((r: any) => r.status === "done").length;
-        const blocked = result.results.filter((r: any) => r.status === "blocked").length;
-        toast.success(`Sprint complete — ${done} card(s) done${blocked ? `, ${blocked} blocked (needs clarification)` : ""}`);
-      } else {
-        toast.info(result?.message ?? "Sprint finished");
-      }
-    },
-    onError: (e: any) => toast.error(e.message),
   });
 
   const [newListTitle, setNewListTitle] = useState("");
@@ -263,9 +257,26 @@ function BoardPage() {
   };
 
   const handleDragEnd = (result: DropResult) => {
-    const { source, destination, draggableId } = result;
+    const { source, destination, draggableId, type } = result;
     if (!destination) return;
     if (source.droppableId === destination.droppableId && source.index === destination.index) return;
+
+    if (type === "LIST") {
+      // Reorder lists
+      const sorted = [...(data?.lists ?? [])].sort((a, b) => a.position - b.position);
+      const withoutDragged = sorted.filter((l) => l.id !== draggableId);
+      const idx = Math.min(Math.max(destination.index, 0), withoutDragged.length);
+      const prev = withoutDragged[idx - 1]?.position;
+      const next = withoutDragged[idx]?.position;
+      let position: number;
+      if (prev != null && next != null) position = (prev + next) / 2;
+      else if (prev != null) position = prev + 1000;
+      else if (next != null) position = next - 1000;
+      else position = 1000;
+      moveListMut.mutate({ id: draggableId, position });
+      return;
+    }
+
     const destListId = destination.droppableId;
     // Build the destination list as it currently is, excluding the dragged card
     const destCards = cardsByList(destListId).filter((c) => c.id !== draggableId);
@@ -302,27 +313,14 @@ function BoardPage() {
         </div>
         <div className="flex items-center gap-2">
           {canEdit && (
-            <>
-              <Button
-                variant="outline"
-                size="sm"
-                className="gap-1.5 border-violet-400/50 bg-violet-600/20 text-violet-100 hover:bg-violet-600/40 hover:text-white"
-                onClick={() => startSprintMut.mutate()}
-                disabled={startSprintMut.isPending}
-                title='Run SWE Agent on all cards in the "To Sprint" list'
-              >
-                {startSprintMut.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Zap className="h-4 w-4" />}
-                {startSprintMut.isPending ? "Running…" : "Start Sprint"}
-              </Button>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => updateBgMut.mutate(randomGradient((data.board as any).background_gradient))}
-                title="Change board background"
-              >
-                🎨 Get Funky
-              </Button>
-            </>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => updateBgMut.mutate(randomGradient((data.board as any).background_gradient))}
+              title="Change board background"
+            >
+              🎨 Get Funky
+            </Button>
           )}
           <UserFilterPopover
             members={data.members as any}
@@ -343,93 +341,119 @@ function BoardPage() {
 
       <div className="flex-1 overflow-x-auto">
         <DragDropContext onDragEnd={handleDragEnd}>
-        <div className="flex h-full items-start gap-3 p-4">
-          {data.lists.sort((a, b) => a.position - b.position).map((list) => {
+        <Droppable droppableId="board" type="LIST" direction="horizontal">
+          {(boardProvided) => (
+          <div
+            ref={boardProvided.innerRef}
+            {...boardProvided.droppableProps}
+            className="flex h-full items-start gap-3 p-4"
+          >
+          {data.lists.sort((a, b) => a.position - b.position).map((list, listIndex) => {
             const visible = cardsByList(list.id);
             const mode = sortModeFor(list.id);
             return (
-            <div
+            <Draggable
               key={list.id}
-              className="flex w-72 flex-none flex-col rounded-xl bg-list text-list-foreground shadow-sm max-h-full"
+              draggableId={list.id}
+              index={listIndex}
+              isDragDisabled={!canEdit}
             >
-              <div className="flex items-center justify-between px-3 pt-2 pb-1">
-                <InlineRename
-                  value={list.title}
-                  disabled={!canEdit}
-                  onSave={(t) => renameListMut.mutate({ id: list.id, title: t })}
-                  className="flex-1 text-sm font-semibold"
-                />
-                <button
-                  onClick={() => cycleSort(list.id)}
-                  title={mode === "date-asc" ? "Sorted by date (nearest first) — click to disable" : "Sort by date (nearest first)"}
-                  className={cn(
-                    "rounded p-1 text-list-muted hover:bg-black/5 hover:text-list-foreground",
-                    mode === "date-asc" && "bg-primary/15 text-primary hover:bg-primary/20 hover:text-primary",
-                  )}
-                  aria-label="Sort cards by date"
-                  aria-pressed={mode === "date-asc"}
+              {(listDragProvided, listDragSnapshot) => (
+              <div
+                ref={listDragProvided.innerRef}
+                {...listDragProvided.draggableProps}
+                className={cn(
+                  "flex w-72 flex-none flex-col rounded-xl bg-list text-list-foreground shadow-sm max-h-full",
+                  listDragSnapshot.isDragging && "ring-2 ring-primary shadow-lg opacity-95",
+                )}
+              >
+                <div
+                  {...listDragProvided.dragHandleProps}
+                  className="flex items-center justify-between px-3 pt-2 pb-1 cursor-grab active:cursor-grabbing"
                 >
-                  <CalendarClock className="h-3.5 w-3.5" />
-                </button>
-                {canEdit && (
+                  <InlineRename
+                    value={list.title}
+                    disabled={!canEdit}
+                    onSave={(t) => renameListMut.mutate({ id: list.id, title: t })}
+                    className="flex-1 text-sm font-semibold"
+                  />
                   <button
-                    onClick={async () => { if (await confirmDlg({ title: "Delete this list?", description: "All its cards will be removed.", destructive: true, confirmText: "Delete" })) deleteListMut.mutate(list.id); }}
-                    className="rounded p-1 text-list-muted hover:bg-black/5 hover:text-list-foreground"
-                    aria-label="Delete list"
-                  >
-                    <Trash2 className="h-3.5 w-3.5" />
-                  </button>
-                )}
-              </div>
-              <Droppable droppableId={list.id} isDropDisabled={!canEdit}>
-                {(dropProvided, dropSnapshot) => (
-                  <div
-                    ref={dropProvided.innerRef}
-                    {...dropProvided.droppableProps}
+                    onClick={() => cycleSort(list.id)}
+                    title={mode === "date-asc" ? "Sorted by date (nearest first) — click to disable" : "Sort by date (nearest first)"}
                     className={cn(
-                      "flex flex-1 flex-col gap-2 overflow-y-auto px-2 pb-2 transition-colors",
-                      dropSnapshot.isDraggingOver && "bg-black/5",
+                      "rounded p-1 text-list-muted hover:bg-black/5 hover:text-list-foreground",
+                      mode === "date-asc" && "bg-primary/15 text-primary hover:bg-primary/20 hover:text-primary",
                     )}
+                    aria-label="Sort cards by date"
+                    aria-pressed={mode === "date-asc"}
                   >
-                    {visible.map((card, i) => (
-                      <Draggable
-                        key={card.id}
-                        draggableId={card.id}
-                        index={i}
-                        isDragDisabled={!canEdit || mode !== "manual"}
-                      >
-                        {(dragProvided, dragSnapshot) => (
-                          <div
-                            ref={dragProvided.innerRef}
-                            {...dragProvided.draggableProps}
-                            {...dragProvided.dragHandleProps}
-                          >
-                            <CardFront
-                              card={card}
-                              data={data}
-                              canEdit={canEdit}
-                              onOpen={() => setOpenCard(card.id)}
-                              isDragging={dragSnapshot.isDragging}
-                            />
-                          </div>
-                        )}
-                      </Draggable>
-                    ))}
-                    {dropProvided.placeholder}
-                    {canEdit && <NewCardForm onAdd={(title) => createCardMut.mutate({ listId: list.id, title })} />}
-                  </div>
-                )}
-              </Droppable>
-            </div>
+                    <CalendarClock className="h-3.5 w-3.5" />
+                  </button>
+                  {canEdit && (
+                    <button
+                      onClick={async () => { if (await confirmDlg({ title: "Delete this list?", description: "All its cards will be removed.", destructive: true, confirmText: "Delete" })) deleteListMut.mutate(list.id); }}
+                      className="rounded p-1 text-list-muted hover:bg-black/5 hover:text-list-foreground"
+                      aria-label="Delete list"
+                    >
+                      <Trash2 className="h-3.5 w-3.5" />
+                    </button>
+                  )}
+                </div>
+                <Droppable droppableId={list.id} type="CARD" isDropDisabled={!canEdit}>
+                  {(dropProvided, dropSnapshot) => (
+                    <div
+                      ref={dropProvided.innerRef}
+                      {...dropProvided.droppableProps}
+                      className={cn(
+                        "flex flex-1 flex-col gap-2 overflow-y-auto px-2 pb-2 transition-colors",
+                        dropSnapshot.isDraggingOver && "bg-black/5",
+                      )}
+                    >
+                      {visible.map((card, i) => (
+                        <Draggable
+                          key={card.id}
+                          draggableId={card.id}
+                          index={i}
+                          isDragDisabled={!canEdit || mode !== "manual"}
+                        >
+                          {(dragProvided, dragSnapshot) => (
+                            <div
+                              ref={dragProvided.innerRef}
+                              {...dragProvided.draggableProps}
+                              {...dragProvided.dragHandleProps}
+                            >
+                              <CardFront
+                                card={card}
+                                data={data}
+                                canEdit={canEdit}
+                                onOpen={() => setOpenCard(card.id)}
+                                isDragging={dragSnapshot.isDragging}
+                              />
+                            </div>
+                          )}
+                        </Draggable>
+                      ))}
+                      {dropProvided.placeholder}
+                      {canEdit && <NewCardForm onAdd={(title) => createCardMut.mutate({ listId: list.id, title })} />}
+                    </div>
+                  )}
+                </Droppable>
+              </div>
+              )}
+            </Draggable>
             );
           })}
+
+          {boardProvided.placeholder}
 
           {canEdit && (
             <div className="w-72 flex-none">
               <NewListForm value={newListTitle} setValue={setNewListTitle} onAdd={(t) => { createListMut.mutate(t); setNewListTitle(""); }} />
             </div>
           )}
-        </div>
+          </div>
+          )}
+        </Droppable>
         </DragDropContext>
       </div>
 
@@ -450,29 +474,6 @@ function BoardPage() {
   );
 }
 
-// Small dot-row used on card faces
-function MiniDots({ value, color }: { value: number; color: "violet" | "orange" }) {
-  const filled = color === "violet" ? "bg-violet-400" : "bg-orange-400";
-  return (
-    <span className="inline-flex items-center gap-0.5">
-      {Array.from({ length: 5 }, (_, i) => (
-        <span key={i} className={cn("inline-block h-1.5 w-1.5 rounded-full", i < value ? filled : "bg-muted-foreground/20")} />
-      ))}
-    </span>
-  );
-}
-
-const AGENT_STATUS_STYLES: Record<string, string> = {
-  in_progress: "bg-blue-500/20 text-blue-400 border-blue-400/30",
-  blocked: "bg-orange-500/20 text-orange-400 border-orange-400/30",
-  done: "bg-emerald-500/20 text-emerald-400 border-emerald-400/30",
-};
-const AGENT_STATUS_LABELS: Record<string, string> = {
-  in_progress: "⚙ Working",
-  blocked: "🤔 Blocked",
-  done: "✓ Done",
-};
-
 function CardFront({ card, data, canEdit: _canEdit, onOpen, isDragging }: {
   card: any; data: any; canEdit: boolean; onOpen: () => void;
   isDragging?: boolean;
@@ -483,8 +484,6 @@ function CardFront({ card, data, canEdit: _canEdit, onOpen, isDragging }: {
   const dueDate = card.due_date ? new Date(card.due_date) : null;
   const overdue = dueDate ? dueDate.getTime() < Date.now() : false;
   const dueSoon = dueDate ? (dueDate.getTime() - Date.now()) <= 3 * 24 * 3600 * 1000 : false;
-  const hasPriority = card.ai_priority != null && card.ai_priority > 0;
-  const agentStatus = card.agent_status ?? "idle";
 
   return (
     <div
@@ -504,23 +503,7 @@ function CardFront({ card, data, canEdit: _canEdit, onOpen, isDragging }: {
       <div className="flex items-start gap-2">
         <div className="flex-1 font-medium">{card.title}</div>
       </div>
-      {/* AI priority / urgency mini-row */}
-      {hasPriority && (
-        <div className="mt-1.5 flex items-center gap-2">
-          <MiniDots value={card.ai_priority} color="violet" />
-          {card.ai_urgency != null && <MiniDots value={card.ai_urgency} color="orange" />}
-        </div>
-      )}
       <div className="mt-1.5 flex flex-wrap items-center gap-2 text-xs text-list-muted">
-        {/* Agent status badge */}
-        {agentStatus !== "idle" && AGENT_STATUS_LABELS[agentStatus] && (
-          <span className={cn(
-            "inline-flex items-center rounded border px-1.5 py-0.5 text-[10px] font-semibold",
-            AGENT_STATUS_STYLES[agentStatus] ?? "bg-muted text-muted-foreground border-transparent",
-          )}>
-            {AGENT_STATUS_LABELS[agentStatus]}
-          </span>
-        )}
         {dueDate && (
           <span className={cn(
             "inline-flex items-center gap-1 rounded px-1.5 py-0.5",
