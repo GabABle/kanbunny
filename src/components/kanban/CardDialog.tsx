@@ -779,91 +779,93 @@ function ChecklistItem({ item, canEdit, onToggle, onUpdateText, onUpdateDueDate,
   const overdue = dueDate ? dueDate.getTime() < Date.now() : false;
 
   return (
-    <div className="group rounded px-1 py-1 hover:bg-black/5">
-      <div className="flex items-start gap-2">
-        <Checkbox
-          checked={item.done}
-          onCheckedChange={(v) => onToggle(!!v)}
-          disabled={!canEdit}
-          className="mt-0.5"
-        />
-        <div className="flex-1 min-w-0">
-          {editingText && canEdit ? (
-            <input
-              autoFocus
-              value={textDraft}
-              onChange={(e) => setTextDraft(e.target.value)}
-              onBlur={() => {
-                const t = textDraft.trim();
-                if (t && t !== item.text) onUpdateText(t);
-                else setTextDraft(item.text);
-                setEditingText(false);
-              }}
-              onKeyDown={(e) => {
-                if (e.key === "Enter") { e.preventDefault(); (e.target as HTMLInputElement).blur(); }
-                if (e.key === "Escape") { setTextDraft(item.text); setEditingText(false); }
-              }}
-              className="w-full rounded border border-primary/40 bg-tcard px-1.5 py-0.5 text-sm outline-none focus:ring-1 focus:ring-primary/40"
-            />
-          ) : (
-            <span
-              className={cn("text-sm cursor-pointer rounded px-0.5 hover:bg-black/5", item.done && "text-list-muted line-through")}
-              onClick={() => { if (canEdit) { setTextDraft(item.text); setEditingText(true); } }}
-              title={canEdit ? "Click to edit" : undefined}
-            >
-              {item.text}
-            </span>
-          )}
-          {dueDate && (
-            <div className={cn("mt-0.5 inline-flex items-center gap-1 rounded px-1.5 py-0.5 text-[11px]", overdue ? "bg-destructive/15 text-destructive" : "bg-tcard text-list-muted")}>
-              <Clock className="h-3 w-3" />
-              {dueDate.toLocaleDateString(undefined, { month: "short", day: "numeric" })}
-              {overdue && <span className="font-semibold">· overdue</span>}
-              {canEdit && (
-                <button onClick={() => onUpdateDueDate(null)} className="ml-1 hover:text-destructive">
-                  <X className="h-3 w-3" />
-                </button>
-              )}
-            </div>
-          )}
-        </div>
-        {canEdit && (
-          <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-            <Popover open={showDatePicker} onOpenChange={setShowDatePicker}>
-              <PopoverTrigger asChild>
-                <button title="Set deadline" className="text-list-muted hover:text-list-foreground">
-                  <Clock className="h-3.5 w-3.5" />
-                </button>
-              </PopoverTrigger>
-              <PopoverContent className="w-auto p-3" align="end">
-                <div className="text-sm font-medium mb-2">Item deadline</div>
-                <Calendar
-                  mode="single"
-                  selected={dueDate ?? undefined}
-                  onSelect={(d) => {
-                    onUpdateDueDate(d ? d.toISOString() : null);
-                    setShowDatePicker(false);
-                  }}
-                  initialFocus
-                  className="p-0 pointer-events-auto"
-                />
-                {dueDate && (
-                  <Button variant="ghost" size="sm" className="mt-2 w-full" onClick={() => { onUpdateDueDate(null); setShowDatePicker(false); }}>
-                    <X className="h-4 w-4" /> Remove deadline
-                  </Button>
-                )}
-              </PopoverContent>
-            </Popover>
-            <button
-              onClick={onDelete}
-              title="Delete item"
-              className="text-list-muted hover:text-destructive"
-            >
-              <Trash2 className="h-3.5 w-3.5" />
-            </button>
-          </div>
+    <div className="flex items-center gap-2 rounded px-1 py-1 hover:bg-black/5">
+      {/* Checkbox */}
+      <Checkbox
+        checked={item.done}
+        onCheckedChange={(v) => onToggle(!!v)}
+        disabled={!canEdit}
+        className="shrink-0"
+      />
+
+      {/* Text */}
+      <div className="flex-1 min-w-0">
+        {editingText && canEdit ? (
+          <input
+            autoFocus
+            value={textDraft}
+            onChange={(e) => setTextDraft(e.target.value)}
+            onBlur={() => {
+              const t = textDraft.trim();
+              if (t && t !== item.text) onUpdateText(t);
+              else setTextDraft(item.text);
+              setEditingText(false);
+            }}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") { e.preventDefault(); (e.target as HTMLInputElement).blur(); }
+              if (e.key === "Escape") { setTextDraft(item.text); setEditingText(false); }
+            }}
+            className="w-full rounded border border-primary/40 bg-tcard px-1.5 py-0.5 text-sm outline-none focus:ring-1 focus:ring-primary/40"
+          />
+        ) : (
+          <span
+            className={cn("text-sm", canEdit && "cursor-pointer", item.done && "text-list-muted line-through")}
+            onClick={() => { if (canEdit) { setTextDraft(item.text); setEditingText(true); } }}
+          >
+            {item.text}
+          </span>
         )}
       </div>
+
+      {/* Due date badge */}
+      {dueDate && (
+        <span className={cn(
+          "shrink-0 text-[11px] font-medium rounded px-1.5 py-0.5",
+          overdue ? "bg-destructive/15 text-destructive" : "bg-black/10 text-list-muted"
+        )}>
+          {dueDate.toLocaleDateString(undefined, { month: "short", day: "numeric" })}
+          {overdue && " · overdue"}
+        </span>
+      )}
+
+      {/* Calendar icon — always visible for canEdit */}
+      {canEdit && (
+        <Popover open={showDatePicker} onOpenChange={setShowDatePicker}>
+          <PopoverTrigger asChild>
+            <button
+              title={dueDate ? "Change deadline" : "Set deadline"}
+              className={cn("shrink-0", dueDate ? "text-primary" : "text-list-muted hover:text-list-foreground")}
+            >
+              <Clock className="h-3.5 w-3.5" />
+            </button>
+          </PopoverTrigger>
+          <PopoverContent className="w-auto p-3" align="end">
+            <div className="text-sm font-medium mb-2">Item deadline</div>
+            <Calendar
+              mode="single"
+              selected={dueDate ?? undefined}
+              onSelect={(d) => {
+                onUpdateDueDate(d ? d.toISOString() : null);
+                setShowDatePicker(false);
+              }}
+              initialFocus
+              className="p-0 pointer-events-auto"
+            />
+            {dueDate && (
+              <Button variant="ghost" size="sm" className="mt-2 w-full" onClick={() => { onUpdateDueDate(null); setShowDatePicker(false); }}>
+                <X className="h-4 w-4" /> Remove deadline
+              </Button>
+            )}
+          </PopoverContent>
+        </Popover>
+      )}
+
+      {/* Delete */}
+      {canEdit && (
+        <button onClick={onDelete} title="Delete item" className="shrink-0 text-list-muted hover:text-destructive">
+          <Trash2 className="h-3.5 w-3.5" />
+        </button>
+      )}
     </div>
   );
 }
