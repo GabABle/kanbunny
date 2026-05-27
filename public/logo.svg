@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
+  <!-- Black rounded-square background -->
+  <rect width="100" height="100" rx="18" ry="18" fill="#000"/>
+  <!-- Stylized FJ bracket mark in white, mirroring the attached logo:
+       A backwards "C"/bracket on the left and a "J" shape on the right -->
+  <!-- Left outer arc -->
+  <path d="M58 20 C34 20, 20 34, 20 50 C20 66, 34 80, 58 80" stroke="white" stroke-width="11" fill="none" stroke-linecap="round"/>
+  <!-- Right J shape -->
+  <line x1="68" y1="20" x2="68" y2="68" stroke="white" stroke-width="11" stroke-linecap="round"/>
+  <path d="M68 68 C68 78, 56 82, 46 76" stroke="white" stroke-width="11" fill="none" stroke-linecap="round"/>
+</svg>

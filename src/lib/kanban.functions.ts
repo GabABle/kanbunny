@@ -22,7 +22,7 @@ async function cardIdFromChecklist(checklistId: string): Promise<string | null> 
 export async function listBoards() {
   const { data, error } = await supabase
     .from("boards")
-    .select("id, title, description, owner_id, created_at")
+    .select("id, title, description, owner_id, created_at, background_gradient")
     .order("created_at", { ascending: false });
   if (error) throw new Error(error.message);
   return data ?? [];

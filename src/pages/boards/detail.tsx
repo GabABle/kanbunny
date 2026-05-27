@@ -1,6 +1,6 @@
 import { Link, useParams } from "react-router-dom";
 import { useMutation, useQueryClient, useQuery } from "@tanstack/react-query";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { DragDropContext, Droppable, Draggable, type DropResult } from "@hello-pangea/dnd";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -210,6 +210,7 @@ function BoardPage() {
       return { prev };
     },
     onError: (e, _v, ctx) => { if (ctx?.prev) qc.setQueryData(key, ctx.prev); toast.error(e.message); },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["boards"] }),
   });
   const updateBgMut = useMutation({
     mutationFn: (g: string) => updateBgFn({ id: boardId, background_gradient: g }),
@@ -220,6 +221,7 @@ function BoardPage() {
       return { prev };
     },
     onError: (e, _v, ctx) => { if (ctx?.prev) qc.setQueryData(key, ctx.prev); toast.error(e.message); },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["boards"] }),
   });
   const updateDescMut = useMutation({
     mutationFn: (description: string | null) => updateDescFn({ id: boardId, description }),
@@ -230,6 +232,7 @@ function BoardPage() {
       return { prev };
     },
     onError: (e, _v, ctx) => { if (ctx?.prev) qc.setQueryData(key, ctx.prev); toast.error(e.message); },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["boards"] }),
   });
 
   const [newListTitle, setNewListTitle] = useState("");
@@ -237,6 +240,15 @@ function BoardPage() {
   const [sortModes, setSortModes] = useState<Record<string, "manual" | "date-asc">>({});
   const [filterUserIds, setFilterUserIds] = useState<Set<string>>(new Set());
   const [onlyChanged, setOnlyChanged] = useState(false);
+
+  useEffect(() => {
+    if (data?.board?.title) {
+      document.title = `Flowjoe - ${data.board.title}`;
+    } else {
+      document.title = "Flowjoe";
+    }
+    return () => { document.title = "Flowjoe"; };
+  }, [data?.board?.title]);
 
   if (isLoading || !data) {
     return <div className="grid min-h-[60vh] place-items-center text-sm text-muted-foreground">Loading…</div>;

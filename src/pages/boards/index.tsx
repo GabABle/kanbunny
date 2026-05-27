@@ -11,7 +11,9 @@ import { toast } from "sonner";
 import { useConfirm } from "@/components/ui/confirm-dialog";
 
 const G = ["linear-gradient(135deg,#6366f1,#ec4899)","linear-gradient(135deg,#0ea5e9,#22d3ee)","linear-gradient(135deg,#f59e0b,#ef4444)","linear-gradient(135deg,#10b981,#3b82f6)","linear-gradient(135deg,#8b5cf6,#6366f1)","linear-gradient(135deg,#f43f5e,#f97316)","linear-gradient(135deg,#14b8a6,#84cc16)","linear-gradient(135deg,#a855f7,#ec4899)"];
-const grad = (id: string) => { let h = 0; for (let i = 0; i < id.length; i++) h = (h * 31 + id.charCodeAt(i)) >>> 0; return G[h % G.length]; };
+const fallbackGrad = (id: string) => { let h = 0; for (let i = 0; i < id.length; i++) h = (h * 31 + id.charCodeAt(i)) >>> 0; return G[h % G.length]; };
+const grad = (b: { id: string; background_gradient?: string | null }) =>
+  (b as any).background_gradient ?? fallbackGrad(b.id);
 
 export default function BoardsListPage() {
   const confirmDlg = useConfirm();
@@ -60,7 +62,7 @@ export default function BoardsListPage() {
       ) : (
         <div className="mt-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
           {boards!.map((b) => (
-            <Link key={b.id} to={`/boards/${b.id}`} className="group relative block overflow-hidden rounded-lg border border-border/60 p-4 text-white shadow-sm transition hover:border-border hover:shadow-md" style={{ backgroundImage: grad(b.id) }}>
+            <Link key={b.id} to={`/boards/${b.id}`} className="group relative block overflow-hidden rounded-lg border border-border/60 p-4 text-white shadow-sm transition hover:border-border hover:shadow-md" style={{ backgroundImage: grad(b) }}>
               <h3 className="font-medium tracking-tight drop-shadow">{b.title}</h3>
               {b.description && <p className="mt-1 line-clamp-2 text-sm text-white/85">{b.description}</p>}
               <button onClick={async (e) => { e.preventDefault(); e.stopPropagation(); if (await confirmDlg({ title: `Delete "${b.title}"?`, destructive: true, confirmText: "Delete" })) delMut.mutate(b.id); }} className="absolute right-2 top-2 rounded-md bg-black/30 p-1.5 text-white shadow-sm backdrop-blur-sm transition hover:bg-black/50" aria-label="Delete"><Trash2 className="h-4 w-4" /></button>
