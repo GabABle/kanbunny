@@ -35,6 +35,13 @@ jobs:
           # aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
           # aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
 
+      - name: Deploy Edge Functions
+        run: |
+          bunx supabase functions deploy pm-agent --project-ref ${{ secrets.SUPABASE_PROJECT_ID }}
+          bunx supabase functions deploy swe-agent --project-ref ${{ secrets.SUPABASE_PROJECT_ID }}
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+
       - name: Deploy with SST
         run: bunx sst deploy --stage production
         env:
