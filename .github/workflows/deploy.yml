@@ -35,14 +35,8 @@ jobs:
           # aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
           # aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
 
-      - name: Debug AWS access
-        run: |
-          aws sts get-caller-identity
-          aws s3 ls | grep sst || echo "No SST buckets visible"
-          aws s3 ls s3://sst-state-tcwbrdwfffcu/ || echo "Cannot access SST state bucket"
-
       - name: Deploy with SST
-        run: bunx sst deploy --stage production --verbose
+        run: bunx sst deploy --stage production
         env:
           VITE_SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
           VITE_SUPABASE_PUBLISHABLE_KEY: ${{ secrets.SUPABASE_PUBLISHABLE_KEY }}
