@@ -259,8 +259,100 @@ export type Database = {
           },
         ]
       }
+      agent_runs: {
+        Row: {
+          agent_type: "pm" | "swe"
+          board_id: string
+          card_id: string | null
+          created_at: string
+          id: string
+          log: Json
+          started_by: string
+          status: "running" | "paused" | "done" | "halted" | "error"
+          updated_at: string
+        }
+        Insert: {
+          agent_type: "pm" | "swe"
+          board_id: string
+          card_id?: string | null
+          created_at?: string
+          id?: string
+          log?: Json
+          started_by: string
+          status?: "running" | "paused" | "done" | "halted" | "error"
+          updated_at?: string
+        }
+        Update: {
+          agent_type?: "pm" | "swe"
+          board_id?: string
+          card_id?: string | null
+          created_at?: string
+          id?: string
+          log?: Json
+          started_by?: string
+          status?: "running" | "paused" | "done" | "halted" | "error"
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "agent_runs_board_id_fkey"
+            columns: ["board_id"]
+            isOneToOne: false
+            referencedRelation: "boards"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "agent_runs_card_id_fkey"
+            columns: ["card_id"]
+            isOneToOne: false
+            referencedRelation: "cards"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      card_ai_meta: {
+        Row: {
+          card_id: string
+          evaluated_at: string
+          evaluated_by: string
+          id: string
+          priority_score: number
+          rationale: string | null
+          urgency_score: number
+        }
+        Insert: {
+          card_id: string
+          evaluated_at?: string
+          evaluated_by?: string
+          id?: string
+          priority_score: number
+          rationale?: string | null
+          urgency_score: number
+        }
+        Update: {
+          card_id?: string
+          evaluated_at?: string
+          evaluated_by?: string
+          id?: string
+          priority_score?: number
+          rationale?: string | null
+          urgency_score?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "card_ai_meta_card_id_fkey"
+            columns: ["card_id"]
+            isOneToOne: true
+            referencedRelation: "cards"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       cards: {
         Row: {
+          ai_priority: number | null
+          ai_urgency: number | null
+          agent_status: "idle" | "in_progress" | "blocked" | "done"
           archived: boolean
           created_at: string
           created_by: string | null
@@ -272,6 +364,9 @@ export type Database = {
           title: string
         }
         Insert: {
+          ai_priority?: number | null
+          ai_urgency?: number | null
+          agent_status?: "idle" | "in_progress" | "blocked" | "done"
           archived?: boolean
           created_at?: string
           created_by?: string | null
@@ -283,6 +378,9 @@ export type Database = {
           title: string
         }
         Update: {
+          ai_priority?: number | null
+          ai_urgency?: number | null
+          agent_status?: "idle" | "in_progress" | "blocked" | "done"
           archived?: boolean
           created_at?: string
           created_by?: string | null
@@ -464,6 +562,7 @@ export type Database = {
     }
     Functions: {
       accept_board_invite: { Args: { _token: string }; Returns: string }
+      board_id_of_card: { Args: { _card_id: string }; Returns: string }
       board_of_card: { Args: { _card_id: string }; Returns: string }
       board_of_checklist: { Args: { _checklist_id: string }; Returns: string }
       board_of_list: { Args: { _list_id: string }; Returns: string }

@@ -6,12 +6,13 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { Plus, Trash2, UserPlus, X, Clock, Bell, Filter, Link2, CalendarClock } from "lucide-react";
+import { Plus, Trash2, UserPlus, X, Clock, Bell, Filter, Link2, CalendarClock, Zap, Loader2 } from "lucide-react";
 import {
   getBoard, createList, renameList, deleteList,
   createCard, updateCard, deleteCard, moveCard,
   inviteMember, removeMember, searchProfiles, renameBoard, updateBoardBackground,
 } from "@/lib/kanban.functions";
+import { startSprint } from "@/lib/agent.functions";
 import { createBoardInvite } from "@/lib/invites.functions";
 import { toast } from "sonner";
 import { CardDialog } from "@/components/kanban/CardDialog";
@@ -210,6 +211,22 @@ function BoardPage() {
     onError: (e, _v, ctx) => { if (ctx?.prev) qc.setQueryData(key, ctx.prev); toast.error(e.message); },
   });
 
+  // ── SWE Agent ──
+  const startSprintMut = useMutation({
+    mutationFn: () => startSprint({ board_id: boardId }),
+    onSuccess: (result: any) => {
+      invalidate();
+      if (result?.results?.length) {
+        const done = result.results.filter((r: any) => r.status === "done").length;
+        const blocked = result.results.filter((r: any) => r.status === "blocked").length;
+        toast.success(`Sprint complete — ${done} card(s) done${blocked ? `, ${blocked} blocked (needs clarification)` : ""}`);
+      } else {
+        toast.info(result?.message ?? "Sprint finished");
+      }
+    },
+    onError: (e: any) => toast.error(e.message),
+  });
+
   const [newListTitle, setNewListTitle] = useState("");
   const [openCard, setOpenCard] = useState<string | null>(null);
   const [sortModes, setSortModes] = useState<Record<string, "manual" | "date-asc">>({});
@@ -285,14 +302,27 @@ function BoardPage() {
         </div>
         <div className="flex items-center gap-2">
           {canEdit && (
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => updateBgMut.mutate(randomGradient((data.board as any).background_gradient))}
-              title="Change board background"
-            >
-              🎨 Get Funky
-            </Button>
+            <>
+              <Button
+                variant="outline"
+                size="sm"
+                className="gap-1.5 border-violet-400/50 bg-violet-600/20 text-violet-100 hover:bg-violet-600/40 hover:text-white"
+                onClick={() => startSprintMut.mutate()}
+                disabled={startSprintMut.isPending}
+                title='Run SWE Agent on all cards in the "To Sprint" list'
+              >
+                {startSprintMut.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Zap className="h-4 w-4" />}
+                {startSprintMut.isPending ? "Running…" : "Start Sprint"}
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => updateBgMut.mutate(randomGradient((data.board as any).background_gradient))}
+                title="Change board background"
+              >
+                🎨 Get Funky
+              </Button>
+            </>
           )}
           <UserFilterPopover
             members={data.members as any}
@@ -420,6 +450,29 @@ function BoardPage() {
   );
 }
 
+// Small dot-row used on card faces
+function MiniDots({ value, color }: { value: number; color: "violet" | "orange" }) {
+  const filled = color === "violet" ? "bg-violet-400" : "bg-orange-400";
+  return (
+    <span className="inline-flex items-center gap-0.5">
+      {Array.from({ length: 5 }, (_, i) => (
+        <span key={i} className={cn("inline-block h-1.5 w-1.5 rounded-full", i < value ? filled : "bg-muted-foreground/20")} />
+      ))}
+    </span>
+  );
+}
+
+const AGENT_STATUS_STYLES: Record<string, string> = {
+  in_progress: "bg-blue-500/20 text-blue-400 border-blue-400/30",
+  blocked: "bg-orange-500/20 text-orange-400 border-orange-400/30",
+  done: "bg-emerald-500/20 text-emerald-400 border-emerald-400/30",
+};
+const AGENT_STATUS_LABELS: Record<string, string> = {
+  in_progress: "⚙ Working",
+  blocked: "🤔 Blocked",
+  done: "✓ Done",
+};
+
 function CardFront({ card, data, canEdit: _canEdit, onOpen, isDragging }: {
   card: any; data: any; canEdit: boolean; onOpen: () => void;
   isDragging?: boolean;
@@ -430,6 +483,8 @@ function CardFront({ card, data, canEdit: _canEdit, onOpen, isDragging }: {
   const dueDate = card.due_date ? new Date(card.due_date) : null;
   const overdue = dueDate ? dueDate.getTime() < Date.now() : false;
   const dueSoon = dueDate ? (dueDate.getTime() - Date.now()) <= 3 * 24 * 3600 * 1000 : false;
+  const hasPriority = card.ai_priority != null && card.ai_priority > 0;
+  const agentStatus = card.agent_status ?? "idle";
 
   return (
     <div
@@ -449,7 +504,23 @@ function CardFront({ card, data, canEdit: _canEdit, onOpen, isDragging }: {
       <div className="flex items-start gap-2">
         <div className="flex-1 font-medium">{card.title}</div>
       </div>
+      {/* AI priority / urgency mini-row */}
+      {hasPriority && (
+        <div className="mt-1.5 flex items-center gap-2">
+          <MiniDots value={card.ai_priority} color="violet" />
+          {card.ai_urgency != null && <MiniDots value={card.ai_urgency} color="orange" />}
+        </div>
+      )}
       <div className="mt-1.5 flex flex-wrap items-center gap-2 text-xs text-list-muted">
+        {/* Agent status badge */}
+        {agentStatus !== "idle" && AGENT_STATUS_LABELS[agentStatus] && (
+          <span className={cn(
+            "inline-flex items-center rounded border px-1.5 py-0.5 text-[10px] font-semibold",
+            AGENT_STATUS_STYLES[agentStatus] ?? "bg-muted text-muted-foreground border-transparent",
+          )}>
+            {AGENT_STATUS_LABELS[agentStatus]}
+          </span>
+        )}
         {dueDate && (
           <span className={cn(
             "inline-flex items-center gap-1 rounded px-1.5 py-0.5",

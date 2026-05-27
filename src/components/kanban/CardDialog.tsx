@@ -11,7 +11,7 @@ import { Progress } from "@/components/ui/progress";
 import { Calendar } from "@/components/ui/calendar";
 import { format } from "date-fns";
 import {
-  AlignLeft, CheckSquare, Clock, Tag, Trash2, Users, X, Plus, Check, MessageSquare, Paperclip, Download, FileIcon, Loader2, User as UserIcon, Archive,
+  AlignLeft, CheckSquare, Clock, Tag, Trash2, Users, X, Plus, Check, MessageSquare, Paperclip, Download, FileIcon, Loader2, User as UserIcon, Archive, Sparkles, Brain,
 } from "lucide-react";
 import { ChevronDown, ChevronRight, Activity } from "lucide-react";
 import {
@@ -25,6 +25,7 @@ import {
   listCardAttachments, addCardAttachment, deleteCardAttachment, getAttachmentUrl,
   getCardActivities, getCardDetails, updateCardOwner,
 } from "@/lib/kanban.functions";
+import { runPMAgent, getCardAIMeta, startCard, haltAgent, getCardAgentRuns, type CardAIMeta, type AgentRun } from "@/lib/agent.functions";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/hooks/use-auth";
@@ -134,6 +135,63 @@ export function CardDialog({
     staleTime: 30_000,
   });
 
+  // ---- SWE Agent ----
+  const { data: agentRuns = [], refetch: refetchRuns } = useQuery({
+    queryKey: ["agent_runs", card.id],
+    queryFn: () => getCardAgentRuns({ cardId: card.id }),
+    enabled: isRealCard,
+    refetchInterval: (data) => {
+      const runs = data?.state?.data;
+      return Array.isArray(runs) && runs.some((r: AgentRun) => r.status === "running") ? 3000 : false;
+    },
+  });
+  const activeRun = agentRuns.find((r) => r.status === "running" || r.status === "paused");
+  const sweStart = useMutation({
+    mutationFn: () => startCard({ board_id: boardId, card_id: card.id }),
+    onSuccess: () => {
+      refetchRuns();
+      qc.invalidateQueries({ queryKey: ["board", boardId] });
+      qc.invalidateQueries({ queryKey: ["checklists", card.id] });
+      toast.success("SWE Agent started on this card");
+    },
+    onError: (e: any) => toast.error(e.message),
+  });
+  const sweHalt = useMutation({
+    mutationFn: () => haltAgent({ board_id: boardId, card_id: card.id, run_id: activeRun!.id }),
+    onSuccess: () => {
+      refetchRuns();
+      qc.invalidateQueries({ queryKey: ["board", boardId] });
+      toast.info("SWE Agent halted");
+    },
+    onError: (e: any) => toast.error(e.message),
+  });
+
+  // ---- PM Agent ----
+  const { data: aiMeta, refetch: refetchAIMeta } = useQuery({
+    queryKey: ["card_ai_meta", card.id],
+    queryFn: () => getCardAIMeta({ cardId: card.id }),
+    enabled: isRealCard,
+    staleTime: 60_000,
+  });
+  const [pmOpen, setPmOpen] = useState(false);
+  const [manualPriority, setManualPriority] = useState<number>(3);
+  const [manualUrgency, setManualUrgency] = useState<number>(3);
+  const pmEval = useMutation({
+    mutationFn: (override?: { priority: number; urgency: number }) =>
+      runPMAgent({
+        card_id: card.id,
+        user_priority: override?.priority ?? null,
+        user_urgency: override?.urgency ?? null,
+      }),
+    onSuccess: () => {
+      refetchAIMeta();
+      qc.invalidateQueries({ queryKey: ["checklists", card.id] }); // refresh comments
+      toast.success("PM Agent evaluated the card");
+      setPmOpen(false);
+    },
+    onError: (e: any) => toast.error(e.message),
+  });
+
   return (
     <Dialog open onOpenChange={(o) => !o && onClose()}>
       <DialogContent
@@ -209,6 +267,34 @@ export function CardDialog({
               );
             })()}
 
+            {/* PM Agent evaluation badge */}
+            {aiMeta && (
+              <div className="flex flex-wrap items-start gap-3 rounded-lg border border-violet-200 bg-violet-50 dark:border-violet-800 dark:bg-violet-950/30 px-3 py-2">
+                <Brain className="h-4 w-4 mt-0.5 text-violet-500 shrink-0" />
+                <div className="flex-1 min-w-0">
+                  <div className="flex flex-wrap gap-3 mb-1">
+                    <div>
+                      <span className="text-[10px] font-semibold uppercase text-violet-500 mr-1">Priority</span>
+                      <PriorityDots value={aiMeta.priority_score} color="violet" />
+                    </div>
+                    <div>
+                      <span className="text-[10px] font-semibold uppercase text-violet-500 mr-1">Urgency</span>
+                      <PriorityDots value={aiMeta.urgency_score} color="orange" />
+                    </div>
+                    <span className={cn(
+                      "text-[10px] font-semibold uppercase px-1.5 py-0.5 rounded",
+                      aiMeta.evaluated_by === "user" ? "bg-blue-100 text-blue-700" : "bg-violet-100 text-violet-700"
+                    )}>
+                      {aiMeta.evaluated_by === "user" ? "Manual" : "AI"}
+                    </span>
+                  </div>
+                  {aiMeta.rationale && (
+                    <p className="text-xs text-muted-foreground italic">{aiMeta.rationale}</p>
+                  )}
+                </div>
+              </div>
+            )}
+
             {/* Description */}
             <div>
               <div className="mb-2 flex items-center gap-2">
@@ -276,6 +362,83 @@ export function CardDialog({
               />
               <AttachmentButton cardId={card.id} canEdit={canEdit} />
             </div>
+
+            {/* PM Agent section */}
+            <div className="pt-3 text-[11px] font-semibold uppercase text-list-muted">Agents</div>
+            <div className="space-y-2">
+              <Popover open={pmOpen} onOpenChange={setPmOpen}>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant="secondary" size="sm"
+                    className="w-full justify-start gap-2"
+                    disabled={!isRealCard}
+                  >
+                    <Brain className="h-4 w-4 text-violet-500" />
+                    {aiMeta ? "Re-evaluate (PM)" : "Evaluate (PM Agent)"}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-72" align="end">
+                  <div className="space-y-3">
+                    <div className="text-sm font-semibold flex items-center gap-2">
+                      <Brain className="h-4 w-4 text-violet-500" /> PM Agent
+                    </div>
+                    <Button
+                      size="sm" className="w-full bg-violet-600 hover:bg-violet-700 text-white"
+                      disabled={pmEval.isPending}
+                      onClick={() => pmEval.mutate(undefined)}
+                    >
+                      {pmEval.isPending ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Sparkles className="h-4 w-4 mr-2" />}
+                      Auto-evaluate with AI
+                    </Button>
+                    <div className="border-t pt-3">
+                      <div className="text-xs font-semibold text-muted-foreground mb-2">Or set manually</div>
+                      <div className="space-y-2">
+                        <div className="flex items-center justify-between">
+                          <span className="text-xs">Priority</span>
+                          <ScorePicker value={manualPriority} onChange={setManualPriority} color="violet" />
+                        </div>
+                        <div className="flex items-center justify-between">
+                          <span className="text-xs">Urgency</span>
+                          <ScorePicker value={manualUrgency} onChange={setManualUrgency} color="orange" />
+                        </div>
+                        <Button
+                          size="sm" variant="outline" className="w-full"
+                          disabled={pmEval.isPending}
+                          onClick={() => pmEval.mutate({ priority: manualPriority, urgency: manualUrgency })}
+                        >
+                          Save manual scores
+                        </Button>
+                      </div>
+                    </div>
+                  </div>
+                </PopoverContent>
+              </Popover>
+            </div>
+
+            {/* SWE Agent button */}
+            {canEdit && isRealCard && (
+              activeRun ? (
+                <Button
+                  variant="secondary" size="sm"
+                  className="w-full justify-start gap-2 border border-blue-400/40 bg-blue-500/10 text-blue-400 hover:bg-blue-500/20"
+                  onClick={() => sweHalt.mutate()}
+                  disabled={sweHalt.isPending}
+                >
+                  {sweHalt.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <span className="text-base leading-none">⏹</span>}
+                  {activeRun.status === "running" ? "Stop SWE Agent" : "Agent paused — Stop"}
+                </Button>
+              ) : (
+                <Button
+                  variant="secondary" size="sm"
+                  className="w-full justify-start gap-2"
+                  onClick={() => sweStart.mutate()}
+                  disabled={sweStart.isPending || (card as any).agent_status === "done"}
+                >
+                  {sweStart.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <span className="text-base leading-none">⚙️</span>}
+                  {(card as any).agent_status === "done" ? "SWE Done ✓" : "Run SWE Agent"}
+                </Button>
+              )
+            )}
 
             {canEdit && (
               <>
@@ -1405,5 +1568,42 @@ function OwnerPopover({ boardId, cardId, canEdit, members, ownerId }: {
         </div>
       </PopoverContent>
     </Popover>
+  );
+}
+
+// ── PM Agent helper components ────────────────────────────────────────────────
+
+function PriorityDots({ value, color }: { value: number; color: "violet" | "orange" }) {
+  const filled = color === "violet" ? "bg-violet-500" : "bg-orange-400";
+  const empty = "bg-muted";
+  return (
+    <span className="inline-flex items-center gap-0.5">
+      {Array.from({ length: 5 }, (_, i) => (
+        <span key={i} className={cn("inline-block h-2 w-2 rounded-full", i < value ? filled : empty)} />
+      ))}
+    </span>
+  );
+}
+
+function ScorePicker({ value, onChange, color }: { value: number; onChange: (v: number) => void; color: "violet" | "orange" }) {
+  const active = color === "violet"
+    ? "bg-violet-500 text-white border-violet-500"
+    : "bg-orange-400 text-white border-orange-400";
+  return (
+    <div className="flex gap-1">
+      {[1, 2, 3, 4, 5].map((n) => (
+        <button
+          key={n}
+          type="button"
+          onClick={() => onChange(n)}
+          className={cn(
+            "h-6 w-6 rounded border text-xs font-semibold transition-colors",
+            value === n ? active : "border-input bg-background text-foreground hover:bg-accent"
+          )}
+        >
+          {n}
+        </button>
+      ))}
+    </div>
   );
 }
