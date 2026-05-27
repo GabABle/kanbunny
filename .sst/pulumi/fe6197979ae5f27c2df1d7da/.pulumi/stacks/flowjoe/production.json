@@ -1,0 +1,1423 @@
+{
+    "version": 3,
+    "checkpoint": {
+        "stack": "organization/flowjoe/production",
+        "latest": {
+            "manifest": {
+                "time": "2026-05-27T15:49:08.1863683+08:00",
+                "magic": "887a8edb9fda410e7284d562e21176efd284574cb7f8d94bf88178f5f526fe3c",
+                "version": "v3.215.0"
+            },
+            "secrets_providers": {
+                "type": "passphrase",
+                "state": {
+                    "salt": "v1:pAUJ6YjjZ/Y=:v1:A4B7gtWYsZssPDa5:fQpfj9mEPSqJ2uIHgTFy1zQnh19NpA=="
+                }
+            },
+            "resources": [
+                {
+                    "urn": "urn:pulumi:production::flowjoe::pulumi:pulumi:Stack::flowjoe-production",
+                    "custom": false,
+                    "type": "pulumi:pulumi:Stack",
+                    "outputs": {
+                        "_protect": false,
+                        "url": "https://d11qc1to1jay4v.cloudfront.net"
+                    },
+                    "created": "2026-05-26T14:14:03.3760365Z",
+                    "modified": "2026-05-26T14:14:03.3760365Z"
+                },
+                {
+                    "urn": "urn:pulumi:production::flowjoe::sst:aws:StaticSite::Web",
+                    "custom": false,
+                    "type": "sst:aws:StaticSite",
+                    "outputs": {
+                        "_hint": "https://d11qc1to1jay4v.cloudfront.net",
+                        "_metadata": {
+                            "environment": {
+                                "VITE_SUPABASE_PROJECT_ID": "yiklbbassowrtyecujqb",
+                                "VITE_SUPABASE_PUBLISHABLE_KEY": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inlpa2xiYmFzc293cnR5ZWN1anFiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk1MzkxNTcsImV4cCI6MjA5NTExNTE1N30.V7CSBeeJzYCr2doh5cyIoWFDRfBIKGRGGorfwkEY9hM",
+                                "VITE_SUPABASE_URL": "https://yiklbbassowrtyecujqb.supabase.co"
+                            },
+                            "mode": "deployed",
+                            "path": ".",
+                            "url": "https://d11qc1to1jay4v.cloudfront.net"
+                        }
+                    },
+                    "parent": "urn:pulumi:production::flowjoe::pulumi:pulumi:Stack::flowjoe-production",
+                    "created": "2026-05-26T17:32:02.793472716Z",
+                    "modified": "2026-05-26T17:32:02.793472716Z"
+                },
+                {
+                    "urn": "urn:pulumi:production::flowjoe::sst:aws:StaticSite$sst:aws:CDN::WebCdn",
+                    "custom": false,
+                    "type": "sst:aws:CDN",
+                    "parent": "urn:pulumi:production::flowjoe::sst:aws:StaticSite::Web",
+                    "created": "2026-05-26T17:32:02.833822991Z",
+                    "modified": "2026-05-26T17:32:02.833822991Z"
+                },
+                {
+                    "urn": "urn:pulumi:production::flowjoe::sst:aws:StaticSite$sst:aws:Bucket::WebAssets",
+                    "custom": false,
+                    "type": "sst:aws:Bucket",
+                    "parent": "urn:pulumi:production::flowjoe::sst:aws:StaticSite::Web",
+                    "created": "2026-05-26T17:32:02.847066344Z",
+                    "modified": "2026-05-26T17:32:02.847066344Z"
+                },
+                {
+                    "urn": "urn:pulumi:production::flowjoe::pulumi:providers:aws::default_7_20_0",
+                    "custom": true,
+                    "id": "55ebcf4b-a06e-4ed1-9eb9-ffc7e389283b",
+                    "type": "pulumi:providers:aws",
+                    "inputs": {
+                        "__internal": {},
+                        "defaultTags": "{\"tags\":{\"sst:app\":\"flowjoe\",\"sst:stage\":\"production\"}}",
+                        "region": "ap-southeast-1",
+                        "skipCredentialsValidation": "false",
+                        "skipRegionValidation": "true",
+                        "version": "7.20.0"
+                    },
+                    "outputs": {
+                        "defaultTags": "{\"tags\":{\"sst:app\":\"flowjoe\",\"sst:stage\":\"production\"}}",
+                        "region": "ap-southeast-1",
+                        "skipCredentialsValidation": "false",
+                        "skipRegionValidation": "true",
+                        "version": "7.20.0"
+                    },
+                    "created": "2026-05-26T17:10:32.153054551Z",
+                    "modified": "2026-05-26T17:10:32.153054551Z"
+                },
+                {
+                    "urn": "urn:pulumi:production::flowjoe::pulumi:providers:command::default_1_0_1",
+                    "custom": true,
+                    "id": "f37433a9-f0c2-46c8-bd48-f143c06768a9",
+                    "type": "pulumi:providers:command",
+                    "inputs": {
+                        "__internal": {},
+                        "version": "1.0.1"
+                    },
+                    "outputs": {
+                        "version": "1.0.1"
+                    },
+                    "created": "2026-05-26T17:10:32.932134873Z",
+                    "modified": "2026-05-26T17:10:32.932134873Z"
+                },
+                {
+                    "urn": "urn:pulumi:production::flowjoe::sst:aws:StaticSite$aws:cloudfront/keyValueStore:KeyValueStore::WebKvStore",
+                    "custom": true,
+                    "id": "f47eddea-bf3e-4ada-8580-d68ba221f93e",
+                    "type": "aws:cloudfront/keyValueStore:KeyValueStore",
+                    "inputs": {
+                        "name": "flowjoe-production-WebKvStore-zmwbnuft"
+                    },
+                    "outputs": {
+                        "__pulumi_raw_state_delta": {
+                            "obj": {
+                                "ps": {
+                                    "comment": {
+                                        "4dabf18193072939515e22adb298388d": "1b47061264138c4ac30d75fd1eb44270",
+                                        "ciphertext": "v1:VX2e/veatB3y3ovv:x7yFoeV10M3vG9dtsy7dvDARvaQjfHui4O0mZ4FF41HhddujlWVOUA=="
+                                    }
+                                }
+                            }
+                        },
+                        "arn": "arn:aws:cloudfront::602840636720:key-value-store/f47eddea-bf3e-4ada-8580-d68ba221f93e",
+                        "etag": "E3UN6WX5RRO2AG",
+                        "id": "f47eddea-bf3e-4ada-8580-d68ba221f93e",
+                        "lastModifiedTime": "2026-05-27T00:18:03Z",
+                        "name": "flowjoe-production-WebKvStore-zmwbnuft"
+                    },
+                    "parent": "urn:pulumi:production::flowjoe::sst:aws:StaticSite::Web",
+                    "provider": "urn:pulumi:production::flowjoe::pulumi:providers:aws::default_7_20_0::55ebcf4b-a06e-4ed1-9eb9-ffc7e389283b",
+                    "propertyDependencies": {
+                        "name": []
+                    },
+                    "created": "2026-05-27T00:18:09.646452206Z",
+                    "modified": "2026-05-27T00:18:09.646452206Z",
+                    "stackTrace": [
+                        {},
+                        {},
+                        {}
+                    ],
+                    "ignoreChanges": [
+                        "name"
+                    ]
+                },
+                {
+                    "urn": "urn:pulumi:production::flowjoe::sst:aws:StaticSite$sst:aws:Bucket$aws:s3/bucket:Bucket::WebAssetsBucket",
+                    "custom": true,
+                    "id": "flowjoe-production-webassetsbucket-tkcvxuwh",
+                    "type": "aws:s3/bucket:Bucket",
+                    "inputs": {
+                        "__defaults": [],
+                        "bucket": "flowjoe-production-webassetsbucket-tkcvxuwh",
+                        "forceDestroy": true,
+                        "region": "ap-southeast-1",
+                        "tagsAll": {
+                            "sst:app": "flowjoe",
+                            "sst:stage": "production"
+                        }
+                    },
+                    "outputs": {
+                        "__meta": "{\"e2bfb730-ecaa-11e6-8f88-34363bc7c4c0\":{\"create\":1200000000000,\"delete\":3600000000000,\"read\":1200000000000,\"update\":1200000000000}}",
+                        "__pulumi_raw_state_delta": {
+                            "obj": {
+                                "ps": {
+                                    "corsRules": {
+                                        "arr": {}
+                                    },
+                                    "grants": {
+                                        "arr": {
+                                            "el": {
+                                                "0": {
+                                                    "obj": {
+                                                        "ps": {
+                                                            "permissions": {
+                                                                "arr": {}
+                                                            }
+                                                        }
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    },
+                                    "lifecycleRules": {
+                                        "arr": {}
+                                    },
+                                    "logging": {
+                                        "plu": {
+                                            "i": {}
+                                        }
+                                    },
+                                    "objectLockConfiguration": {
+                                        "plu": {
+                                            "i": {}
+                                        }
+                                    },
+                                    "replicationConfiguration": {
+                                        "plu": {
+                                            "i": {}
+                                        }
+                                    },
+                                    "serverSideEncryptionConfiguration": {
+                                        "plu": {
+                                            "i": {
+                                                "obj": {
+                                                    "ps": {
+                                                        "rule": {
+                                                            "plu": {
+                                                                "i": {
+                                                                    "obj": {
+                                                                        "ps": {
+                                                                            "applyServerSideEncryptionByDefault": {
+                                                                                "plu": {
+                                                                                    "i": {
+                                                                                        "obj": {}
+                                                                                    }
+                                                                                }
+                                                                            }
+                                                                        }
+                                                                    }
+                                                                }
+                                                            }
+                                                        }
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    },
+                                    "tagsAll": {
+                                        "map": {}
+                                    },
+                                    "versioning": {
+                                        "plu": {
+                                            "i": {
+                                                "obj": {}
+                                            }
+                                        }
+                                    },
+                                    "website": {
+                                        "plu": {
+                                            "i": {}
+                                        }
+                                    }
+                                },
+                                "renamed": {
+                                    "corsRules": "cors_rule",
+                                    "grants": "grant",
+                                    "lifecycleRules": "lifecycle_rule"
+                                }
+                            }
+                        },
+                        "accelerationStatus": "",
+                        "acl": null,
+                        "arn": "arn:aws:s3:::flowjoe-production-webassetsbucket-tkcvxuwh",
+                        "bucket": "flowjoe-production-webassetsbucket-tkcvxuwh",
+                        "bucketDomainName": "flowjoe-production-webassetsbucket-tkcvxuwh.s3.amazonaws.com",
+                        "bucketPrefix": "",
+                        "bucketRegion": "ap-southeast-1",
+                        "bucketRegionalDomainName": "flowjoe-production-webassetsbucket-tkcvxuwh.s3.ap-southeast-1.amazonaws.com",
+                        "corsRules": [],
+                        "forceDestroy": true,
+                        "grants": [
+                            {
+                                "id": "676b41f6e7deb27ea67df0ea30076d06c1810979dcd507bb6a0e3e6943e9a145",
+                                "permissions": [
+                                    "FULL_CONTROL"
+                                ],
+                                "type": "CanonicalUser",
+                                "uri": ""
+                            }
+                        ],
+                        "hostedZoneId": "Z3O0J2DXBE1FTB",
+                        "id": "flowjoe-production-webassetsbucket-tkcvxuwh",
+                        "lifecycleRules": [],
+                        "logging": null,
+                        "objectLockConfiguration": null,
+                        "objectLockEnabled": false,
+                        "policy": "",
+                        "region": "ap-southeast-1",
+                        "replicationConfiguration": null,
+                        "requestPayer": "BucketOwner",
+                        "serverSideEncryptionConfiguration": {
+                            "rule": {
+                                "applyServerSideEncryptionByDefault": {
+                                    "kmsMasterKeyId": "",
+                                    "sseAlgorithm": "AES256"
+                                },
+                                "bucketKeyEnabled": false
+                            }
+                        },
+                        "tags": null,
+                        "tagsAll": {
+                            "sst:app": "flowjoe",
+                            "sst:stage": "production"
+                        },
+                        "versioning": {
+                            "enabled": false,
+                            "mfaDelete": false
+                        },
+                        "website": null,
+                        "websiteDomain": null,
+                        "websiteEndpoint": null
+                    },
+                    "parent": "urn:pulumi:production::flowjoe::sst:aws:StaticSite$sst:aws:Bucket::WebAssets",
+                    "provider": "urn:pulumi:production::flowjoe::pulumi:providers:aws::default_7_20_0::55ebcf4b-a06e-4ed1-9eb9-ffc7e389283b",
+                    "propertyDependencies": {
+                        "bucket": [],
+                        "forceDestroy": []
+                    },
+                    "created": "2026-05-27T00:18:01.014465852Z",
+                    "modified": "2026-05-27T00:18:01.014465852Z",
+                    "ignoreChanges": [
+                        "bucket"
+                    ]
+                },
+                {
+                    "urn": "urn:pulumi:production::flowjoe::sst:aws:StaticSite$aws:cloudfront/function:Function::WebCloudfrontFunctionRequest",
+                    "custom": true,
+                    "id": "flowjoe-production-WebCloudfrontFunctionRequest-zvsvhkhx",
+                    "type": "aws:cloudfront/function:Function",
+                    "inputs": {
+                        "__defaults": [
+                            "publish"
+                        ],
+                        "code": "\nimport cf from \"cloudfront\";\nasync function handler(event) {\n  \n  \n  async function routeSite(kvNamespace,metadata){const baselessUri=metadata.base?event.request.uri.replace(metadata.base,\"\"):event.request.uri;try{const u=decodeURIComponent(baselessUri),postfixes=u.endsWith(\"/\")?[\"index.html\"]:[\"\",\".html\",\"/index.html\"],v=await Promise.any(postfixes.map(p=>cf.kvs().get(kvNamespace+\":\"+u+p).then(v2=>p)));event.request.uri=metadata.s3.dir+event.request.uri+v,setS3Origin(metadata.s3.domain);return}catch(e){}if(metadata.s3&&metadata.s3.routes)for(var i=0,l=metadata.s3.routes.length;i<l;i++){const route=metadata.s3.routes[i];if(baselessUri.startsWith(route)){event.request.uri=metadata.s3.dir+event.request.uri,event.request.uri.endsWith(\"/\")?event.request.uri+=\"index.html\":event.request.uri.split(\"/\").pop().includes(\".\")||(event.request.uri+=\"/index.html\"),setS3Origin(metadata.s3.domain);return}}if(metadata.custom404&&!metadata.errorResponseCode){event.request.uri=metadata.s3.dir+(metadata.base?metadata.base:\"\")+metadata.custom404,setS3Origin(metadata.s3.domain);return}if(metadata.s3&&!metadata.servers){event.request.uri=metadata.s3.dir+event.request.uri,setS3Origin(metadata.s3.domain);return}if(metadata.image&&baselessUri.startsWith(metadata.image.route)){if(setForwardedHost(),setNextjsCacheKey(),isRequestHeaderTooLarge())return buildOversizedHeadersResponse();setUrlOrigin(metadata.image.host,metadata.image.originAccessControlConfig?{originAccessControlConfig:metadata.image.originAccessControlConfig}:void 0);return}if(metadata.servers){setForwardedHost();for(var key in event.request.querystring)key.includes(\"/\")&&(event.request.querystring[encodeURIComponent(key)]=event.request.querystring[key],delete event.request.querystring[key]);if(setNextjsGeoHeaders(),setNextjsCacheKey(),isRequestHeaderTooLarge())return buildOversizedHeadersResponse();setUrlOrigin(findNearestServer(metadata.servers),metadata.origin)}function setNextjsGeoHeaders(){for(var keys=[\"city\",\"country\",\"region\",\"latitude\",\"longitude\"],i2=0;i2<keys.length;i2++)event.request.headers[\"cloudfront-viewer-\"+keys[i2]]&&(event.request.headers[\"x-open-next-\"+keys[i2]]=event.request.headers[\"cloudfront-viewer-\"+keys[i2]])}function setNextjsCacheKey(){var cacheKey=\"\";if(event.request.uri.startsWith(\"/_next/image\"))cacheKey=getHeader(\"accept\");else for(var headers=[\"rsc\",\"next-router-prefetch\",\"next-router-state-tree\",\"next-url\",\"x-prerender-revalidate\"],i2=0;i2<headers.length;i2++)cacheKey+=getHeader(headers[i2]);event.request.cookies.__prerender_bypass&&(cacheKey+=event.request.cookies.__prerender_bypass?event.request.cookies.__prerender_bypass.value:\"\");var crypto=require(\"crypto\"),hashedKey=crypto.createHash(\"md5\").update(cacheKey).digest(\"hex\");event.request.headers[\"x-open-next-cache-key\"]={value:hashedKey}}function getHeader(key2){var header=event.request.headers[key2];if(header){if(header.multiValue)return header.multiValue.map(header2=>header2.value).join(\",\");if(header.value)return header.value}return\"\"}function isRequestHeaderTooLarge(){return getRequestHeaderSize()>9728}function buildOversizedHeadersResponse(){return{statusCode:431,statusDescription:\"Request Header Fields Too Large\",headers:{\"cache-control\":{value:\"no-store\"},\"content-type\":{value:\"text/plain; charset=utf-8\"}},body:{encoding:\"text\",data:\"Request headers are too large. Reduce cookie size and try again.\"}}}function getRequestHeaderSize(){var size=0;for(var key2 in event.request.headers){var header=event.request.headers[key2];if(header.multiValue)for(var i2=0;i2<header.multiValue.length;i2++)size+=key2.length+header.multiValue[i2].value.length+4;else header.value&&(size+=key2.length+header.value.length+4)}var cookies=[];for(var key2 in event.request.cookies){var cookie=event.request.cookies[key2];if(cookie.multiValue)for(var i2=0;i2<cookie.multiValue.length;i2++)cookies.push(key2+\"=\"+cookie.multiValue[i2].value);else cookies.push(key2+\"=\"+cookie.value)}return cookies.length&&(size+=10+cookies.join(\"; \").length),size}function findNearestServer(servers){if(servers.length===1)return servers[0][0];const h=event.request.headers,lat=h[\"cloudfront-viewer-latitude\"]&&h[\"cloudfront-viewer-latitude\"].value,lon=h[\"cloudfront-viewer-longitude\"]&&h[\"cloudfront-viewer-longitude\"].value;return!lat||!lon?servers[0][0]:servers.map(s=>({distance:haversineDistance(lat,lon,s[1],s[2]),host:s[0]})).sort((a,b)=>a.distance-b.distance)[0].host}function haversineDistance(lat1,lon1,lat2,lon2){const toRad=angle=>angle*Math.PI/180,radLat1=toRad(lat1),radLat2=toRad(lat2),dLat=toRad(lat2-lat1),dLon=toRad(lon2-lon1),a=Math.sin(dLat/2)**2+Math.cos(radLat1)*Math.cos(radLat2)*Math.sin(dLon/2)**2;return 2*Math.atan2(Math.sqrt(a),Math.sqrt(1-a))}}function setForwardedHost(){event.request.headers[\"x-forwarded-host\"]=event.request.headers.host}function setUrlOrigin(urlHost,override){setForwardedHost();const origin={domainName:urlHost,customOriginConfig:{port:443,protocol:\"https\",sslProtocols:[\"TLSv1.2\"]},originAccessControlConfig:{enabled:!1}};override=override!=null?override:{},override.protocol===\"http\"&&delete origin.customOriginConfig,override.connectionAttempts&&(origin.connectionAttempts=override.connectionAttempts),override.timeouts&&(origin.timeouts=override.timeouts),override.originAccessControlConfig&&(origin.originAccessControlConfig=override.originAccessControlConfig),cf.updateRequestOrigin(origin)}function setS3Origin(s3Domain,override){delete event.request.headers.Cookies,delete event.request.headers.cookies,delete event.request.cookies;const origin={domainName:s3Domain,originAccessControlConfig:{enabled:!0,signingBehavior:\"always\",signingProtocol:\"sigv4\",originType:\"s3\"}};override=override!=null?override:{},override.connectionAttempts&&(origin.connectionAttempts=override.connectionAttempts),override.timeouts&&(origin.timeouts=override.timeouts),cf.updateRequestOrigin(origin)}\n\n\n  const kvNamespace = \"a665\";\n\n  // Load metadata\n  let metadata;\n  try {\n    const v = await cf.kvs().get(kvNamespace + \":metadata\");\n    metadata = JSON.parse(v);\n  } catch (e) {}\n\n  const response = await routeSite(kvNamespace, metadata);\n  return response || event.request;\n}",
+                        "keyValueStoreAssociations": [
+                            "arn:aws:cloudfront::602840636720:key-value-store/f47eddea-bf3e-4ada-8580-d68ba221f93e"
+                        ],
+                        "name": "flowjoe-production-WebCloudfrontFunctionRequest-zvsvhkhx",
+                        "publish": true,
+                        "runtime": "cloudfront-js-2.0"
+                    },
+                    "outputs": {
+                        "__pulumi_raw_state_delta": {
+                            "obj": {
+                                "ps": {
+                                    "keyValueStoreAssociations": {
+                                        "arr": {}
+                                    }
+                                }
+                            }
+                        },
+                        "arn": "arn:aws:cloudfront::602840636720:function/flowjoe-production-WebCloudfrontFunctionRequest-zvsvhkhx",
+                        "code": "\nimport cf from \"cloudfront\";\nasync function handler(event) {\n  \n  \n  async function routeSite(kvNamespace,metadata){const baselessUri=metadata.base?event.request.uri.replace(metadata.base,\"\"):event.request.uri;try{const u=decodeURIComponent(baselessUri),postfixes=u.endsWith(\"/\")?[\"index.html\"]:[\"\",\".html\",\"/index.html\"],v=await Promise.any(postfixes.map(p=>cf.kvs().get(kvNamespace+\":\"+u+p).then(v2=>p)));event.request.uri=metadata.s3.dir+event.request.uri+v,setS3Origin(metadata.s3.domain);return}catch(e){}if(metadata.s3&&metadata.s3.routes)for(var i=0,l=metadata.s3.routes.length;i<l;i++){const route=metadata.s3.routes[i];if(baselessUri.startsWith(route)){event.request.uri=metadata.s3.dir+event.request.uri,event.request.uri.endsWith(\"/\")?event.request.uri+=\"index.html\":event.request.uri.split(\"/\").pop().includes(\".\")||(event.request.uri+=\"/index.html\"),setS3Origin(metadata.s3.domain);return}}if(metadata.custom404&&!metadata.errorResponseCode){event.request.uri=metadata.s3.dir+(metadata.base?metadata.base:\"\")+metadata.custom404,setS3Origin(metadata.s3.domain);return}if(metadata.s3&&!metadata.servers){event.request.uri=metadata.s3.dir+event.request.uri,setS3Origin(metadata.s3.domain);return}if(metadata.image&&baselessUri.startsWith(metadata.image.route)){if(setForwardedHost(),setNextjsCacheKey(),isRequestHeaderTooLarge())return buildOversizedHeadersResponse();setUrlOrigin(metadata.image.host,metadata.image.originAccessControlConfig?{originAccessControlConfig:metadata.image.originAccessControlConfig}:void 0);return}if(metadata.servers){setForwardedHost();for(var key in event.request.querystring)key.includes(\"/\")&&(event.request.querystring[encodeURIComponent(key)]=event.request.querystring[key],delete event.request.querystring[key]);if(setNextjsGeoHeaders(),setNextjsCacheKey(),isRequestHeaderTooLarge())return buildOversizedHeadersResponse();setUrlOrigin(findNearestServer(metadata.servers),metadata.origin)}function setNextjsGeoHeaders(){for(var keys=[\"city\",\"country\",\"region\",\"latitude\",\"longitude\"],i2=0;i2<keys.length;i2++)event.request.headers[\"cloudfront-viewer-\"+keys[i2]]&&(event.request.headers[\"x-open-next-\"+keys[i2]]=event.request.headers[\"cloudfront-viewer-\"+keys[i2]])}function setNextjsCacheKey(){var cacheKey=\"\";if(event.request.uri.startsWith(\"/_next/image\"))cacheKey=getHeader(\"accept\");else for(var headers=[\"rsc\",\"next-router-prefetch\",\"next-router-state-tree\",\"next-url\",\"x-prerender-revalidate\"],i2=0;i2<headers.length;i2++)cacheKey+=getHeader(headers[i2]);event.request.cookies.__prerender_bypass&&(cacheKey+=event.request.cookies.__prerender_bypass?event.request.cookies.__prerender_bypass.value:\"\");var crypto=require(\"crypto\"),hashedKey=crypto.createHash(\"md5\").update(cacheKey).digest(\"hex\");event.request.headers[\"x-open-next-cache-key\"]={value:hashedKey}}function getHeader(key2){var header=event.request.headers[key2];if(header){if(header.multiValue)return header.multiValue.map(header2=>header2.value).join(\",\");if(header.value)return header.value}return\"\"}function isRequestHeaderTooLarge(){return getRequestHeaderSize()>9728}function buildOversizedHeadersResponse(){return{statusCode:431,statusDescription:\"Request Header Fields Too Large\",headers:{\"cache-control\":{value:\"no-store\"},\"content-type\":{value:\"text/plain; charset=utf-8\"}},body:{encoding:\"text\",data:\"Request headers are too large. Reduce cookie size and try again.\"}}}function getRequestHeaderSize(){var size=0;for(var key2 in event.request.headers){var header=event.request.headers[key2];if(header.multiValue)for(var i2=0;i2<header.multiValue.length;i2++)size+=key2.length+header.multiValue[i2].value.length+4;else header.value&&(size+=key2.length+header.value.length+4)}var cookies=[];for(var key2 in event.request.cookies){var cookie=event.request.cookies[key2];if(cookie.multiValue)for(var i2=0;i2<cookie.multiValue.length;i2++)cookies.push(key2+\"=\"+cookie.multiValue[i2].value);else cookies.push(key2+\"=\"+cookie.value)}return cookies.length&&(size+=10+cookies.join(\"; \").length),size}function findNearestServer(servers){if(servers.length===1)return servers[0][0];const h=event.request.headers,lat=h[\"cloudfront-viewer-latitude\"]&&h[\"cloudfront-viewer-latitude\"].value,lon=h[\"cloudfront-viewer-longitude\"]&&h[\"cloudfront-viewer-longitude\"].value;return!lat||!lon?servers[0][0]:servers.map(s=>({distance:haversineDistance(lat,lon,s[1],s[2]),host:s[0]})).sort((a,b)=>a.distance-b.distance)[0].host}function haversineDistance(lat1,lon1,lat2,lon2){const toRad=angle=>angle*Math.PI/180,radLat1=toRad(lat1),radLat2=toRad(lat2),dLat=toRad(lat2-lat1),dLon=toRad(lon2-lon1),a=Math.sin(dLat/2)**2+Math.cos(radLat1)*Math.cos(radLat2)*Math.sin(dLon/2)**2;return 2*Math.atan2(Math.sqrt(a),Math.sqrt(1-a))}}function setForwardedHost(){event.request.headers[\"x-forwarded-host\"]=event.request.headers.host}function setUrlOrigin(urlHost,override){setForwardedHost();const origin={domainName:urlHost,customOriginConfig:{port:443,protocol:\"https\",sslProtocols:[\"TLSv1.2\"]},originAccessControlConfig:{enabled:!1}};override=override!=null?override:{},override.protocol===\"http\"&&delete origin.customOriginConfig,override.connectionAttempts&&(origin.connectionAttempts=override.connectionAttempts),override.timeouts&&(origin.timeouts=override.timeouts),override.originAccessControlConfig&&(origin.originAccessControlConfig=override.originAccessControlConfig),cf.updateRequestOrigin(origin)}function setS3Origin(s3Domain,override){delete event.request.headers.Cookies,delete event.request.headers.cookies,delete event.request.cookies;const origin={domainName:s3Domain,originAccessControlConfig:{enabled:!0,signingBehavior:\"always\",signingProtocol:\"sigv4\",originType:\"s3\"}};override=override!=null?override:{},override.connectionAttempts&&(origin.connectionAttempts=override.connectionAttempts),override.timeouts&&(origin.timeouts=override.timeouts),cf.updateRequestOrigin(origin)}\n\n\n  const kvNamespace = \"a665\";\n\n  // Load metadata\n  let metadata;\n  try {\n    const v = await cf.kvs().get(kvNamespace + \":metadata\");\n    metadata = JSON.parse(v);\n  } catch (e) {}\n\n  const response = await routeSite(kvNamespace, metadata);\n  return response || event.request;\n}",
+                        "comment": "",
+                        "etag": "ETVPDKIKX0DER",
+                        "id": "flowjoe-production-WebCloudfrontFunctionRequest-zvsvhkhx",
+                        "keyValueStoreAssociations": [
+                            "arn:aws:cloudfront::602840636720:key-value-store/f47eddea-bf3e-4ada-8580-d68ba221f93e"
+                        ],
+                        "liveStageEtag": "ETVPDKIKX0DER",
+                        "name": "flowjoe-production-WebCloudfrontFunctionRequest-zvsvhkhx",
+                        "publish": true,
+                        "runtime": "cloudfront-js-2.0",
+                        "status": "UNASSOCIATED"
+                    },
+                    "parent": "urn:pulumi:production::flowjoe::sst:aws:StaticSite::Web",
+                    "dependencies": [
+                        "urn:pulumi:production::flowjoe::sst:aws:StaticSite$aws:cloudfront/keyValueStore:KeyValueStore::WebKvStore"
+                    ],
+                    "provider": "urn:pulumi:production::flowjoe::pulumi:providers:aws::default_7_20_0::55ebcf4b-a06e-4ed1-9eb9-ffc7e389283b",
+                    "propertyDependencies": {
+                        "code": [],
+                        "keyValueStoreAssociations": [
+                            "urn:pulumi:production::flowjoe::sst:aws:StaticSite$aws:cloudfront/keyValueStore:KeyValueStore::WebKvStore"
+                        ],
+                        "name": [],
+                        "runtime": []
+                    },
+                    "created": "2026-05-27T00:18:11.642558177Z",
+                    "modified": "2026-05-27T00:18:11.642558177Z",
+                    "stackTrace": [
+                        {},
+                        {},
+                        {}
+                    ],
+                    "ignoreChanges": [
+                        "name"
+                    ]
+                },
+                {
+                    "urn": "urn:pulumi:production::flowjoe::sst:aws:StaticSite$sst:aws:Bucket$aws:s3/bucketCorsConfiguration:BucketCorsConfiguration::WebAssetsCors",
+                    "custom": true,
+                    "id": "flowjoe-production-webassetsbucket-tkcvxuwh",
+                    "type": "aws:s3/bucketCorsConfiguration:BucketCorsConfiguration",
+                    "inputs": {
+                        "__defaults": [],
+                        "bucket": "flowjoe-production-webassetsbucket-tkcvxuwh",
+                        "corsRules": [
+                            {
+                                "__defaults": [],
+                                "allowedHeaders": [
+                                    "*"
+                                ],
+                                "allowedMethods": [
+                                    "DELETE",
+                                    "GET",
+                                    "HEAD",
+                                    "POST",
+                                    "PUT"
+                                ],
+                                "allowedOrigins": [
+                                    "*"
+                                ],
+                                "exposeHeaders": [
+                                    "ETag"
+                                ],
+                                "maxAgeSeconds": 0
+                            }
+                        ],
+                        "region": "ap-southeast-1"
+                    },
+                    "outputs": {
+                        "__pulumi_raw_state_delta": {
+                            "obj": {
+                                "ps": {
+                                    "corsRules": {
+                                        "arr": {
+                                            "el": {
+                                                "0": {
+                                                    "obj": {
+                                                        "ps": {
+                                                            "allowedHeaders": {
+                                                                "arr": {}
+                                                            },
+                                                            "allowedMethods": {
+                                                                "arr": {}
+                                                            },
+                                                            "allowedOrigins": {
+                                                                "arr": {}
+                                                            },
+                                                            "exposeHeaders": {
+                                                                "arr": {}
+                                                            }
+                                                        }
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
+                                },
+                                "renamed": {
+                                    "corsRules": "cors_rule"
+                                }
+                            }
+                        },
+                        "bucket": "flowjoe-production-webassetsbucket-tkcvxuwh",
+                        "corsRules": [
+                            {
+                                "allowedHeaders": [
+                                    "*"
+                                ],
+                                "allowedMethods": [
+                                    "DELETE",
+                                    "GET",
+                                    "HEAD",
+                                    "POST",
+                                    "PUT"
+                                ],
+                                "allowedOrigins": [
+                                    "*"
+                                ],
+                                "exposeHeaders": [
+                                    "ETag"
+                                ],
+                                "id": "",
+                                "maxAgeSeconds": 0
+                            }
+                        ],
+                        "expectedBucketOwner": "",
+                        "id": "flowjoe-production-webassetsbucket-tkcvxuwh",
+                        "region": "ap-southeast-1"
+                    },
+                    "parent": "urn:pulumi:production::flowjoe::sst:aws:StaticSite$sst:aws:Bucket::WebAssets",
+                    "dependencies": [
+                        "urn:pulumi:production::flowjoe::sst:aws:StaticSite$sst:aws:Bucket$aws:s3/bucket:Bucket::WebAssetsBucket"
+                    ],
+                    "provider": "urn:pulumi:production::flowjoe::pulumi:providers:aws::default_7_20_0::55ebcf4b-a06e-4ed1-9eb9-ffc7e389283b",
+                    "propertyDependencies": {
+                        "bucket": [
+                            "urn:pulumi:production::flowjoe::sst:aws:StaticSite$sst:aws:Bucket$aws:s3/bucket:Bucket::WebAssetsBucket"
+                        ],
+                        "corsRules": []
+                    },
+                    "created": "2026-05-27T00:18:02.953357449Z",
+                    "modified": "2026-05-27T00:18:02.953357449Z",
+                    "stackTrace": [
+                        {},
+                        {},
+                        {}
+                    ]
+                },
+                {
+                    "urn": "urn:pulumi:production::flowjoe::sst:aws:StaticSite$sst:aws:Bucket$aws:s3/bucketPublicAccessBlock:BucketPublicAccessBlock::WebAssetsPublicAccessBlock",
+                    "custom": true,
+                    "id": "flowjoe-production-webassetsbucket-tkcvxuwh",
+                    "type": "aws:s3/bucketPublicAccessBlock:BucketPublicAccessBlock",
+                    "inputs": {
+                        "__defaults": [],
+                        "blockPublicAcls": true,
+                        "blockPublicPolicy": true,
+                        "bucket": "flowjoe-production-webassetsbucket-tkcvxuwh",
+                        "ignorePublicAcls": true,
+                        "region": "ap-southeast-1",
+                        "restrictPublicBuckets": true
+                    },
+                    "outputs": {
+                        "__pulumi_raw_state_delta": {
+                            "obj": {}
+                        },
+                        "blockPublicAcls": true,
+                        "blockPublicPolicy": true,
+                        "bucket": "flowjoe-production-webassetsbucket-tkcvxuwh",
+                        "id": "flowjoe-production-webassetsbucket-tkcvxuwh",
+                        "ignorePublicAcls": true,
+                        "region": "ap-southeast-1",
+                        "restrictPublicBuckets": true,
+                        "skipDestroy": null
+                    },
+                    "parent": "urn:pulumi:production::flowjoe::sst:aws:StaticSite$sst:aws:Bucket::WebAssets",
+                    "dependencies": [
+                        "urn:pulumi:production::flowjoe::sst:aws:StaticSite$sst:aws:Bucket$aws:s3/bucket:Bucket::WebAssetsBucket"
+                    ],
+                    "provider": "urn:pulumi:production::flowjoe::pulumi:providers:aws::default_7_20_0::55ebcf4b-a06e-4ed1-9eb9-ffc7e389283b",
+                    "propertyDependencies": {
+                        "blockPublicAcls": [],
+                        "blockPublicPolicy": [],
+                        "bucket": [
+                            "urn:pulumi:production::flowjoe::sst:aws:StaticSite$sst:aws:Bucket$aws:s3/bucket:Bucket::WebAssetsBucket"
+                        ],
+                        "ignorePublicAcls": [],
+                        "restrictPublicBuckets": []
+                    },
+                    "created": "2026-05-27T00:18:01.852009127Z",
+                    "modified": "2026-05-27T00:18:01.852009127Z"
+                },
+                {
+                    "urn": "urn:pulumi:production::flowjoe::sst:aws:StaticSite$sst:aws:Bucket$aws:s3/bucketPolicy:BucketPolicy::WebAssetsPolicy",
+                    "custom": true,
+                    "id": "flowjoe-production-webassetsbucket-tkcvxuwh",
+                    "type": "aws:s3/bucketPolicy:BucketPolicy",
+                    "inputs": {
+                        "__defaults": [],
+                        "bucket": "flowjoe-production-webassetsbucket-tkcvxuwh",
+                        "policy": "{\n  \"Version\": \"2012-10-17\",\n  \"Statement\": [\n    {\n      \"Effect\": \"Allow\",\n      \"Action\": \"s3:GetObject\",\n      \"Resource\": \"arn:aws:s3:::flowjoe-production-webassetsbucket-tkcvxuwh/*\",\n      \"Principal\": {\n        \"Service\": \"cloudfront.amazonaws.com\"\n      }\n    },\n    {\n      \"Effect\": \"Deny\",\n      \"Action\": \"s3:*\",\n      \"Resource\": [\n        \"arn:aws:s3:::flowjoe-production-webassetsbucket-tkcvxuwh/*\",\n        \"arn:aws:s3:::flowjoe-production-webassetsbucket-tkcvxuwh\"\n      ],\n      \"Principal\": \"*\",\n      \"Condition\": {\n        \"Bool\": {\n          \"aws:SecureTransport\": \"false\"\n        }\n      }\n    }\n  ]\n}",
+                        "region": "ap-southeast-1"
+                    },
+                    "outputs": {
+                        "__pulumi_raw_state_delta": {
+                            "obj": {}
+                        },
+                        "bucket": "flowjoe-production-webassetsbucket-tkcvxuwh",
+                        "id": "flowjoe-production-webassetsbucket-tkcvxuwh",
+                        "policy": "{\"Statement\":[{\"Action\":\"s3:GetObject\",\"Effect\":\"Allow\",\"Principal\":{\"Service\":\"cloudfront.amazonaws.com\"},\"Resource\":\"arn:aws:s3:::flowjoe-production-webassetsbucket-tkcvxuwh/*\"},{\"Action\":\"s3:*\",\"Condition\":{\"Bool\":{\"aws:SecureTransport\":\"false\"}},\"Effect\":\"Deny\",\"Principal\":\"*\",\"Resource\":[\"arn:aws:s3:::flowjoe-production-webassetsbucket-tkcvxuwh/*\",\"arn:aws:s3:::flowjoe-production-webassetsbucket-tkcvxuwh\"]}],\"Version\":\"2012-10-17\"}",
+                        "region": "ap-southeast-1"
+                    },
+                    "parent": "urn:pulumi:production::flowjoe::sst:aws:StaticSite$sst:aws:Bucket::WebAssets",
+                    "dependencies": [
+                        "urn:pulumi:production::flowjoe::sst:aws:StaticSite$sst:aws:Bucket$aws:s3/bucketPublicAccessBlock:BucketPublicAccessBlock::WebAssetsPublicAccessBlock",
+                        "urn:pulumi:production::flowjoe::sst:aws:StaticSite$sst:aws:Bucket$aws:s3/bucket:Bucket::WebAssetsBucket"
+                    ],
+                    "provider": "urn:pulumi:production::flowjoe::pulumi:providers:aws::default_7_20_0::55ebcf4b-a06e-4ed1-9eb9-ffc7e389283b",
+                    "propertyDependencies": {
+                        "bucket": [
+                            "urn:pulumi:production::flowjoe::sst:aws:StaticSite$sst:aws:Bucket$aws:s3/bucket:Bucket::WebAssetsBucket"
+                        ],
+                        "policy": [
+                            "urn:pulumi:production::flowjoe::sst:aws:StaticSite$sst:aws:Bucket$aws:s3/bucket:Bucket::WebAssetsBucket"
+                        ]
+                    },
+                    "created": "2026-05-27T00:18:03.393524897Z",
+                    "modified": "2026-05-27T00:18:03.393524897Z",
+                    "stackTrace": [
+                        {},
+                        {},
+                        {}
+                    ]
+                },
+                {
+                    "urn": "urn:pulumi:production::flowjoe::sst:aws:StaticSite$sst:aws:CDN$aws:cloudfront/distribution:Distribution::WebCdnDistribution",
+                    "custom": true,
+                    "id": "E3SGLWMJVIWYO5",
+                    "type": "aws:cloudfront/distribution:Distribution",
+                    "inputs": {
+                        "__defaults": [
+                            "httpVersion",
+                            "isIpv6Enabled",
+                            "priceClass",
+                            "retainOnDelete",
+                            "staging"
+                        ],
+                        "aliases": [],
+                        "comment": "Web site",
+                        "customErrorResponses": [],
+                        "defaultCacheBehavior": {
+                            "__defaults": [
+                                "minTtl"
+                            ],
+                            "allowedMethods": [
+                                "DELETE",
+                                "GET",
+                                "HEAD",
+                                "OPTIONS",
+                                "PATCH",
+                                "POST",
+                                "PUT"
+                            ],
+                            "cachePolicyId": "658327ea-f89d-4fab-a63d-7e88639e58f6",
+                            "cachedMethods": [
+                                "GET",
+                                "HEAD"
+                            ],
+                            "compress": true,
+                            "functionAssociations": [
+                                {
+                                    "__defaults": [],
+                                    "eventType": "viewer-request",
+                                    "functionArn": "arn:aws:cloudfront::602840636720:function/flowjoe-production-WebCloudfrontFunctionRequest-zvsvhkhx"
+                                }
+                            ],
+                            "minTtl": 0,
+                            "targetOriginId": "default",
+                            "viewerProtocolPolicy": "redirect-to-https"
+                        },
+                        "enabled": true,
+                        "httpVersion": "http2",
+                        "isIpv6Enabled": false,
+                        "origins": [
+                            {
+                                "__defaults": [
+                                    "connectionAttempts",
+                                    "connectionTimeout",
+                                    "originPath"
+                                ],
+                                "connectionAttempts": 3,
+                                "connectionTimeout": 10,
+                                "customOriginConfig": {
+                                    "__defaults": [
+                                        "originKeepaliveTimeout"
+                                    ],
+                                    "httpPort": 80,
+                                    "httpsPort": 443,
+                                    "originKeepaliveTimeout": 5,
+                                    "originProtocolPolicy": "https-only",
+                                    "originReadTimeout": 20,
+                                    "originSslProtocols": [
+                                        "TLSv1.2"
+                                    ]
+                                },
+                                "domainName": "placeholder.sst.dev",
+                                "originId": "default",
+                                "originPath": ""
+                            }
+                        ],
+                        "priceClass": "PriceClass_All",
+                        "restrictions": {
+                            "__defaults": [],
+                            "geoRestriction": {
+                                "__defaults": [],
+                                "restrictionType": "none"
+                            }
+                        },
+                        "retainOnDelete": false,
+                        "staging": false,
+                        "tagsAll": {
+                            "sst:app": "flowjoe",
+                            "sst:stage": "production"
+                        },
+                        "viewerCertificate": {
+                            "__defaults": [
+                                "minimumProtocolVersion"
+                            ],
+                            "cloudfrontDefaultCertificate": true,
+                            "minimumProtocolVersion": "TLSv1"
+                        },
+                        "waitForDeployment": false
+                    },
+                    "outputs": {
+                        "__meta": "{\"schema_version\":\"1\"}",
+                        "__pulumi_raw_state_delta": {
+                            "obj": {
+                                "ps": {
+                                    "connectionFunctionAssociation": {
+                                        "plu": {
+                                            "i": {}
+                                        }
+                                    },
+                                    "customErrorResponses": {
+                                        "arr": {}
+                                    },
+                                    "defaultCacheBehavior": {
+                                        "plu": {
+                                            "i": {
+                                                "obj": {
+                                                    "ps": {
+                                                        "allowedMethods": {
+                                                            "arr": {}
+                                                        },
+                                                        "cachedMethods": {
+                                                            "arr": {}
+                                                        },
+                                                        "forwardedValues": {
+                                                            "plu": {
+                                                                "i": {}
+                                                            }
+                                                        },
+                                                        "functionAssociations": {
+                                                            "arr": {
+                                                                "el": {
+                                                                    "0": {
+                                                                        "obj": {}
+                                                                    }
+                                                                }
+                                                            }
+                                                        },
+                                                        "grpcConfig": {
+                                                            "plu": {
+                                                                "i": {
+                                                                    "obj": {}
+                                                                }
+                                                            }
+                                                        },
+                                                        "lambdaFunctionAssociations": {
+                                                            "arr": {}
+                                                        },
+                                                        "trustedKeyGroups": {
+                                                            "arr": {}
+                                                        },
+                                                        "trustedSigners": {
+                                                            "arr": {}
+                                                        }
+                                                    },
+                                                    "renamed": {
+                                                        "functionAssociations": "function_association",
+                                                        "lambdaFunctionAssociations": "lambda_function_association"
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    },
+                                    "loggingConfig": {
+                                        "plu": {
+                                            "i": {}
+                                        }
+                                    },
+                                    "orderedCacheBehaviors": {
+                                        "arr": {}
+                                    },
+                                    "originGroups": {
+                                        "arr": {}
+                                    },
+                                    "origins": {
+                                        "arr": {
+                                            "el": {
+                                                "0": {
+                                                    "obj": {
+                                                        "ps": {
+                                                            "customHeaders": {
+                                                                "arr": {}
+                                                            },
+                                                            "customOriginConfig": {
+                                                                "plu": {
+                                                                    "i": {
+                                                                        "obj": {
+                                                                            "ps": {
+                                                                                "originSslProtocols": {
+                                                                                    "arr": {}
+                                                                                }
+                                                                            }
+                                                                        }
+                                                                    }
+                                                                }
+                                                            },
+                                                            "originShield": {
+                                                                "plu": {
+                                                                    "i": {}
+                                                                }
+                                                            },
+                                                            "s3OriginConfig": {
+                                                                "plu": {
+                                                                    "i": {}
+                                                                }
+                                                            },
+                                                            "vpcOriginConfig": {
+                                                                "plu": {
+                                                                    "i": {}
+                                                                }
+                                                            }
+                                                        },
+                                                        "renamed": {
+                                                            "customHeaders": "custom_header"
+                                                        }
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    },
+                                    "restrictions": {
+                                        "plu": {
+                                            "i": {
+                                                "obj": {
+                                                    "ps": {
+                                                        "geoRestriction": {
+                                                            "plu": {
+                                                                "i": {
+                                                                    "obj": {
+                                                                        "ps": {
+                                                                            "locations": {
+                                                                                "arr": {}
+                                                                            }
+                                                                        }
+                                                                    }
+                                                                }
+                                                            }
+                                                        }
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    },
+                                    "tagsAll": {
+                                        "map": {}
+                                    },
+                                    "trustedKeyGroups": {
+                                        "arr": {
+                                            "el": {
+                                                "0": {
+                                                    "obj": {
+                                                        "ps": {
+                                                            "items": {
+                                                                "arr": {}
+                                                            }
+                                                        }
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    },
+                                    "trustedSigners": {
+                                        "arr": {
+                                            "el": {
+                                                "0": {
+                                                    "obj": {
+                                                        "ps": {
+                                                            "items": {
+                                                                "arr": {}
+                                                            }
+                                                        }
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    },
+                                    "viewerCertificate": {
+                                        "plu": {
+                                            "i": {
+                                                "obj": {}
+                                            }
+                                        }
+                                    },
+                                    "viewerMtlsConfig": {
+                                        "plu": {
+                                            "i": {}
+                                        }
+                                    }
+                                },
+                                "renamed": {
+                                    "customErrorResponses": "custom_error_response",
+                                    "orderedCacheBehaviors": "ordered_cache_behavior",
+                                    "originGroups": "origin_group",
+                                    "origins": "origin"
+                                }
+                            }
+                        },
+                        "aliases": null,
+                        "anycastIpListId": "",
+                        "arn": "arn:aws:cloudfront::602840636720:distribution/E3SGLWMJVIWYO5",
+                        "callerReference": "terraform-20260527001811693100000001",
+                        "comment": "Web site",
+                        "connectionFunctionAssociation": null,
+                        "continuousDeploymentPolicyId": "",
+                        "customErrorResponses": [],
+                        "defaultCacheBehavior": {
+                            "allowedMethods": [
+                                "DELETE",
+                                "GET",
+                                "HEAD",
+                                "OPTIONS",
+                                "PATCH",
+                                "POST",
+                                "PUT"
+                            ],
+                            "cachePolicyId": "658327ea-f89d-4fab-a63d-7e88639e58f6",
+                            "cachedMethods": [
+                                "GET",
+                                "HEAD"
+                            ],
+                            "compress": true,
+                            "defaultTtl": 0,
+                            "fieldLevelEncryptionId": "",
+                            "forwardedValues": null,
+                            "functionAssociations": [
+                                {
+                                    "eventType": "viewer-request",
+                                    "functionArn": "arn:aws:cloudfront::602840636720:function/flowjoe-production-WebCloudfrontFunctionRequest-zvsvhkhx"
+                                }
+                            ],
+                            "grpcConfig": {
+                                "enabled": false
+                            },
+                            "lambdaFunctionAssociations": [],
+                            "maxTtl": 0,
+                            "minTtl": 0,
+                            "originRequestPolicyId": "",
+                            "realtimeLogConfigArn": "",
+                            "responseHeadersPolicyId": "",
+                            "smoothStreaming": false,
+                            "targetOriginId": "default",
+                            "trustedKeyGroups": [],
+                            "trustedSigners": [],
+                            "viewerProtocolPolicy": "redirect-to-https"
+                        },
+                        "defaultRootObject": "",
+                        "domainName": "d11qc1to1jay4v.cloudfront.net",
+                        "enabled": true,
+                        "etag": "E23ZP02F085DFQ",
+                        "hostedZoneId": "Z2FDTNDATAQYW2",
+                        "httpVersion": "http2",
+                        "id": "E3SGLWMJVIWYO5",
+                        "inProgressValidationBatches": 0,
+                        "isIpv6Enabled": false,
+                        "lastModifiedTime": "2026-05-27 00:18:11.785 +0000 UTC",
+                        "loggingConfig": null,
+                        "loggingV1Enabled": false,
+                        "orderedCacheBehaviors": [],
+                        "originGroups": [],
+                        "origins": [
+                            {
+                                "connectionAttempts": 3,
+                                "connectionTimeout": 10,
+                                "customHeaders": [],
+                                "customOriginConfig": {
+                                    "httpPort": 80,
+                                    "httpsPort": 443,
+                                    "ipAddressType": "",
+                                    "originKeepaliveTimeout": 5,
+                                    "originProtocolPolicy": "https-only",
+                                    "originReadTimeout": 20,
+                                    "originSslProtocols": [
+                                        "TLSv1.2"
+                                    ]
+                                },
+                                "domainName": "placeholder.sst.dev",
+                                "originAccessControlId": "",
+                                "originId": "default",
+                                "originPath": "",
+                                "originShield": null,
+                                "responseCompletionTimeout": 0,
+                                "s3OriginConfig": null,
+                                "vpcOriginConfig": null
+                            }
+                        ],
+                        "priceClass": "PriceClass_All",
+                        "restrictions": {
+                            "geoRestriction": {
+                                "locations": [],
+                                "restrictionType": "none"
+                            }
+                        },
+                        "retainOnDelete": false,
+                        "staging": false,
+                        "status": "InProgress",
+                        "tags": null,
+                        "tagsAll": {
+                            "sst:app": "flowjoe",
+                            "sst:stage": "production"
+                        },
+                        "trustedKeyGroups": [
+                            {
+                                "enabled": false,
+                                "items": []
+                            }
+                        ],
+                        "trustedSigners": [
+                            {
+                                "enabled": false,
+                                "items": []
+                            }
+                        ],
+                        "viewerCertificate": {
+                            "acmCertificateArn": "",
+                            "cloudfrontDefaultCertificate": true,
+                            "iamCertificateId": "",
+                            "minimumProtocolVersion": "TLSv1",
+                            "sslSupportMethod": ""
+                        },
+                        "viewerMtlsConfig": null,
+                        "waitForDeployment": false,
+                        "webAclId": ""
+                    },
+                    "parent": "urn:pulumi:production::flowjoe::sst:aws:StaticSite$sst:aws:CDN::WebCdn",
+                    "dependencies": [
+                        "urn:pulumi:production::flowjoe::sst:aws:StaticSite$aws:cloudfront/function:Function::WebCloudfrontFunctionRequest"
+                    ],
+                    "provider": "urn:pulumi:production::flowjoe::pulumi:providers:aws::default_7_20_0::55ebcf4b-a06e-4ed1-9eb9-ffc7e389283b",
+                    "propertyDependencies": {
+                        "aliases": [],
+                        "comment": [],
+                        "customErrorResponses": [],
+                        "defaultCacheBehavior": [
+                            "urn:pulumi:production::flowjoe::sst:aws:StaticSite$aws:cloudfront/function:Function::WebCloudfrontFunctionRequest"
+                        ],
+                        "enabled": [],
+                        "origins": [],
+                        "restrictions": [],
+                        "viewerCertificate": [],
+                        "waitForDeployment": []
+                    },
+                    "created": "2026-05-27T00:18:12.88781879Z",
+                    "modified": "2026-05-27T00:18:12.88781879Z"
+                },
+                {
+                    "urn": "urn:pulumi:production::flowjoe::sst:sst:LinkRef::WebLinkRef",
+                    "custom": false,
+                    "type": "sst:sst:LinkRef",
+                    "inputs": {
+                        "properties": {
+                            "url": "https://d11qc1to1jay4v.cloudfront.net"
+                        }
+                    },
+                    "outputs": {
+                        "properties": {
+                            "type": "sst.aws.StaticSite",
+                            "url": "https://d11qc1to1jay4v.cloudfront.net"
+                        },
+                        "target": "Web"
+                    },
+                    "parent": "urn:pulumi:production::flowjoe::pulumi:pulumi:Stack::flowjoe-production",
+                    "dependencies": [
+                        "urn:pulumi:production::flowjoe::sst:aws:StaticSite$sst:aws:CDN$aws:cloudfront/distribution:Distribution::WebCdnDistribution"
+                    ],
+                    "propertyDependencies": {
+                        "properties": [
+                            "urn:pulumi:production::flowjoe::sst:aws:StaticSite$sst:aws:CDN$aws:cloudfront/distribution:Distribution::WebCdnDistribution"
+                        ]
+                    },
+                    "created": "2026-05-26T17:10:46.520860841Z",
+                    "modified": "2026-05-26T17:10:46.520860841Z",
+                    "stackTrace": [
+                        {},
+                        {}
+                    ]
+                },
+                {
+                    "urn": "urn:pulumi:production::flowjoe::pulumi:providers:pulumi-nodejs::default",
+                    "custom": true,
+                    "id": "f58227dc-695f-4fb0-a16a-d76c9b9e8929",
+                    "type": "pulumi:providers:pulumi-nodejs",
+                    "inputs": {
+                        "aws:defaultTags": "{\"tags\":{\"sst:app\":\"flowjoe\",\"sst:stage\":\"production\"}}",
+                        "aws:region": "ap-southeast-1"
+                    },
+                    "outputs": {
+                        "aws:defaultTags": "{\"tags\":{\"sst:app\":\"flowjoe\",\"sst:stage\":\"production\"}}",
+                        "aws:region": "ap-southeast-1"
+                    },
+                    "created": "2026-05-26T17:10:47.33251947Z",
+                    "modified": "2026-05-26T17:10:47.33251947Z"
+                },
+                {
+                    "urn": "urn:pulumi:production::flowjoe::sst:aws:StaticSite$sst:aws:CDN$pulumi-nodejs:dynamic:Resource::WebCdnWaiter.sst.aws.DistributionDeploymentWaiter",
+                    "custom": true,
+                    "id": "waiter",
+                    "type": "pulumi-nodejs:dynamic:Resource",
+                    "inputs": {
+                        "__provider": "exports.handler = __f0;\n\nvar __provider_proto = {};\nObject.defineProperty(__f1, \"prototype\", { value: __provider_proto });\nObject.defineProperty(__provider_proto, \"constructor\", { configurable: true, writable: true, value: __f1 });\nObject.defineProperty(__provider_proto, \"name\", { configurable: true, writable: true, value: __f2 });\nObject.setPrototypeOf(__f4, global.Error);\nObject.defineProperty(__provider_proto, \"create\", { configurable: true, writable: true, value: __f3 });\nObject.defineProperty(__provider_proto, \"delete\", { configurable: true, writable: true, value: __f5 });\nObject.defineProperty(__provider_proto, \"update\", { configurable: true, writable: true, value: __f6 });\nObject.defineProperty(__provider_proto, \"read\", { configurable: true, writable: true, value: __f7 });\nObject.defineProperty(__provider_proto, \"diff\", { configurable: true, writable: true, value: __f8 });\nvar __provider = Object.create(__provider_proto);\n__provider.type = \"Aws.DistributionDeploymentWaiter\";\n\nfunction __f1(__0) {\n  return (function() {\n    with({ this: undefined, arguments: undefined }) {\n\nreturn function /*constructor*/(type) {\n      this.type = type;\n    };\n\n    }\n  }).apply(undefined, undefined).apply(this, arguments);\n}\n\nfunction __f2(__0) {\n  return (function() {\n    with({ this: undefined, arguments: undefined }) {\n\nreturn function /*name*/(action) {\n      return \"Resource.\" + this.type + \".\" + action;\n    };\n\n    }\n  }).apply(undefined, undefined).apply(this, arguments);\n}\n\nfunction __f4(__0) {\n  return (function() {\n    with({ __super: global.Error, this: undefined, arguments: undefined }) {\n\nreturn function /*constructor*/(method) {\n    __super.call(this, `Method \"${method}\" not found`);\n    this.method = method;\n};\n\n    }\n  }).apply(undefined, undefined).apply(this, arguments);\n}\nconst http = require(\"http\");\n\nfunction __call(__0, __1) {\n  return (function() {\n    with({ MethodNotFoundError: __f4, call: __call, this: undefined, arguments: undefined }) {\n\nreturn async function /*call*/(method, args) {\n    return new Promise((resolve, reject) => {\n      const url = new URL(process.env.SST_SERVER + \"/rpc\");\n      const options = {\n        hostname: url.hostname,\n        port: url.port,\n        path: url.pathname,\n        method: \"POST\",\n        headers: {\n          \"Content-Type\": \"application/json\"\n        }\n      };\n      const req = http.request(options, (res) => {\n        let data = \"\";\n        res.on(\"data\", (chunk) => {\n          data += chunk;\n        });\n        res.on(\"end\", () => {\n          if (res.statusCode !== 200) {\n            reject(new Error(`Failed to call RPC: ${data}`));\n            return;\n          }\n          try {\n            const json = JSON.parse(data);\n            if (json.error) {\n              if (json.error.startsWith(\"rpc: can't find\")) {\n                reject(new MethodNotFoundError(method));\n                return;\n              }\n              reject(new Error(json.error));\n              return;\n            }\n            resolve(json.result);\n          } catch (error) {\n            reject(new Error(`Failed to parse JSON: ${error.message}`));\n          }\n        });\n      });\n      req.on(\"error\", (error) => {\n        reject(error);\n      });\n      req.setTimeout(0);\n      const body = JSON.stringify({\n        jsonrpc: \"1.0\",\n        method,\n        params: [args]\n      });\n      req.write(body);\n      req.end();\n    });\n  };\n\n    }\n  }).apply(undefined, undefined).apply(this, arguments);\n}\n\nfunction __f3(__0) {\n  return (function() {\n    with({ call: __call, this: undefined, arguments: undefined }) {\n\nreturn async function /*create*/(inputs) {\n      return call(this.name(\"Create\"), inputs);\n    };\n\n    }\n  }).apply(undefined, undefined).apply(this, arguments);\n}\n\nfunction __f5(__0, __1) {\n  return (function() {\n    with({ call: __call, MethodNotFoundError: __f4, this: undefined, arguments: undefined }) {\n\nreturn async function /*delete*/(id, outs) {\n      return call(this.name(\"Delete\"), { id, outs }).catch((ex) => {\n        if (ex instanceof MethodNotFoundError) return;\n        throw ex;\n      });\n    };\n\n    }\n  }).apply(undefined, undefined).apply(this, arguments);\n}\n\nfunction __f6(__0, __1, __2) {\n  return (function() {\n    with({ call: __call, MethodNotFoundError: __f4, this: undefined, arguments: undefined }) {\n\nreturn async function /*update*/(id, olds, news) {\n      return call(this.name(\"Update\"), { id, olds, news }).catch((ex) => {\n        if (ex instanceof MethodNotFoundError)\n          return {\n            id\n          };\n        throw ex;\n      });\n    };\n\n    }\n  }).apply(undefined, undefined).apply(this, arguments);\n}\n\nfunction __f7(__0, __1) {\n  return (function() {\n    with({ call: __call, MethodNotFoundError: __f4, this: undefined, arguments: undefined }) {\n\nreturn async function /*read*/(id, props) {\n      return call(this.name(\"Read\"), { id, props }).catch((ex) => {\n        if (ex instanceof MethodNotFoundError) return { id, props };\n        throw ex;\n      });\n    };\n\n    }\n  }).apply(undefined, undefined).apply(this, arguments);\n}\n\nfunction __f8(__0, __1, __2) {\n  return (function() {\n    with({ call: __call, MethodNotFoundError: __f4, this: undefined, arguments: undefined }) {\n\nreturn async function /*diff*/(id, olds, news) {\n      return call(this.name(\"Diff\"), { id, olds, news }).catch((ex) => {\n        if (ex instanceof MethodNotFoundError) return { id, olds, news };\n        throw ex;\n      });\n    };\n\n    }\n  }).apply(undefined, undefined).apply(this, arguments);\n}\n\nfunction __f0() {\n  return (function() {\n    with({ provider: __provider, this: undefined, arguments: undefined }) {\n\nreturn () => provider;\n\n    }\n  }).apply(undefined, undefined).apply(this, arguments);\n}\n",
+                        "distributionId": "E3SGLWMJVIWYO5",
+                        "etag": "E23ZP02F085DFQ",
+                        "wait": true
+                    },
+                    "outputs": {
+                        "__provider": "exports.handler = __f0;\n\nvar __provider_proto = {};\nObject.defineProperty(__f1, \"prototype\", { value: __provider_proto });\nObject.defineProperty(__provider_proto, \"constructor\", { configurable: true, writable: true, value: __f1 });\nObject.defineProperty(__provider_proto, \"name\", { configurable: true, writable: true, value: __f2 });\nObject.setPrototypeOf(__f4, global.Error);\nObject.defineProperty(__provider_proto, \"create\", { configurable: true, writable: true, value: __f3 });\nObject.defineProperty(__provider_proto, \"delete\", { configurable: true, writable: true, value: __f5 });\nObject.defineProperty(__provider_proto, \"update\", { configurable: true, writable: true, value: __f6 });\nObject.defineProperty(__provider_proto, \"read\", { configurable: true, writable: true, value: __f7 });\nObject.defineProperty(__provider_proto, \"diff\", { configurable: true, writable: true, value: __f8 });\nvar __provider = Object.create(__provider_proto);\n__provider.type = \"Aws.DistributionDeploymentWaiter\";\n\nfunction __f1(__0) {\n  return (function() {\n    with({ this: undefined, arguments: undefined }) {\n\nreturn function /*constructor*/(type) {\n      this.type = type;\n    };\n\n    }\n  }).apply(undefined, undefined).apply(this, arguments);\n}\n\nfunction __f2(__0) {\n  return (function() {\n    with({ this: undefined, arguments: undefined }) {\n\nreturn function /*name*/(action) {\n      return \"Resource.\" + this.type + \".\" + action;\n    };\n\n    }\n  }).apply(undefined, undefined).apply(this, arguments);\n}\n\nfunction __f4(__0) {\n  return (function() {\n    with({ __super: global.Error, this: undefined, arguments: undefined }) {\n\nreturn function /*constructor*/(method) {\n    __super.call(this, `Method \"${method}\" not found`);\n    this.method = method;\n};\n\n    }\n  }).apply(undefined, undefined).apply(this, arguments);\n}\nconst http = require(\"http\");\n\nfunction __call(__0, __1) {\n  return (function() {\n    with({ MethodNotFoundError: __f4, call: __call, this: undefined, arguments: undefined }) {\n\nreturn async function /*call*/(method, args) {\n    return new Promise((resolve, reject) => {\n      const url = new URL(process.env.SST_SERVER + \"/rpc\");\n      const options = {\n        hostname: url.hostname,\n        port: url.port,\n        path: url.pathname,\n        method: \"POST\",\n        headers: {\n          \"Content-Type\": \"application/json\"\n        }\n      };\n      const req = http.request(options, (res) => {\n        let data = \"\";\n        res.on(\"data\", (chunk) => {\n          data += chunk;\n        });\n        res.on(\"end\", () => {\n          if (res.statusCode !== 200) {\n            reject(new Error(`Failed to call RPC: ${data}`));\n            return;\n          }\n          try {\n            const json = JSON.parse(data);\n            if (json.error) {\n              if (json.error.startsWith(\"rpc: can't find\")) {\n                reject(new MethodNotFoundError(method));\n                return;\n              }\n              reject(new Error(json.error));\n              return;\n            }\n            resolve(json.result);\n          } catch (error) {\n            reject(new Error(`Failed to parse JSON: ${error.message}`));\n          }\n        });\n      });\n      req.on(\"error\", (error) => {\n        reject(error);\n      });\n      req.setTimeout(0);\n      const body = JSON.stringify({\n        jsonrpc: \"1.0\",\n        method,\n        params: [args]\n      });\n      req.write(body);\n      req.end();\n    });\n  };\n\n    }\n  }).apply(undefined, undefined).apply(this, arguments);\n}\n\nfunction __f3(__0) {\n  return (function() {\n    with({ call: __call, this: undefined, arguments: undefined }) {\n\nreturn async function /*create*/(inputs) {\n      return call(this.name(\"Create\"), inputs);\n    };\n\n    }\n  }).apply(undefined, undefined).apply(this, arguments);\n}\n\nfunction __f5(__0, __1) {\n  return (function() {\n    with({ call: __call, MethodNotFoundError: __f4, this: undefined, arguments: undefined }) {\n\nreturn async function /*delete*/(id, outs) {\n      return call(this.name(\"Delete\"), { id, outs }).catch((ex) => {\n        if (ex instanceof MethodNotFoundError) return;\n        throw ex;\n      });\n    };\n\n    }\n  }).apply(undefined, undefined).apply(this, arguments);\n}\n\nfunction __f6(__0, __1, __2) {\n  return (function() {\n    with({ call: __call, MethodNotFoundError: __f4, this: undefined, arguments: undefined }) {\n\nreturn async function /*update*/(id, olds, news) {\n      return call(this.name(\"Update\"), { id, olds, news }).catch((ex) => {\n        if (ex instanceof MethodNotFoundError)\n          return {\n            id\n          };\n        throw ex;\n      });\n    };\n\n    }\n  }).apply(undefined, undefined).apply(this, arguments);\n}\n\nfunction __f7(__0, __1) {\n  return (function() {\n    with({ call: __call, MethodNotFoundError: __f4, this: undefined, arguments: undefined }) {\n\nreturn async function /*read*/(id, props) {\n      return call(this.name(\"Read\"), { id, props }).catch((ex) => {\n        if (ex instanceof MethodNotFoundError) return { id, props };\n        throw ex;\n      });\n    };\n\n    }\n  }).apply(undefined, undefined).apply(this, arguments);\n}\n\nfunction __f8(__0, __1, __2) {\n  return (function() {\n    with({ call: __call, MethodNotFoundError: __f4, this: undefined, arguments: undefined }) {\n\nreturn async function /*diff*/(id, olds, news) {\n      return call(this.name(\"Diff\"), { id, olds, news }).catch((ex) => {\n        if (ex instanceof MethodNotFoundError) return { id, olds, news };\n        throw ex;\n      });\n    };\n\n    }\n  }).apply(undefined, undefined).apply(this, arguments);\n}\n\nfunction __f0() {\n  return (function() {\n    with({ provider: __provider, this: undefined, arguments: undefined }) {\n\nreturn () => provider;\n\n    }\n  }).apply(undefined, undefined).apply(this, arguments);\n}\n",
+                        "isDone": true
+                    },
+                    "parent": "urn:pulumi:production::flowjoe::sst:aws:StaticSite$sst:aws:CDN::WebCdn",
+                    "dependencies": [
+                        "urn:pulumi:production::flowjoe::sst:aws:StaticSite$sst:aws:CDN$aws:cloudfront/distribution:Distribution::WebCdnDistribution"
+                    ],
+                    "provider": "urn:pulumi:production::flowjoe::pulumi:providers:pulumi-nodejs::default::f58227dc-695f-4fb0-a16a-d76c9b9e8929",
+                    "propertyDependencies": {
+                        "__provider": [],
+                        "distributionId": [
+                            "urn:pulumi:production::flowjoe::sst:aws:StaticSite$sst:aws:CDN$aws:cloudfront/distribution:Distribution::WebCdnDistribution"
+                        ],
+                        "etag": [
+                            "urn:pulumi:production::flowjoe::sst:aws:StaticSite$sst:aws:CDN$aws:cloudfront/distribution:Distribution::WebCdnDistribution"
+                        ],
+                        "wait": []
+                    },
+                    "created": "2026-05-27T00:21:17.55047277Z",
+                    "modified": "2026-05-27T00:21:17.55047277Z",
+                    "sourcePosition": "project:///../../../file:/home/runner/work/kanbunny/kanbunny/.sst/platform/src/components/aws/providers/distribution-deployment-waiter.ts#20,5",
+                    "stackTrace": [
+                        {
+                            "sourcePosition": "project:///../../../file:/home/runner/work/kanbunny/kanbunny/.sst/platform/src/components/aws/providers/distribution-deployment-waiter.ts#20,5"
+                        },
+                        {},
+                        {
+                            "sourcePosition": "project:///../../platform/node_modules/@pulumi/output.ts#516,31"
+                        },
+                        {}
+                    ],
+                    "ignoreChanges": [
+                        "*"
+                    ]
+                },
+                {
+                    "urn": "urn:pulumi:production::flowjoe::sst:aws:StaticSite$command:local:Command::WebBuilder",
+                    "custom": true,
+                    "id": "WebBuilderb90c1a24",
+                    "type": "command:local:Command",
+                    "inputs": {
+                        "addPreviousOutputInEnv": true,
+                        "create": "bun run build",
+                        "dir": "/home/runner/work/kanbunny/kanbunny",
+                        "environment": {
+                            "VITE_SUPABASE_PROJECT_ID": "jggqrlfwzzybvyhkjepb",
+                            "VITE_SUPABASE_PUBLISHABLE_KEY": "sb_publishable_It-t1ZMEhvTpUYLIkx8-Yw_hVgkkLJR",
+                            "VITE_SUPABASE_URL": "https://jggqrlfwzzybvyhkjepb.supabase.co"
+                        },
+                        "triggers": [
+                            "1779866913684"
+                        ],
+                        "update": "bun run build"
+                    },
+                    "outputs": {
+                        "addPreviousOutputInEnv": true,
+                        "create": "bun run build",
+                        "dir": "/home/runner/work/kanbunny/kanbunny",
+                        "environment": {
+                            "VITE_SUPABASE_PROJECT_ID": "jggqrlfwzzybvyhkjepb",
+                            "VITE_SUPABASE_PUBLISHABLE_KEY": "sb_publishable_It-t1ZMEhvTpUYLIkx8-Yw_hVgkkLJR",
+                            "VITE_SUPABASE_URL": "https://jggqrlfwzzybvyhkjepb.supabase.co"
+                        },
+                        "stderr": "$ vite build\n\u001b[33m\n(!) Some chunks are larger than 500 kB after minification. Consider:\n- Using dynamic import() to code-split the application\n- Use build.rollupOptions.output.manualChunks to improve chunking: https://rollupjs.org/configuration-options/#output-manualchunks\n- Adjust chunk size limit for this warning via build.chunkSizeWarningLimit.\u001b[39m",
+                        "stdout": "\u001b[36mvite v7.3.2 \u001b[32mbuilding client environment for production...\u001b[36m\u001b[39m\ntransforming...\n\u001b[32m✓\u001b[39m 2887 modules transformed.\nrendering chunks...\ncomputing gzip size...\n\u001b[2mdist/\u001b[22m\u001b[32mindex.html                 \u001b[39m\u001b[1m\u001b[2m  1.24 kB\u001b[22m\u001b[1m\u001b[22m\u001b[2m │ gzip:   0.60 kB\u001b[22m\n\u001b[2mdist/\u001b[22m\u001b[2massets/\u001b[22m\u001b[32mlogo-Dbmh9Hbh.png   \u001b[39m\u001b[1m\u001b[2m  5.06 kB\u001b[22m\u001b[1m\u001b[22m\n\u001b[2mdist/\u001b[22m\u001b[2massets/\u001b[22m\u001b[35mindex-DM3H7L6q.css  \u001b[39m\u001b[1m\u001b[2m 87.21 kB\u001b[22m\u001b[1m\u001b[22m\u001b[2m │ gzip:  14.46 kB\u001b[22m\n\u001b[2mdist/\u001b[22m\u001b[2massets/\u001b[22m\u001b[36mindex-D9a8zf1N.js   \u001b[39m\u001b[1m\u001b[33m886.82 kB\u001b[39m\u001b[22m\u001b[2m │ gzip: 261.65 kB\u001b[22m\n\u001b[32m✓ built in 4.62s\u001b[39m",
+                        "triggers": [
+                            "1779866913684"
+                        ],
+                        "update": "bun run build"
+                    },
+                    "parent": "urn:pulumi:production::flowjoe::sst:aws:StaticSite::Web",
+                    "provider": "urn:pulumi:production::flowjoe::pulumi:providers:command::default_1_0_1::f37433a9-f0c2-46c8-bd48-f143c06768a9",
+                    "propertyDependencies": {
+                        "addPreviousOutputInEnv": [],
+                        "create": [],
+                        "dir": [],
+                        "environment": [],
+                        "triggers": [],
+                        "update": []
+                    },
+                    "created": "2026-05-27T07:28:41.447485969Z",
+                    "modified": "2026-05-27T07:28:41.447485969Z",
+                    "stackTrace": [
+                        {},
+                        {
+                            "sourcePosition": "project:///../../platform/node_modules/@pulumi/output.ts#516,25"
+                        }
+                    ],
+                    "replaceOnChanges": [
+                        "triggers[*]"
+                    ]
+                },
+                {
+                    "urn": "urn:pulumi:production::flowjoe::sst:aws:StaticSite$pulumi-nodejs:dynamic:Resource::WebKvKeys.sst.aws.KvKeys",
+                    "custom": true,
+                    "id": "entries",
+                    "type": "pulumi-nodejs:dynamic:Resource",
+                    "inputs": {
+                        "__provider": "exports.handler = __f0;\n\nvar __provider_proto = {};\nObject.defineProperty(__f1, \"prototype\", { value: __provider_proto });\nObject.defineProperty(__provider_proto, \"constructor\", { configurable: true, writable: true, value: __f1 });\nObject.defineProperty(__provider_proto, \"name\", { configurable: true, writable: true, value: __f2 });\nObject.setPrototypeOf(__f4, global.Error);\nObject.defineProperty(__provider_proto, \"create\", { configurable: true, writable: true, value: __f3 });\nObject.defineProperty(__provider_proto, \"delete\", { configurable: true, writable: true, value: __f5 });\nObject.defineProperty(__provider_proto, \"update\", { configurable: true, writable: true, value: __f6 });\nObject.defineProperty(__provider_proto, \"read\", { configurable: true, writable: true, value: __f7 });\nObject.defineProperty(__provider_proto, \"diff\", { configurable: true, writable: true, value: __f8 });\nvar __provider = Object.create(__provider_proto);\n__provider.type = \"Aws.KvKeys\";\n\nfunction __f1(__0) {\n  return (function() {\n    with({ this: undefined, arguments: undefined }) {\n\nreturn function /*constructor*/(type) {\n      this.type = type;\n    };\n\n    }\n  }).apply(undefined, undefined).apply(this, arguments);\n}\n\nfunction __f2(__0) {\n  return (function() {\n    with({ this: undefined, arguments: undefined }) {\n\nreturn function /*name*/(action) {\n      return \"Resource.\" + this.type + \".\" + action;\n    };\n\n    }\n  }).apply(undefined, undefined).apply(this, arguments);\n}\n\nfunction __f4(__0) {\n  return (function() {\n    with({ __super: global.Error, this: undefined, arguments: undefined }) {\n\nreturn function /*constructor*/(method) {\n    __super.call(this, `Method \"${method}\" not found`);\n    this.method = method;\n};\n\n    }\n  }).apply(undefined, undefined).apply(this, arguments);\n}\nconst http = require(\"http\");\n\nfunction __call(__0, __1) {\n  return (function() {\n    with({ MethodNotFoundError: __f4, call: __call, this: undefined, arguments: undefined }) {\n\nreturn async function /*call*/(method, args) {\n    return new Promise((resolve, reject) => {\n      const url = new URL(process.env.SST_SERVER + \"/rpc\");\n      const options = {\n        hostname: url.hostname,\n        port: url.port,\n        path: url.pathname,\n        method: \"POST\",\n        headers: {\n          \"Content-Type\": \"application/json\"\n        }\n      };\n      const req = http.request(options, (res) => {\n        let data = \"\";\n        res.on(\"data\", (chunk) => {\n          data += chunk;\n        });\n        res.on(\"end\", () => {\n          if (res.statusCode !== 200) {\n            reject(new Error(`Failed to call RPC: ${data}`));\n            return;\n          }\n          try {\n            const json = JSON.parse(data);\n            if (json.error) {\n              if (json.error.startsWith(\"rpc: can't find\")) {\n                reject(new MethodNotFoundError(method));\n                return;\n              }\n              reject(new Error(json.error));\n              return;\n            }\n            resolve(json.result);\n          } catch (error) {\n            reject(new Error(`Failed to parse JSON: ${error.message}`));\n          }\n        });\n      });\n      req.on(\"error\", (error) => {\n        reject(error);\n      });\n      req.setTimeout(0);\n      const body = JSON.stringify({\n        jsonrpc: \"1.0\",\n        method,\n        params: [args]\n      });\n      req.write(body);\n      req.end();\n    });\n  };\n\n    }\n  }).apply(undefined, undefined).apply(this, arguments);\n}\n\nfunction __f3(__0) {\n  return (function() {\n    with({ call: __call, this: undefined, arguments: undefined }) {\n\nreturn async function /*create*/(inputs) {\n      return call(this.name(\"Create\"), inputs);\n    };\n\n    }\n  }).apply(undefined, undefined).apply(this, arguments);\n}\n\nfunction __f5(__0, __1) {\n  return (function() {\n    with({ call: __call, MethodNotFoundError: __f4, this: undefined, arguments: undefined }) {\n\nreturn async function /*delete*/(id, outs) {\n      return call(this.name(\"Delete\"), { id, outs }).catch((ex) => {\n        if (ex instanceof MethodNotFoundError) return;\n        throw ex;\n      });\n    };\n\n    }\n  }).apply(undefined, undefined).apply(this, arguments);\n}\n\nfunction __f6(__0, __1, __2) {\n  return (function() {\n    with({ call: __call, MethodNotFoundError: __f4, this: undefined, arguments: undefined }) {\n\nreturn async function /*update*/(id, olds, news) {\n      return call(this.name(\"Update\"), { id, olds, news }).catch((ex) => {\n        if (ex instanceof MethodNotFoundError)\n          return {\n            id\n          };\n        throw ex;\n      });\n    };\n\n    }\n  }).apply(undefined, undefined).apply(this, arguments);\n}\n\nfunction __f7(__0, __1) {\n  return (function() {\n    with({ call: __call, MethodNotFoundError: __f4, this: undefined, arguments: undefined }) {\n\nreturn async function /*read*/(id, props) {\n      return call(this.name(\"Read\"), { id, props }).catch((ex) => {\n        if (ex instanceof MethodNotFoundError) return { id, props };\n        throw ex;\n      });\n    };\n\n    }\n  }).apply(undefined, undefined).apply(this, arguments);\n}\n\nfunction __f8(__0, __1, __2) {\n  return (function() {\n    with({ call: __call, MethodNotFoundError: __f4, this: undefined, arguments: undefined }) {\n\nreturn async function /*diff*/(id, olds, news) {\n      return call(this.name(\"Diff\"), { id, olds, news }).catch((ex) => {\n        if (ex instanceof MethodNotFoundError) return { id, olds, news };\n        throw ex;\n      });\n    };\n\n    }\n  }).apply(undefined, undefined).apply(this, arguments);\n}\n\nfunction __f0() {\n  return (function() {\n    with({ provider: __provider, this: undefined, arguments: undefined }) {\n\nreturn () => provider;\n\n    }\n  }).apply(undefined, undefined).apply(this, arguments);\n}\n",
+                        "entries": {
+                            "/favicon.ico": "s3",
+                            "/index.html": "s3",
+                            "metadata": "{\"custom404\":\"/index.html\",\"s3\":{\"domain\":\"flowjoe-production-webassetsbucket-tkcvxuwh.s3.ap-southeast-1.amazonaws.com\",\"dir\":\"\",\"routes\":[\"/assets\"]}}"
+                        },
+                        "namespace": "a665",
+                        "purge": true,
+                        "store": "arn:aws:cloudfront::602840636720:key-value-store/f47eddea-bf3e-4ada-8580-d68ba221f93e"
+                    },
+                    "outputs": {
+                        "__provider": "exports.handler = __f0;\n\nvar __provider_proto = {};\nObject.defineProperty(__f1, \"prototype\", { value: __provider_proto });\nObject.defineProperty(__provider_proto, \"constructor\", { configurable: true, writable: true, value: __f1 });\nObject.defineProperty(__provider_proto, \"name\", { configurable: true, writable: true, value: __f2 });\nObject.setPrototypeOf(__f4, global.Error);\nObject.defineProperty(__provider_proto, \"create\", { configurable: true, writable: true, value: __f3 });\nObject.defineProperty(__provider_proto, \"delete\", { configurable: true, writable: true, value: __f5 });\nObject.defineProperty(__provider_proto, \"update\", { configurable: true, writable: true, value: __f6 });\nObject.defineProperty(__provider_proto, \"read\", { configurable: true, writable: true, value: __f7 });\nObject.defineProperty(__provider_proto, \"diff\", { configurable: true, writable: true, value: __f8 });\nvar __provider = Object.create(__provider_proto);\n__provider.type = \"Aws.KvKeys\";\n\nfunction __f1(__0) {\n  return (function() {\n    with({ this: undefined, arguments: undefined }) {\n\nreturn function /*constructor*/(type) {\n      this.type = type;\n    };\n\n    }\n  }).apply(undefined, undefined).apply(this, arguments);\n}\n\nfunction __f2(__0) {\n  return (function() {\n    with({ this: undefined, arguments: undefined }) {\n\nreturn function /*name*/(action) {\n      return \"Resource.\" + this.type + \".\" + action;\n    };\n\n    }\n  }).apply(undefined, undefined).apply(this, arguments);\n}\n\nfunction __f4(__0) {\n  return (function() {\n    with({ __super: global.Error, this: undefined, arguments: undefined }) {\n\nreturn function /*constructor*/(method) {\n    __super.call(this, `Method \"${method}\" not found`);\n    this.method = method;\n};\n\n    }\n  }).apply(undefined, undefined).apply(this, arguments);\n}\nconst http = require(\"http\");\n\nfunction __call(__0, __1) {\n  return (function() {\n    with({ MethodNotFoundError: __f4, call: __call, this: undefined, arguments: undefined }) {\n\nreturn async function /*call*/(method, args) {\n    return new Promise((resolve, reject) => {\n      const url = new URL(process.env.SST_SERVER + \"/rpc\");\n      const options = {\n        hostname: url.hostname,\n        port: url.port,\n        path: url.pathname,\n        method: \"POST\",\n        headers: {\n          \"Content-Type\": \"application/json\"\n        }\n      };\n      const req = http.request(options, (res) => {\n        let data = \"\";\n        res.on(\"data\", (chunk) => {\n          data += chunk;\n        });\n        res.on(\"end\", () => {\n          if (res.statusCode !== 200) {\n            reject(new Error(`Failed to call RPC: ${data}`));\n            return;\n          }\n          try {\n            const json = JSON.parse(data);\n            if (json.error) {\n              if (json.error.startsWith(\"rpc: can't find\")) {\n                reject(new MethodNotFoundError(method));\n                return;\n              }\n              reject(new Error(json.error));\n              return;\n            }\n            resolve(json.result);\n          } catch (error) {\n            reject(new Error(`Failed to parse JSON: ${error.message}`));\n          }\n        });\n      });\n      req.on(\"error\", (error) => {\n        reject(error);\n      });\n      req.setTimeout(0);\n      const body = JSON.stringify({\n        jsonrpc: \"1.0\",\n        method,\n        params: [args]\n      });\n      req.write(body);\n      req.end();\n    });\n  };\n\n    }\n  }).apply(undefined, undefined).apply(this, arguments);\n}\n\nfunction __f3(__0) {\n  return (function() {\n    with({ call: __call, this: undefined, arguments: undefined }) {\n\nreturn async function /*create*/(inputs) {\n      return call(this.name(\"Create\"), inputs);\n    };\n\n    }\n  }).apply(undefined, undefined).apply(this, arguments);\n}\n\nfunction __f5(__0, __1) {\n  return (function() {\n    with({ call: __call, MethodNotFoundError: __f4, this: undefined, arguments: undefined }) {\n\nreturn async function /*delete*/(id, outs) {\n      return call(this.name(\"Delete\"), { id, outs }).catch((ex) => {\n        if (ex instanceof MethodNotFoundError) return;\n        throw ex;\n      });\n    };\n\n    }\n  }).apply(undefined, undefined).apply(this, arguments);\n}\n\nfunction __f6(__0, __1, __2) {\n  return (function() {\n    with({ call: __call, MethodNotFoundError: __f4, this: undefined, arguments: undefined }) {\n\nreturn async function /*update*/(id, olds, news) {\n      return call(this.name(\"Update\"), { id, olds, news }).catch((ex) => {\n        if (ex instanceof MethodNotFoundError)\n          return {\n            id\n          };\n        throw ex;\n      });\n    };\n\n    }\n  }).apply(undefined, undefined).apply(this, arguments);\n}\n\nfunction __f7(__0, __1) {\n  return (function() {\n    with({ call: __call, MethodNotFoundError: __f4, this: undefined, arguments: undefined }) {\n\nreturn async function /*read*/(id, props) {\n      return call(this.name(\"Read\"), { id, props }).catch((ex) => {\n        if (ex instanceof MethodNotFoundError) return { id, props };\n        throw ex;\n      });\n    };\n\n    }\n  }).apply(undefined, undefined).apply(this, arguments);\n}\n\nfunction __f8(__0, __1, __2) {\n  return (function() {\n    with({ call: __call, MethodNotFoundError: __f4, this: undefined, arguments: undefined }) {\n\nreturn async function /*diff*/(id, olds, news) {\n      return call(this.name(\"Diff\"), { id, olds, news }).catch((ex) => {\n        if (ex instanceof MethodNotFoundError) return { id, olds, news };\n        throw ex;\n      });\n    };\n\n    }\n  }).apply(undefined, undefined).apply(this, arguments);\n}\n\nfunction __f0() {\n  return (function() {\n    with({ provider: __provider, this: undefined, arguments: undefined }) {\n\nreturn () => provider;\n\n    }\n  }).apply(undefined, undefined).apply(this, arguments);\n}\n",
+                        "entries": {
+                            "/favicon.ico": "s3",
+                            "/index.html": "s3",
+                            "metadata": "{\"custom404\":\"/index.html\",\"s3\":{\"domain\":\"flowjoe-production-webassetsbucket-tkcvxuwh.s3.ap-southeast-1.amazonaws.com\",\"dir\":\"\",\"routes\":[\"/assets\"]}}"
+                        },
+                        "namespace": "a665",
+                        "purge": true,
+                        "store": "arn:aws:cloudfront::602840636720:key-value-store/f47eddea-bf3e-4ada-8580-d68ba221f93e"
+                    },
+                    "parent": "urn:pulumi:production::flowjoe::sst:aws:StaticSite::Web",
+                    "dependencies": [
+                        "urn:pulumi:production::flowjoe::sst:aws:StaticSite$aws:cloudfront/keyValueStore:KeyValueStore::WebKvStore",
+                        "urn:pulumi:production::flowjoe::sst:aws:StaticSite$command:local:Command::WebBuilder",
+                        "urn:pulumi:production::flowjoe::sst:aws:StaticSite$sst:aws:Bucket$aws:s3/bucket:Bucket::WebAssetsBucket"
+                    ],
+                    "provider": "urn:pulumi:production::flowjoe::pulumi:providers:pulumi-nodejs::default::f58227dc-695f-4fb0-a16a-d76c9b9e8929",
+                    "propertyDependencies": {
+                        "__provider": [],
+                        "entries": [
+                            "urn:pulumi:production::flowjoe::sst:aws:StaticSite$command:local:Command::WebBuilder",
+                            "urn:pulumi:production::flowjoe::sst:aws:StaticSite$sst:aws:Bucket$aws:s3/bucket:Bucket::WebAssetsBucket"
+                        ],
+                        "namespace": [],
+                        "purge": [],
+                        "store": [
+                            "urn:pulumi:production::flowjoe::sst:aws:StaticSite$aws:cloudfront/keyValueStore:KeyValueStore::WebKvStore"
+                        ]
+                    },
+                    "created": "2026-05-27T00:18:09.98940733Z",
+                    "modified": "2026-05-27T00:18:09.98940733Z",
+                    "sourcePosition": "project:///../../../file:/home/runner/work/kanbunny/kanbunny/.sst/platform/src/components/aws/providers/kv-keys.ts#13,5",
+                    "stackTrace": [
+                        {
+                            "sourcePosition": "project:///../../../file:/home/runner/work/kanbunny/kanbunny/.sst/platform/src/components/aws/providers/kv-keys.ts#13,5"
+                        },
+                        {
+                            "sourcePosition": "project:///../../../file:/home/runner/work/kanbunny/kanbunny/.sst/platform/src/components/aws/static-site.ts#1063,14"
+                        },
+                        {
+                            "sourcePosition": "project:///../../../file:/home/runner/work/kanbunny/kanbunny/.sst/platform/src/components/aws/static-site.ts#801,23"
+                        },
+                        {
+                            "sourcePosition": "project:///../../../file:/home/runner/work/kanbunny/kanbunny/sst.config.ts#15,17"
+                        },
+                        {
+                            "sourcePosition": "project:///../../../file:/home/runner/work/kanbunny/kanbunny/.sst/platform/src/auto/run.ts#21,26"
+                        },
+                        {},
+                        {},
+                        {},
+                        {
+                            "sourcePosition": "project:///../../platform/node_modules/@pulumi/cmd/run/run.ts#525,33"
+                        },
+                        {
+                            "sourcePosition": "project:///../../platform/node_modules/@pulumi/runtime/stack.ts#78,28"
+                        },
+                        {
+                            "sourcePosition": "project:///../../platform/node_modules/@pulumi/resource.ts#1467,22"
+                        }
+                    ]
+                },
+                {
+                    "urn": "urn:pulumi:production::flowjoe::sst:aws:StaticSite$pulumi-nodejs:dynamic:Resource::WebAssetFiles.sst.aws.BucketFiles",
+                    "custom": true,
+                    "id": "files",
+                    "type": "pulumi-nodejs:dynamic:Resource",
+                    "inputs": {
+                        "__provider": "exports.handler = __f0;\n\nvar __provider_proto = {};\nObject.defineProperty(__f1, \"prototype\", { value: __provider_proto });\nObject.defineProperty(__provider_proto, \"constructor\", { configurable: true, writable: true, value: __f1 });\nObject.defineProperty(__provider_proto, \"name\", { configurable: true, writable: true, value: __f2 });\nObject.setPrototypeOf(__f4, global.Error);\nObject.defineProperty(__provider_proto, \"create\", { configurable: true, writable: true, value: __f3 });\nObject.defineProperty(__provider_proto, \"delete\", { configurable: true, writable: true, value: __f5 });\nObject.defineProperty(__provider_proto, \"update\", { configurable: true, writable: true, value: __f6 });\nObject.defineProperty(__provider_proto, \"read\", { configurable: true, writable: true, value: __f7 });\nObject.defineProperty(__provider_proto, \"diff\", { configurable: true, writable: true, value: __f8 });\nvar __provider = Object.create(__provider_proto);\n__provider.type = \"Aws.BucketFiles\";\n\nfunction __f1(__0) {\n  return (function() {\n    with({ this: undefined, arguments: undefined }) {\n\nreturn function /*constructor*/(type) {\n      this.type = type;\n    };\n\n    }\n  }).apply(undefined, undefined).apply(this, arguments);\n}\n\nfunction __f2(__0) {\n  return (function() {\n    with({ this: undefined, arguments: undefined }) {\n\nreturn function /*name*/(action) {\n      return \"Resource.\" + this.type + \".\" + action;\n    };\n\n    }\n  }).apply(undefined, undefined).apply(this, arguments);\n}\n\nfunction __f4(__0) {\n  return (function() {\n    with({ __super: global.Error, this: undefined, arguments: undefined }) {\n\nreturn function /*constructor*/(method) {\n    __super.call(this, `Method \"${method}\" not found`);\n    this.method = method;\n};\n\n    }\n  }).apply(undefined, undefined).apply(this, arguments);\n}\nconst http = require(\"http\");\n\nfunction __call(__0, __1) {\n  return (function() {\n    with({ MethodNotFoundError: __f4, call: __call, this: undefined, arguments: undefined }) {\n\nreturn async function /*call*/(method, args) {\n    return new Promise((resolve, reject) => {\n      const url = new URL(process.env.SST_SERVER + \"/rpc\");\n      const options = {\n        hostname: url.hostname,\n        port: url.port,\n        path: url.pathname,\n        method: \"POST\",\n        headers: {\n          \"Content-Type\": \"application/json\"\n        }\n      };\n      const req = http.request(options, (res) => {\n        let data = \"\";\n        res.on(\"data\", (chunk) => {\n          data += chunk;\n        });\n        res.on(\"end\", () => {\n          if (res.statusCode !== 200) {\n            reject(new Error(`Failed to call RPC: ${data}`));\n            return;\n          }\n          try {\n            const json = JSON.parse(data);\n            if (json.error) {\n              if (json.error.startsWith(\"rpc: can't find\")) {\n                reject(new MethodNotFoundError(method));\n                return;\n              }\n              reject(new Error(json.error));\n              return;\n            }\n            resolve(json.result);\n          } catch (error) {\n            reject(new Error(`Failed to parse JSON: ${error.message}`));\n          }\n        });\n      });\n      req.on(\"error\", (error) => {\n        reject(error);\n      });\n      req.setTimeout(0);\n      const body = JSON.stringify({\n        jsonrpc: \"1.0\",\n        method,\n        params: [args]\n      });\n      req.write(body);\n      req.end();\n    });\n  };\n\n    }\n  }).apply(undefined, undefined).apply(this, arguments);\n}\n\nfunction __f3(__0) {\n  return (function() {\n    with({ call: __call, this: undefined, arguments: undefined }) {\n\nreturn async function /*create*/(inputs) {\n      return call(this.name(\"Create\"), inputs);\n    };\n\n    }\n  }).apply(undefined, undefined).apply(this, arguments);\n}\n\nfunction __f5(__0, __1) {\n  return (function() {\n    with({ call: __call, MethodNotFoundError: __f4, this: undefined, arguments: undefined }) {\n\nreturn async function /*delete*/(id, outs) {\n      return call(this.name(\"Delete\"), { id, outs }).catch((ex) => {\n        if (ex instanceof MethodNotFoundError) return;\n        throw ex;\n      });\n    };\n\n    }\n  }).apply(undefined, undefined).apply(this, arguments);\n}\n\nfunction __f6(__0, __1, __2) {\n  return (function() {\n    with({ call: __call, MethodNotFoundError: __f4, this: undefined, arguments: undefined }) {\n\nreturn async function /*update*/(id, olds, news) {\n      return call(this.name(\"Update\"), { id, olds, news }).catch((ex) => {\n        if (ex instanceof MethodNotFoundError)\n          return {\n            id\n          };\n        throw ex;\n      });\n    };\n\n    }\n  }).apply(undefined, undefined).apply(this, arguments);\n}\n\nfunction __f7(__0, __1) {\n  return (function() {\n    with({ call: __call, MethodNotFoundError: __f4, this: undefined, arguments: undefined }) {\n\nreturn async function /*read*/(id, props) {\n      return call(this.name(\"Read\"), { id, props }).catch((ex) => {\n        if (ex instanceof MethodNotFoundError) return { id, props };\n        throw ex;\n      });\n    };\n\n    }\n  }).apply(undefined, undefined).apply(this, arguments);\n}\n\nfunction __f8(__0, __1, __2) {\n  return (function() {\n    with({ call: __call, MethodNotFoundError: __f4, this: undefined, arguments: undefined }) {\n\nreturn async function /*diff*/(id, olds, news) {\n      return call(this.name(\"Diff\"), { id, olds, news }).catch((ex) => {\n        if (ex instanceof MethodNotFoundError) return { id, olds, news };\n        throw ex;\n      });\n    };\n\n    }\n  }).apply(undefined, undefined).apply(this, arguments);\n}\n\nfunction __f0() {\n  return (function() {\n    with({ provider: __provider, this: undefined, arguments: undefined }) {\n\nreturn () => provider;\n\n    }\n  }).apply(undefined, undefined).apply(this, arguments);\n}\n",
+                        "bucketName": "flowjoe-production-webassetsbucket-tkcvxuwh",
+                        "files": [
+                            {
+                                "cacheControl": "max-age=0,no-cache,no-store,must-revalidate",
+                                "contentType": "text/html;charset=UTF-8",
+                                "hash": "7a3d893543bc4712bf2fa93b9f4e7a85188d2386b916bde104e47c7f24a0ada2",
+                                "key": "index.html",
+                                "source": "/home/runner/work/kanbunny/kanbunny/dist/index.html"
+                            },
+                            {
+                                "cacheControl": "max-age=31536000,public,immutable",
+                                "contentType": "image/vnd.microsoft.icon",
+                                "hash": "122fef854791686e5735fa779c25e4d95c9d68c903b5a30314b4b6a51dfd42e6",
+                                "key": "favicon.ico",
+                                "source": "/home/runner/work/kanbunny/kanbunny/dist/favicon.ico"
+                            },
+                            {
+                                "cacheControl": "max-age=31536000,public,immutable",
+                                "contentType": "image/png",
+                                "hash": "f9951c7daee3533f6b7a433239653904b780fa47b4cdcf9a8507b1ed8fe308f1",
+                                "key": "assets/logo-Dbmh9Hbh.png",
+                                "source": "/home/runner/work/kanbunny/kanbunny/dist/assets/logo-Dbmh9Hbh.png"
+                            },
+                            {
+                                "cacheControl": "max-age=31536000,public,immutable",
+                                "contentType": "text/css;charset=UTF-8",
+                                "hash": "5ae2079285b4adfbd0c8bc2fe6087f5b6912d2dc0fe18d944ff7cfb376879be1",
+                                "key": "assets/index-DM3H7L6q.css",
+                                "source": "/home/runner/work/kanbunny/kanbunny/dist/assets/index-DM3H7L6q.css"
+                            },
+                            {
+                                "cacheControl": "max-age=31536000,public,immutable",
+                                "contentType": "text/javascript;charset=UTF-8",
+                                "hash": "07d741a1dcf051d12d170b43e69458ea148941013895f1e23e39a259ae01ae94",
+                                "key": "assets/index-D9a8zf1N.js",
+                                "source": "/home/runner/work/kanbunny/kanbunny/dist/assets/index-D9a8zf1N.js"
+                            }
+                        ],
+                        "purge": true,
+                        "region": "ap-southeast-1"
+                    },
+                    "outputs": {
+                        "__provider": "exports.handler = __f0;\n\nvar __provider_proto = {};\nObject.defineProperty(__f1, \"prototype\", { value: __provider_proto });\nObject.defineProperty(__provider_proto, \"constructor\", { configurable: true, writable: true, value: __f1 });\nObject.defineProperty(__provider_proto, \"name\", { configurable: true, writable: true, value: __f2 });\nObject.setPrototypeOf(__f4, global.Error);\nObject.defineProperty(__provider_proto, \"create\", { configurable: true, writable: true, value: __f3 });\nObject.defineProperty(__provider_proto, \"delete\", { configurable: true, writable: true, value: __f5 });\nObject.defineProperty(__provider_proto, \"update\", { configurable: true, writable: true, value: __f6 });\nObject.defineProperty(__provider_proto, \"read\", { configurable: true, writable: true, value: __f7 });\nObject.defineProperty(__provider_proto, \"diff\", { configurable: true, writable: true, value: __f8 });\nvar __provider = Object.create(__provider_proto);\n__provider.type = \"Aws.BucketFiles\";\n\nfunction __f1(__0) {\n  return (function() {\n    with({ this: undefined, arguments: undefined }) {\n\nreturn function /*constructor*/(type) {\n      this.type = type;\n    };\n\n    }\n  }).apply(undefined, undefined).apply(this, arguments);\n}\n\nfunction __f2(__0) {\n  return (function() {\n    with({ this: undefined, arguments: undefined }) {\n\nreturn function /*name*/(action) {\n      return \"Resource.\" + this.type + \".\" + action;\n    };\n\n    }\n  }).apply(undefined, undefined).apply(this, arguments);\n}\n\nfunction __f4(__0) {\n  return (function() {\n    with({ __super: global.Error, this: undefined, arguments: undefined }) {\n\nreturn function /*constructor*/(method) {\n    __super.call(this, `Method \"${method}\" not found`);\n    this.method = method;\n};\n\n    }\n  }).apply(undefined, undefined).apply(this, arguments);\n}\nconst http = require(\"http\");\n\nfunction __call(__0, __1) {\n  return (function() {\n    with({ MethodNotFoundError: __f4, call: __call, this: undefined, arguments: undefined }) {\n\nreturn async function /*call*/(method, args) {\n    return new Promise((resolve, reject) => {\n      const url = new URL(process.env.SST_SERVER + \"/rpc\");\n      const options = {\n        hostname: url.hostname,\n        port: url.port,\n        path: url.pathname,\n        method: \"POST\",\n        headers: {\n          \"Content-Type\": \"application/json\"\n        }\n      };\n      const req = http.request(options, (res) => {\n        let data = \"\";\n        res.on(\"data\", (chunk) => {\n          data += chunk;\n        });\n        res.on(\"end\", () => {\n          if (res.statusCode !== 200) {\n            reject(new Error(`Failed to call RPC: ${data}`));\n            return;\n          }\n          try {\n            const json = JSON.parse(data);\n            if (json.error) {\n              if (json.error.startsWith(\"rpc: can't find\")) {\n                reject(new MethodNotFoundError(method));\n                return;\n              }\n              reject(new Error(json.error));\n              return;\n            }\n            resolve(json.result);\n          } catch (error) {\n            reject(new Error(`Failed to parse JSON: ${error.message}`));\n          }\n        });\n      });\n      req.on(\"error\", (error) => {\n        reject(error);\n      });\n      req.setTimeout(0);\n      const body = JSON.stringify({\n        jsonrpc: \"1.0\",\n        method,\n        params: [args]\n      });\n      req.write(body);\n      req.end();\n    });\n  };\n\n    }\n  }).apply(undefined, undefined).apply(this, arguments);\n}\n\nfunction __f3(__0) {\n  return (function() {\n    with({ call: __call, this: undefined, arguments: undefined }) {\n\nreturn async function /*create*/(inputs) {\n      return call(this.name(\"Create\"), inputs);\n    };\n\n    }\n  }).apply(undefined, undefined).apply(this, arguments);\n}\n\nfunction __f5(__0, __1) {\n  return (function() {\n    with({ call: __call, MethodNotFoundError: __f4, this: undefined, arguments: undefined }) {\n\nreturn async function /*delete*/(id, outs) {\n      return call(this.name(\"Delete\"), { id, outs }).catch((ex) => {\n        if (ex instanceof MethodNotFoundError) return;\n        throw ex;\n      });\n    };\n\n    }\n  }).apply(undefined, undefined).apply(this, arguments);\n}\n\nfunction __f6(__0, __1, __2) {\n  return (function() {\n    with({ call: __call, MethodNotFoundError: __f4, this: undefined, arguments: undefined }) {\n\nreturn async function /*update*/(id, olds, news) {\n      return call(this.name(\"Update\"), { id, olds, news }).catch((ex) => {\n        if (ex instanceof MethodNotFoundError)\n          return {\n            id\n          };\n        throw ex;\n      });\n    };\n\n    }\n  }).apply(undefined, undefined).apply(this, arguments);\n}\n\nfunction __f7(__0, __1) {\n  return (function() {\n    with({ call: __call, MethodNotFoundError: __f4, this: undefined, arguments: undefined }) {\n\nreturn async function /*read*/(id, props) {\n      return call(this.name(\"Read\"), { id, props }).catch((ex) => {\n        if (ex instanceof MethodNotFoundError) return { id, props };\n        throw ex;\n      });\n    };\n\n    }\n  }).apply(undefined, undefined).apply(this, arguments);\n}\n\nfunction __f8(__0, __1, __2) {\n  return (function() {\n    with({ call: __call, MethodNotFoundError: __f4, this: undefined, arguments: undefined }) {\n\nreturn async function /*diff*/(id, olds, news) {\n      return call(this.name(\"Diff\"), { id, olds, news }).catch((ex) => {\n        if (ex instanceof MethodNotFoundError) return { id, olds, news };\n        throw ex;\n      });\n    };\n\n    }\n  }).apply(undefined, undefined).apply(this, arguments);\n}\n\nfunction __f0() {\n  return (function() {\n    with({ provider: __provider, this: undefined, arguments: undefined }) {\n\nreturn () => provider;\n\n    }\n  }).apply(undefined, undefined).apply(this, arguments);\n}\n",
+                        "bucketName": "flowjoe-production-webassetsbucket-tkcvxuwh",
+                        "files": [
+                            {
+                                "cacheControl": "max-age=0,no-cache,no-store,must-revalidate",
+                                "contentType": "text/html;charset=UTF-8",
+                                "hash": "7a3d893543bc4712bf2fa93b9f4e7a85188d2386b916bde104e47c7f24a0ada2",
+                                "key": "index.html",
+                                "source": "/home/runner/work/kanbunny/kanbunny/dist/index.html"
+                            },
+                            {
+                                "cacheControl": "max-age=31536000,public,immutable",
+                                "contentType": "image/vnd.microsoft.icon",
+                                "hash": "122fef854791686e5735fa779c25e4d95c9d68c903b5a30314b4b6a51dfd42e6",
+                                "key": "favicon.ico",
+                                "source": "/home/runner/work/kanbunny/kanbunny/dist/favicon.ico"
+                            },
+                            {
+                                "cacheControl": "max-age=31536000,public,immutable",
+                                "contentType": "image/png",
+                                "hash": "f9951c7daee3533f6b7a433239653904b780fa47b4cdcf9a8507b1ed8fe308f1",
+                                "key": "assets/logo-Dbmh9Hbh.png",
+                                "source": "/home/runner/work/kanbunny/kanbunny/dist/assets/logo-Dbmh9Hbh.png"
+                            },
+                            {
+                                "cacheControl": "max-age=31536000,public,immutable",
+                                "contentType": "text/css;charset=UTF-8",
+                                "hash": "5ae2079285b4adfbd0c8bc2fe6087f5b6912d2dc0fe18d944ff7cfb376879be1",
+                                "key": "assets/index-DM3H7L6q.css",
+                                "source": "/home/runner/work/kanbunny/kanbunny/dist/assets/index-DM3H7L6q.css"
+                            },
+                            {
+                                "cacheControl": "max-age=31536000,public,immutable",
+                                "contentType": "text/javascript;charset=UTF-8",
+                                "hash": "07d741a1dcf051d12d170b43e69458ea148941013895f1e23e39a259ae01ae94",
+                                "key": "assets/index-D9a8zf1N.js",
+                                "source": "/home/runner/work/kanbunny/kanbunny/dist/assets/index-D9a8zf1N.js"
+                            }
+                        ],
+                        "purge": true,
+                        "region": "ap-southeast-1"
+                    },
+                    "parent": "urn:pulumi:production::flowjoe::sst:aws:StaticSite::Web",
+                    "dependencies": [
+                        "urn:pulumi:production::flowjoe::sst:aws:StaticSite$sst:aws:Bucket$aws:s3/bucket:Bucket::WebAssetsBucket"
+                    ],
+                    "provider": "urn:pulumi:production::flowjoe::pulumi:providers:pulumi-nodejs::default::f58227dc-695f-4fb0-a16a-d76c9b9e8929",
+                    "propertyDependencies": {
+                        "__provider": [],
+                        "bucketName": [
+                            "urn:pulumi:production::flowjoe::sst:aws:StaticSite$sst:aws:Bucket$aws:s3/bucket:Bucket::WebAssetsBucket"
+                        ],
+                        "files": [],
+                        "purge": [],
+                        "region": []
+                    },
+                    "created": "2026-05-27T00:18:05.51666167Z",
+                    "modified": "2026-05-27T07:28:44.138102875Z",
+                    "sourcePosition": "project:///../../../file:/home/runner/work/kanbunny/kanbunny/.sst/platform/src/components/aws/providers/bucket-files.ts#25,5",
+                    "stackTrace": [
+                        {
+                            "sourcePosition": "project:///../../../file:/home/runner/work/kanbunny/kanbunny/.sst/platform/src/components/aws/providers/bucket-files.ts#25,5"
+                        },
+                        {},
+                        {
+                            "sourcePosition": "project:///../../platform/node_modules/@pulumi/output.ts#516,25"
+                        }
+                    ]
+                },
+                {
+                    "urn": "urn:pulumi:production::flowjoe::sst:aws:StaticSite$pulumi-nodejs:dynamic:Resource::WebInvalidation.sst.aws.DistributionInvalidation",
+                    "custom": true,
+                    "id": "invalidation",
+                    "type": "pulumi-nodejs:dynamic:Resource",
+                    "inputs": {
+                        "__provider": "exports.handler = __f0;\n\nvar __provider_proto = {};\nObject.defineProperty(__f1, \"prototype\", { value: __provider_proto });\nObject.defineProperty(__provider_proto, \"constructor\", { configurable: true, writable: true, value: __f1 });\nObject.defineProperty(__provider_proto, \"name\", { configurable: true, writable: true, value: __f2 });\nObject.setPrototypeOf(__f4, global.Error);\nObject.defineProperty(__provider_proto, \"create\", { configurable: true, writable: true, value: __f3 });\nObject.defineProperty(__provider_proto, \"delete\", { configurable: true, writable: true, value: __f5 });\nObject.defineProperty(__provider_proto, \"update\", { configurable: true, writable: true, value: __f6 });\nObject.defineProperty(__provider_proto, \"read\", { configurable: true, writable: true, value: __f7 });\nObject.defineProperty(__provider_proto, \"diff\", { configurable: true, writable: true, value: __f8 });\nvar __provider = Object.create(__provider_proto);\n__provider.type = \"Aws.DistributionInvalidation\";\n\nfunction __f1(__0) {\n  return (function() {\n    with({ this: undefined, arguments: undefined }) {\n\nreturn function /*constructor*/(type) {\n      this.type = type;\n    };\n\n    }\n  }).apply(undefined, undefined).apply(this, arguments);\n}\n\nfunction __f2(__0) {\n  return (function() {\n    with({ this: undefined, arguments: undefined }) {\n\nreturn function /*name*/(action) {\n      return \"Resource.\" + this.type + \".\" + action;\n    };\n\n    }\n  }).apply(undefined, undefined).apply(this, arguments);\n}\n\nfunction __f4(__0) {\n  return (function() {\n    with({ __super: global.Error, this: undefined, arguments: undefined }) {\n\nreturn function /*constructor*/(method) {\n    __super.call(this, `Method \"${method}\" not found`);\n    this.method = method;\n};\n\n    }\n  }).apply(undefined, undefined).apply(this, arguments);\n}\nconst http = require(\"http\");\n\nfunction __call(__0, __1) {\n  return (function() {\n    with({ MethodNotFoundError: __f4, call: __call, this: undefined, arguments: undefined }) {\n\nreturn async function /*call*/(method, args) {\n    return new Promise((resolve, reject) => {\n      const url = new URL(process.env.SST_SERVER + \"/rpc\");\n      const options = {\n        hostname: url.hostname,\n        port: url.port,\n        path: url.pathname,\n        method: \"POST\",\n        headers: {\n          \"Content-Type\": \"application/json\"\n        }\n      };\n      const req = http.request(options, (res) => {\n        let data = \"\";\n        res.on(\"data\", (chunk) => {\n          data += chunk;\n        });\n        res.on(\"end\", () => {\n          if (res.statusCode !== 200) {\n            reject(new Error(`Failed to call RPC: ${data}`));\n            return;\n          }\n          try {\n            const json = JSON.parse(data);\n            if (json.error) {\n              if (json.error.startsWith(\"rpc: can't find\")) {\n                reject(new MethodNotFoundError(method));\n                return;\n              }\n              reject(new Error(json.error));\n              return;\n            }\n            resolve(json.result);\n          } catch (error) {\n            reject(new Error(`Failed to parse JSON: ${error.message}`));\n          }\n        });\n      });\n      req.on(\"error\", (error) => {\n        reject(error);\n      });\n      req.setTimeout(0);\n      const body = JSON.stringify({\n        jsonrpc: \"1.0\",\n        method,\n        params: [args]\n      });\n      req.write(body);\n      req.end();\n    });\n  };\n\n    }\n  }).apply(undefined, undefined).apply(this, arguments);\n}\n\nfunction __f3(__0) {\n  return (function() {\n    with({ call: __call, this: undefined, arguments: undefined }) {\n\nreturn async function /*create*/(inputs) {\n      return call(this.name(\"Create\"), inputs);\n    };\n\n    }\n  }).apply(undefined, undefined).apply(this, arguments);\n}\n\nfunction __f5(__0, __1) {\n  return (function() {\n    with({ call: __call, MethodNotFoundError: __f4, this: undefined, arguments: undefined }) {\n\nreturn async function /*delete*/(id, outs) {\n      return call(this.name(\"Delete\"), { id, outs }).catch((ex) => {\n        if (ex instanceof MethodNotFoundError) return;\n        throw ex;\n      });\n    };\n\n    }\n  }).apply(undefined, undefined).apply(this, arguments);\n}\n\nfunction __f6(__0, __1, __2) {\n  return (function() {\n    with({ call: __call, MethodNotFoundError: __f4, this: undefined, arguments: undefined }) {\n\nreturn async function /*update*/(id, olds, news) {\n      return call(this.name(\"Update\"), { id, olds, news }).catch((ex) => {\n        if (ex instanceof MethodNotFoundError)\n          return {\n            id\n          };\n        throw ex;\n      });\n    };\n\n    }\n  }).apply(undefined, undefined).apply(this, arguments);\n}\n\nfunction __f7(__0, __1) {\n  return (function() {\n    with({ call: __call, MethodNotFoundError: __f4, this: undefined, arguments: undefined }) {\n\nreturn async function /*read*/(id, props) {\n      return call(this.name(\"Read\"), { id, props }).catch((ex) => {\n        if (ex instanceof MethodNotFoundError) return { id, props };\n        throw ex;\n      });\n    };\n\n    }\n  }).apply(undefined, undefined).apply(this, arguments);\n}\n\nfunction __f8(__0, __1, __2) {\n  return (function() {\n    with({ call: __call, MethodNotFoundError: __f4, this: undefined, arguments: undefined }) {\n\nreturn async function /*diff*/(id, olds, news) {\n      return call(this.name(\"Diff\"), { id, olds, news }).catch((ex) => {\n        if (ex instanceof MethodNotFoundError) return { id, olds, news };\n        throw ex;\n      });\n    };\n\n    }\n  }).apply(undefined, undefined).apply(this, arguments);\n}\n\nfunction __f0() {\n  return (function() {\n    with({ provider: __provider, this: undefined, arguments: undefined }) {\n\nreturn () => provider;\n\n    }\n  }).apply(undefined, undefined).apply(this, arguments);\n}\n",
+                        "distributionId": "E3SGLWMJVIWYO5",
+                        "paths": [
+                            "/*"
+                        ],
+                        "version": "1c41638d2ee4d1e8ada5c73f9a770a0b",
+                        "wait": false
+                    },
+                    "outputs": {
+                        "__provider": "exports.handler = __f0;\n\nvar __provider_proto = {};\nObject.defineProperty(__f1, \"prototype\", { value: __provider_proto });\nObject.defineProperty(__provider_proto, \"constructor\", { configurable: true, writable: true, value: __f1 });\nObject.defineProperty(__provider_proto, \"name\", { configurable: true, writable: true, value: __f2 });\nObject.setPrototypeOf(__f4, global.Error);\nObject.defineProperty(__provider_proto, \"create\", { configurable: true, writable: true, value: __f3 });\nObject.defineProperty(__provider_proto, \"delete\", { configurable: true, writable: true, value: __f5 });\nObject.defineProperty(__provider_proto, \"update\", { configurable: true, writable: true, value: __f6 });\nObject.defineProperty(__provider_proto, \"read\", { configurable: true, writable: true, value: __f7 });\nObject.defineProperty(__provider_proto, \"diff\", { configurable: true, writable: true, value: __f8 });\nvar __provider = Object.create(__provider_proto);\n__provider.type = \"Aws.DistributionInvalidation\";\n\nfunction __f1(__0) {\n  return (function() {\n    with({ this: undefined, arguments: undefined }) {\n\nreturn function /*constructor*/(type) {\n      this.type = type;\n    };\n\n    }\n  }).apply(undefined, undefined).apply(this, arguments);\n}\n\nfunction __f2(__0) {\n  return (function() {\n    with({ this: undefined, arguments: undefined }) {\n\nreturn function /*name*/(action) {\n      return \"Resource.\" + this.type + \".\" + action;\n    };\n\n    }\n  }).apply(undefined, undefined).apply(this, arguments);\n}\n\nfunction __f4(__0) {\n  return (function() {\n    with({ __super: global.Error, this: undefined, arguments: undefined }) {\n\nreturn function /*constructor*/(method) {\n    __super.call(this, `Method \"${method}\" not found`);\n    this.method = method;\n};\n\n    }\n  }).apply(undefined, undefined).apply(this, arguments);\n}\nconst http = require(\"http\");\n\nfunction __call(__0, __1) {\n  return (function() {\n    with({ MethodNotFoundError: __f4, call: __call, this: undefined, arguments: undefined }) {\n\nreturn async function /*call*/(method, args) {\n    return new Promise((resolve, reject) => {\n      const url = new URL(process.env.SST_SERVER + \"/rpc\");\n      const options = {\n        hostname: url.hostname,\n        port: url.port,\n        path: url.pathname,\n        method: \"POST\",\n        headers: {\n          \"Content-Type\": \"application/json\"\n        }\n      };\n      const req = http.request(options, (res) => {\n        let data = \"\";\n        res.on(\"data\", (chunk) => {\n          data += chunk;\n        });\n        res.on(\"end\", () => {\n          if (res.statusCode !== 200) {\n            reject(new Error(`Failed to call RPC: ${data}`));\n            return;\n          }\n          try {\n            const json = JSON.parse(data);\n            if (json.error) {\n              if (json.error.startsWith(\"rpc: can't find\")) {\n                reject(new MethodNotFoundError(method));\n                return;\n              }\n              reject(new Error(json.error));\n              return;\n            }\n            resolve(json.result);\n          } catch (error) {\n            reject(new Error(`Failed to parse JSON: ${error.message}`));\n          }\n        });\n      });\n      req.on(\"error\", (error) => {\n        reject(error);\n      });\n      req.setTimeout(0);\n      const body = JSON.stringify({\n        jsonrpc: \"1.0\",\n        method,\n        params: [args]\n      });\n      req.write(body);\n      req.end();\n    });\n  };\n\n    }\n  }).apply(undefined, undefined).apply(this, arguments);\n}\n\nfunction __f3(__0) {\n  return (function() {\n    with({ call: __call, this: undefined, arguments: undefined }) {\n\nreturn async function /*create*/(inputs) {\n      return call(this.name(\"Create\"), inputs);\n    };\n\n    }\n  }).apply(undefined, undefined).apply(this, arguments);\n}\n\nfunction __f5(__0, __1) {\n  return (function() {\n    with({ call: __call, MethodNotFoundError: __f4, this: undefined, arguments: undefined }) {\n\nreturn async function /*delete*/(id, outs) {\n      return call(this.name(\"Delete\"), { id, outs }).catch((ex) => {\n        if (ex instanceof MethodNotFoundError) return;\n        throw ex;\n      });\n    };\n\n    }\n  }).apply(undefined, undefined).apply(this, arguments);\n}\n\nfunction __f6(__0, __1, __2) {\n  return (function() {\n    with({ call: __call, MethodNotFoundError: __f4, this: undefined, arguments: undefined }) {\n\nreturn async function /*update*/(id, olds, news) {\n      return call(this.name(\"Update\"), { id, olds, news }).catch((ex) => {\n        if (ex instanceof MethodNotFoundError)\n          return {\n            id\n          };\n        throw ex;\n      });\n    };\n\n    }\n  }).apply(undefined, undefined).apply(this, arguments);\n}\n\nfunction __f7(__0, __1) {\n  return (function() {\n    with({ call: __call, MethodNotFoundError: __f4, this: undefined, arguments: undefined }) {\n\nreturn async function /*read*/(id, props) {\n      return call(this.name(\"Read\"), { id, props }).catch((ex) => {\n        if (ex instanceof MethodNotFoundError) return { id, props };\n        throw ex;\n      });\n    };\n\n    }\n  }).apply(undefined, undefined).apply(this, arguments);\n}\n\nfunction __f8(__0, __1, __2) {\n  return (function() {\n    with({ call: __call, MethodNotFoundError: __f4, this: undefined, arguments: undefined }) {\n\nreturn async function /*diff*/(id, olds, news) {\n      return call(this.name(\"Diff\"), { id, olds, news }).catch((ex) => {\n        if (ex instanceof MethodNotFoundError) return { id, olds, news };\n        throw ex;\n      });\n    };\n\n    }\n  }).apply(undefined, undefined).apply(this, arguments);\n}\n\nfunction __f0() {\n  return (function() {\n    with({ provider: __provider, this: undefined, arguments: undefined }) {\n\nreturn () => provider;\n\n    }\n  }).apply(undefined, undefined).apply(this, arguments);\n}\n"
+                    },
+                    "parent": "urn:pulumi:production::flowjoe::sst:aws:StaticSite::Web",
+                    "dependencies": [
+                        "urn:pulumi:production::flowjoe::sst:aws:StaticSite$pulumi-nodejs:dynamic:Resource::WebAssetFiles.sst.aws.BucketFiles",
+                        "urn:pulumi:production::flowjoe::sst:aws:StaticSite$command:local:Command::WebBuilder",
+                        "urn:pulumi:production::flowjoe::sst:aws:StaticSite$pulumi-nodejs:dynamic:Resource::WebKvKeys.sst.aws.KvKeys",
+                        "urn:pulumi:production::flowjoe::sst:aws:StaticSite$sst:aws:CDN$aws:cloudfront/distribution:Distribution::WebCdnDistribution"
+                    ],
+                    "provider": "urn:pulumi:production::flowjoe::pulumi:providers:pulumi-nodejs::default::f58227dc-695f-4fb0-a16a-d76c9b9e8929",
+                    "propertyDependencies": {
+                        "__provider": [],
+                        "distributionId": [
+                            "urn:pulumi:production::flowjoe::sst:aws:StaticSite$sst:aws:CDN$aws:cloudfront/distribution:Distribution::WebCdnDistribution"
+                        ],
+                        "paths": [],
+                        "version": [],
+                        "wait": []
+                    },
+                    "created": "2026-05-27T00:18:13.095265954Z",
+                    "modified": "2026-05-27T07:28:44.715695034Z",
+                    "sourcePosition": "project:///../../../file:/home/runner/work/kanbunny/kanbunny/.sst/platform/src/components/aws/providers/distribution-invalidation.ts#17,5",
+                    "stackTrace": [
+                        {
+                            "sourcePosition": "project:///../../../file:/home/runner/work/kanbunny/kanbunny/.sst/platform/src/components/aws/providers/distribution-invalidation.ts#17,5"
+                        },
+                        {},
+                        {
+                            "sourcePosition": "project:///../../platform/node_modules/@pulumi/output.ts#516,31"
+                        },
+                        {},
+                        {}
+                    ]
+                }
+            ],
+            "metadata": {}
+        }
+    }
+}

@@ -1,5 +1,29 @@
 import { supabase } from "@/integrations/supabase/client";
 
+// ── Edge function caller ───────────────────────────────────────────────────────
+// Uses fetch directly so we can pass the JWT from the current session,
+// which is more reliable than supabase.functions.invoke() with publishable keys.
+async function invokeFunction(name: string, body: object) {
+  const { data: { session } } = await supabase.auth.getSession();
+  const jwt = session?.access_token;
+  if (!jwt) throw new Error("Not authenticated");
+
+  const url = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/${name}`;
+  const res = await fetch(url, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "Authorization": `Bearer ${jwt}`,
+      "apikey": import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
+    },
+    body: JSON.stringify(body),
+  });
+
+  const json = await res.json();
+  if (!res.ok) throw new Error(json?.error ?? `Edge function error: ${res.status}`);
+  return json;
+}
+
 // ── Types ─────────────────────────────────────────────────────────────────────
 
 export interface CardAIMeta {
@@ -29,11 +53,7 @@ export async function runPMAgent(data: {
   user_priority?: number | null;
   user_urgency?: number | null;
 }): Promise<{ ok: boolean; priority_score?: number; urgency_score?: number; rationale?: string; error?: string }> {
-  const { data: result, error } = await supabase.functions.invoke("pm-agent", {
-    body: data,
-  });
-  if (error) throw new Error(error.message);
-  return result;
+  return invokeFunction("pm-agent", data);
 }
 
 export async function getCardAIMeta(data: { cardId: string }): Promise<CardAIMeta | null> {
@@ -61,19 +81,11 @@ export async function setManualPriority(data: {
 // ── SWE Agent ─────────────────────────────────────────────────────────────────
 
 export async function startSprint(data: { board_id: string }) {
-  const { data: result, error } = await supabase.functions.invoke("swe-agent", {
-    body: { action: "start_sprint", board_id: data.board_id },
-  });
-  if (error) throw new Error(error.message);
-  return result;
+  return invokeFunction("swe-agent", { action: "start_sprint", board_id: data.board_id });
 }
 
 export async function startCard(data: { board_id: string; card_id: string }) {
-  const { data: result, error } = await supabase.functions.invoke("swe-agent", {
-    body: { action: "start_card", board_id: data.board_id, card_id: data.card_id },
-  });
-  if (error) throw new Error(error.message);
-  return result;
+  return invokeFunction("swe-agent", { action: "start_card", board_id: data.board_id, card_id: data.card_id });
 }
 
 export async function answerAgentQuestion(data: {
@@ -82,19 +94,11 @@ export async function answerAgentQuestion(data: {
   run_id: string;
   answer: string;
 }) {
-  const { data: result, error } = await supabase.functions.invoke("swe-agent", {
-    body: { action: "answer_question", ...data },
-  });
-  if (error) throw new Error(error.message);
-  return result;
+  return invokeFunction("swe-agent", { action: "answer_question", ...data });
 }
 
 export async function haltAgent(data: { board_id: string; card_id: string; run_id: string }) {
-  const { data: result, error } = await supabase.functions.invoke("swe-agent", {
-    body: { action: "halt", ...data },
-  });
-  if (error) throw new Error(error.message);
-  return result;
+  return invokeFunction("swe-agent", { action: "halt", ...data });
 }
 
 // ── Agent runs queries ────────────────────────────────────────────────────────

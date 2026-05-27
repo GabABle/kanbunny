@@ -415,7 +415,6 @@ export function CardDialog({
                             <span>5 = least urgent</span>
                           </div>
                         </div>
-                      </div>
                         <Button
                           size="sm" variant="outline" className="w-full"
                           disabled={pmEval.isPending}
