@@ -1,6 +1,10 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import { corsHeaders } from "../_shared/cors.ts";
+
+const corsHeaders = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+};
 
 // ── Types ────────────────────────────────────────────────────────────────────
 interface PMRequest {
@@ -121,8 +125,8 @@ ${checklistSummary ? `- Checklists:\n${checklistSummary}` : ""}
 
 Evaluate this card using the Eisenhower matrix. Return ONLY valid JSON in this exact shape (no markdown, no explanation outside the JSON):
 {
-  "priority_score": <integer 1-5, where 5 = highest impact>,
-  "urgency_score": <integer 1-5, where 5 = most urgent>,
+  "priority_score": <integer 1-5, where 1 = highest priority, 5 = lowest priority>,
+  "urgency_score": <integer 1-5, where 1 = most urgent, 5 = least urgent>,
   "rationale": "<one sentence explaining the scores>"
 }`;
 

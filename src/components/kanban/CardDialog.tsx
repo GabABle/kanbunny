@@ -273,13 +273,15 @@ export function CardDialog({
                 <Brain className="h-4 w-4 mt-0.5 text-violet-500 shrink-0" />
                 <div className="flex-1 min-w-0">
                   <div className="flex flex-wrap gap-3 mb-1">
-                    <div>
+                    <div title="Priority: 1 = highest, 5 = lowest">
                       <span className="text-[10px] font-semibold uppercase text-violet-500 mr-1">Priority</span>
                       <PriorityDots value={aiMeta.priority_score} color="violet" />
+                      <span className="ml-1 text-[10px] text-muted-foreground">{aiMeta.priority_score}/5</span>
                     </div>
-                    <div>
+                    <div title="Urgency: 1 = most urgent, 5 = least urgent">
                       <span className="text-[10px] font-semibold uppercase text-violet-500 mr-1">Urgency</span>
                       <PriorityDots value={aiMeta.urgency_score} color="orange" />
+                      <span className="ml-1 text-[10px] text-muted-foreground">{aiMeta.urgency_score}/5</span>
                     </div>
                     <span className={cn(
                       "text-[10px] font-semibold uppercase px-1.5 py-0.5 rounded",
@@ -392,15 +394,28 @@ export function CardDialog({
                     </Button>
                     <div className="border-t pt-3">
                       <div className="text-xs font-semibold text-muted-foreground mb-2">Or set manually</div>
-                      <div className="space-y-2">
-                        <div className="flex items-center justify-between">
-                          <span className="text-xs">Priority</span>
-                          <ScorePicker value={manualPriority} onChange={setManualPriority} color="violet" />
+                      <div className="space-y-3">
+                        <div className="space-y-1">
+                          <div className="flex items-center justify-between">
+                            <span className="text-xs font-medium">Priority</span>
+                            <ScorePicker value={manualPriority} onChange={setManualPriority} color="violet" />
+                          </div>
+                          <div className="flex justify-between text-[10px] text-muted-foreground">
+                            <span>1 = highest</span>
+                            <span>5 = lowest</span>
+                          </div>
                         </div>
-                        <div className="flex items-center justify-between">
-                          <span className="text-xs">Urgency</span>
-                          <ScorePicker value={manualUrgency} onChange={setManualUrgency} color="orange" />
+                        <div className="space-y-1">
+                          <div className="flex items-center justify-between">
+                            <span className="text-xs font-medium">Urgency</span>
+                            <ScorePicker value={manualUrgency} onChange={setManualUrgency} color="orange" />
+                          </div>
+                          <div className="flex justify-between text-[10px] text-muted-foreground">
+                            <span>1 = most urgent</span>
+                            <span>5 = least urgent</span>
+                          </div>
                         </div>
+                      </div>
                         <Button
                           size="sm" variant="outline" className="w-full"
                           disabled={pmEval.isPending}
