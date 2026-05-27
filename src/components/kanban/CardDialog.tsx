@@ -11,7 +11,7 @@ import { Progress } from "@/components/ui/progress";
 import { Calendar } from "@/components/ui/calendar";
 import { format } from "date-fns";
 import {
-  AlignLeft, CheckSquare, Clock, Tag, Trash2, Users, X, Plus, Check, MessageSquare, Paperclip, Download, FileIcon, Loader2, User as UserIcon, Archive, Sparkles, Brain,
+  AlignLeft, CheckSquare, Clock, Tag, Trash2, Users, X, Plus, Check, MessageSquare, Paperclip, Download, FileIcon, Loader2, User as UserIcon, Archive,
 } from "lucide-react";
 import { ChevronDown, ChevronRight, Activity } from "lucide-react";
 import {
@@ -20,12 +20,11 @@ import {
   createLabel, toggleCardLabel, deleteLabel,
   toggleAssignee,
   addChecklist, addChecklistItem, toggleChecklistItem,
-  deleteChecklistItem, deleteChecklist, renameChecklist,
+  updateChecklistItem, deleteChecklistItem, deleteChecklist, renameChecklist,
   getCardComments, addCardComment, updateCardComment, deleteCardComment,
   listCardAttachments, addCardAttachment, deleteCardAttachment, getAttachmentUrl,
   getCardActivities, getCardDetails, updateCardOwner,
 } from "@/lib/kanban.functions";
-import { runPMAgent, getCardAIMeta, startCard, haltAgent, getCardAgentRuns, type CardAIMeta, type AgentRun } from "@/lib/agent.functions";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/hooks/use-auth";
@@ -135,63 +134,6 @@ export function CardDialog({
     staleTime: 30_000,
   });
 
-  // ---- SWE Agent ----
-  const { data: agentRuns = [], refetch: refetchRuns } = useQuery({
-    queryKey: ["agent_runs", card.id],
-    queryFn: () => getCardAgentRuns({ cardId: card.id }),
-    enabled: isRealCard,
-    refetchInterval: (data) => {
-      const runs = data?.state?.data;
-      return Array.isArray(runs) && runs.some((r: AgentRun) => r.status === "running") ? 3000 : false;
-    },
-  });
-  const activeRun = agentRuns.find((r) => r.status === "running" || r.status === "paused");
-  const sweStart = useMutation({
-    mutationFn: () => startCard({ board_id: boardId, card_id: card.id }),
-    onSuccess: () => {
-      refetchRuns();
-      qc.invalidateQueries({ queryKey: ["board", boardId] });
-      qc.invalidateQueries({ queryKey: ["checklists", card.id] });
-      toast.success("SWE Agent started on this card");
-    },
-    onError: (e: any) => toast.error(e.message),
-  });
-  const sweHalt = useMutation({
-    mutationFn: () => haltAgent({ board_id: boardId, card_id: card.id, run_id: activeRun!.id }),
-    onSuccess: () => {
-      refetchRuns();
-      qc.invalidateQueries({ queryKey: ["board", boardId] });
-      toast.info("SWE Agent halted");
-    },
-    onError: (e: any) => toast.error(e.message),
-  });
-
-  // ---- PM Agent ----
-  const { data: aiMeta, refetch: refetchAIMeta } = useQuery({
-    queryKey: ["card_ai_meta", card.id],
-    queryFn: () => getCardAIMeta({ cardId: card.id }),
-    enabled: isRealCard,
-    staleTime: 60_000,
-  });
-  const [pmOpen, setPmOpen] = useState(false);
-  const [manualPriority, setManualPriority] = useState<number>(3);
-  const [manualUrgency, setManualUrgency] = useState<number>(3);
-  const pmEval = useMutation({
-    mutationFn: (override?: { priority: number; urgency: number }) =>
-      runPMAgent({
-        card_id: card.id,
-        user_priority: override?.priority ?? null,
-        user_urgency: override?.urgency ?? null,
-      }),
-    onSuccess: () => {
-      refetchAIMeta();
-      qc.invalidateQueries({ queryKey: ["checklists", card.id] }); // refresh comments
-      toast.success("PM Agent evaluated the card");
-      setPmOpen(false);
-    },
-    onError: (e: any) => toast.error(e.message),
-  });
-
   return (
     <Dialog open onOpenChange={(o) => !o && onClose()}>
       <DialogContent
@@ -267,36 +209,6 @@ export function CardDialog({
               );
             })()}
 
-            {/* PM Agent evaluation badge */}
-            {aiMeta && (
-              <div className="flex flex-wrap items-start gap-3 rounded-lg border border-violet-200 bg-violet-50 dark:border-violet-800 dark:bg-violet-950/30 px-3 py-2">
-                <Brain className="h-4 w-4 mt-0.5 text-violet-500 shrink-0" />
-                <div className="flex-1 min-w-0">
-                  <div className="flex flex-wrap gap-3 mb-1">
-                    <div title="Priority: 1 = highest, 5 = lowest">
-                      <span className="text-[10px] font-semibold uppercase text-violet-500 mr-1">Priority</span>
-                      <PriorityDots value={aiMeta.priority_score} color="violet" />
-                      <span className="ml-1 text-[10px] text-muted-foreground">{aiMeta.priority_score}/5</span>
-                    </div>
-                    <div title="Urgency: 1 = most urgent, 5 = least urgent">
-                      <span className="text-[10px] font-semibold uppercase text-violet-500 mr-1">Urgency</span>
-                      <PriorityDots value={aiMeta.urgency_score} color="orange" />
-                      <span className="ml-1 text-[10px] text-muted-foreground">{aiMeta.urgency_score}/5</span>
-                    </div>
-                    <span className={cn(
-                      "text-[10px] font-semibold uppercase px-1.5 py-0.5 rounded",
-                      aiMeta.evaluated_by === "user" ? "bg-blue-100 text-blue-700" : "bg-violet-100 text-violet-700"
-                    )}>
-                      {aiMeta.evaluated_by === "user" ? "Manual" : "AI"}
-                    </span>
-                  </div>
-                  {aiMeta.rationale && (
-                    <p className="text-xs text-muted-foreground italic">{aiMeta.rationale}</p>
-                  )}
-                </div>
-              </div>
-            )}
-
             {/* Description */}
             <div>
               <div className="mb-2 flex items-center gap-2">
@@ -331,6 +243,17 @@ export function CardDialog({
                 checklist={checklist}
                 items={cl.items.filter((i) => i.checklist_id === checklist.id)}
                 members={members}
+                onItemDueDateChange={() => {
+                  // Sync card due_date to the furthest deadline across all checklist items
+                  const allItems = cl.items;
+                  const dates = allItems
+                    .map((i: any) => i.due_date ? new Date(i.due_date).getTime() : null)
+                    .filter((t): t is number => t !== null);
+                  if (dates.length > 0) {
+                    const furthest = new Date(Math.max(...dates)).toISOString();
+                    update.mutate({ due_date: furthest });
+                  }
+                }}
               />
             ))}
 
@@ -364,95 +287,6 @@ export function CardDialog({
               />
               <AttachmentButton cardId={card.id} canEdit={canEdit} />
             </div>
-
-            {/* PM Agent section */}
-            <div className="pt-3 text-[11px] font-semibold uppercase text-list-muted">Agents</div>
-            <div className="space-y-2">
-              <Popover open={pmOpen} onOpenChange={setPmOpen}>
-                <PopoverTrigger asChild>
-                  <Button
-                    variant="secondary" size="sm"
-                    className="w-full justify-start gap-2"
-                    disabled={!isRealCard}
-                  >
-                    <Brain className="h-4 w-4 text-violet-500" />
-                    {aiMeta ? "Re-evaluate (PM)" : "Evaluate (PM Agent)"}
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent className="w-72" align="end">
-                  <div className="space-y-3">
-                    <div className="text-sm font-semibold flex items-center gap-2">
-                      <Brain className="h-4 w-4 text-violet-500" /> PM Agent
-                    </div>
-                    <Button
-                      size="sm" className="w-full bg-violet-600 hover:bg-violet-700 text-white"
-                      disabled={pmEval.isPending}
-                      onClick={() => pmEval.mutate(undefined)}
-                    >
-                      {pmEval.isPending ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Sparkles className="h-4 w-4 mr-2" />}
-                      Auto-evaluate with AI
-                    </Button>
-                    <div className="border-t pt-3">
-                      <div className="text-xs font-semibold text-muted-foreground mb-2">Or set manually</div>
-                      <div className="space-y-3">
-                        <div className="space-y-1">
-                          <div className="flex items-center justify-between">
-                            <span className="text-xs font-medium">Priority</span>
-                            <ScorePicker value={manualPriority} onChange={setManualPriority} color="violet" />
-                          </div>
-                          <div className="flex justify-between text-[10px] text-muted-foreground">
-                            <span>1 = highest</span>
-                            <span>5 = lowest</span>
-                          </div>
-                        </div>
-                        <div className="space-y-1">
-                          <div className="flex items-center justify-between">
-                            <span className="text-xs font-medium">Urgency</span>
-                            <ScorePicker value={manualUrgency} onChange={setManualUrgency} color="orange" />
-                          </div>
-                          <div className="flex justify-between text-[10px] text-muted-foreground">
-                            <span>1 = most urgent</span>
-                            <span>5 = least urgent</span>
-                          </div>
-                        </div>
-                        <Button
-                          size="sm" variant="outline" className="w-full"
-                          disabled={pmEval.isPending}
-                          onClick={() => pmEval.mutate({ priority: manualPriority, urgency: manualUrgency })}
-                        >
-                          Save manual scores
-                        </Button>
-                      </div>
-                    </div>
-                  </div>
-                </PopoverContent>
-              </Popover>
-            </div>
-
-            {/* SWE Agent button */}
-            {canEdit && isRealCard && (
-              activeRun ? (
-                <Button
-                  variant="secondary" size="sm"
-                  className="w-full justify-start gap-2 border border-blue-400/40 bg-blue-500/10 text-blue-400 hover:bg-blue-500/20"
-                  onClick={() => sweHalt.mutate()}
-                  disabled={sweHalt.isPending}
-                >
-                  {sweHalt.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <span className="text-base leading-none">⏹</span>}
-                  {activeRun.status === "running" ? "Stop SWE Agent" : "Agent paused — Stop"}
-                </Button>
-              ) : (
-                <Button
-                  variant="secondary" size="sm"
-                  className="w-full justify-start gap-2"
-                  onClick={() => sweStart.mutate()}
-                  disabled={sweStart.isPending || (card as any).agent_status === "done"}
-                >
-                  {sweStart.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <span className="text-base leading-none">⚙️</span>}
-                  {(card as any).agent_status === "done" ? "SWE Done ✓" : "Run SWE Agent"}
-                </Button>
-              )
-            )}
 
             {canEdit && (
               <>
@@ -736,35 +570,29 @@ function ChecklistAdd({ boardId, cardId, canEdit, members }: { boardId: string; 
   );
 }
 
-function ChecklistBlock({ boardId, cardId, canEdit, checklist, items, members }: {
+function ChecklistBlock({ boardId, cardId, canEdit, checklist, items, members, onItemDueDateChange }: {
   boardId: string; cardId: string; canEdit: boolean;
   checklist: { id: string; title: string };
-  items: { id: string; text: string; done: boolean }[];
+  items: { id: string; text: string; done: boolean; due_date?: string | null }[];
   members: Member[];
+  onItemDueDateChange?: () => void;
 }) {
   const qc = useQueryClient();
   const key = ["checklists", cardId] as const;
-  const inv = () => qc.invalidateQueries({ queryKey: key });
   const confirmDlg = useConfirm();
-
-  const addItemFn = addChecklistItem;
-  const toggleFn = toggleChecklistItem;
-  const deleteItemFn = deleteChecklistItem;
-  const deleteListFn = deleteChecklist;
-  const renameListFn = renameChecklist;
 
   const patchItems = (fn: (items: any[]) => any[]) =>
     qc.setQueryData<any>(key, (d: any) => (d ? { ...d, items: fn(d.items) } : d));
 
   const addItem = useMutation({
-    mutationFn: (text: string) => addItemFn({ checklistId: checklist.id, text }),
+    mutationFn: (text: string) => addChecklistItem({ checklistId: checklist.id, text }),
     onMutate: async (text) => {
       await qc.cancelQueries({ queryKey: key });
       const prev = qc.getQueryData<any>(key);
       const tmpId = `tmp-${Math.random()}`;
       qc.setQueryData<any>(key, (d: any) => {
         if (!d) return d;
-        return { ...d, items: [...d.items, { id: tmpId, checklist_id: checklist.id, text, done: false, position: 9999 }] };
+        return { ...d, items: [...d.items, { id: tmpId, checklist_id: checklist.id, text, done: false, position: 9999, due_date: null }] };
       });
       return { prev, tmpId };
     },
@@ -777,7 +605,7 @@ function ChecklistBlock({ boardId, cardId, canEdit, checklist, items, members }:
     },
   });
   const toggle = useMutation({
-    mutationFn: (v: { id: string; done: boolean }) => toggleFn(v),
+    mutationFn: (v: { id: string; done: boolean }) => toggleChecklistItem(v),
     onMutate: async (v) => {
       await qc.cancelQueries({ queryKey: key });
       const prev = qc.getQueryData<any>(key);
@@ -786,8 +614,19 @@ function ChecklistBlock({ boardId, cardId, canEdit, checklist, items, members }:
     },
     onError: (e, _v, ctx) => { if (ctx?.prev) qc.setQueryData(key, ctx.prev); toast.error(e.message); },
   });
+  const updateItem = useMutation({
+    mutationFn: (v: { id: string; text?: string; due_date?: string | null }) => updateChecklistItem(v),
+    onMutate: async (v) => {
+      await qc.cancelQueries({ queryKey: key });
+      const prev = qc.getQueryData<any>(key);
+      patchItems((items) => items.map((i) => (i.id === v.id ? { ...i, ...v } : i)));
+      return { prev };
+    },
+    onError: (e, _v, ctx) => { if (ctx?.prev) qc.setQueryData(key, ctx.prev); toast.error(e.message); },
+    onSuccess: () => onItemDueDateChange?.(),
+  });
   const delItem = useMutation({
-    mutationFn: (id: string) => deleteItemFn({ id }),
+    mutationFn: (id: string) => deleteChecklistItem({ id }),
     onMutate: async (id) => {
       await qc.cancelQueries({ queryKey: key });
       const prev = qc.getQueryData<any>(key);
@@ -795,9 +634,10 @@ function ChecklistBlock({ boardId, cardId, canEdit, checklist, items, members }:
       return { prev };
     },
     onError: (e, _v, ctx) => { if (ctx?.prev) qc.setQueryData(key, ctx.prev); toast.error(e.message); },
+    onSuccess: () => onItemDueDateChange?.(),
   });
   const delList = useMutation({
-    mutationFn: () => deleteListFn({ id: checklist.id }),
+    mutationFn: () => deleteChecklist({ id: checklist.id }),
     onMutate: async () => {
       await qc.cancelQueries({ queryKey: key });
       const prev = qc.getQueryData<any>(key);
@@ -812,9 +652,10 @@ function ChecklistBlock({ boardId, cardId, canEdit, checklist, items, members }:
       return { prev };
     },
     onError: (e, _v, ctx) => { if (ctx?.prev) qc.setQueryData(key, ctx.prev); toast.error(e.message); },
+    onSuccess: () => onItemDueDateChange?.(),
   });
   const renameList = useMutation({
-    mutationFn: (title: string) => renameListFn({ id: checklist.id, title }),
+    mutationFn: (title: string) => renameChecklist({ id: checklist.id, title }),
     onMutate: async (title) => {
       await qc.cancelQueries({ queryKey: key });
       const prev = qc.getQueryData<any>(key);
@@ -876,19 +717,15 @@ function ChecklistBlock({ boardId, cardId, canEdit, checklist, items, members }:
       </div>
       <div className="space-y-1">
         {items.map((i) => (
-          <div key={i.id} className="group flex items-center gap-2 rounded px-1 py-1 hover:bg-black/5">
-            <Checkbox checked={i.done} onCheckedChange={(v) => toggle.mutate({ id: i.id, done: !!v })} disabled={!canEdit} />
-            <span className={cn("flex-1 text-sm", i.done && "text-list-muted line-through")}>{i.text}</span>
-            {canEdit && (
-              <button
-                onClick={async () => { if (await confirmDlg({ title: "Delete this item?", destructive: true, confirmText: "Delete" })) delItem.mutate(i.id); }}
-                title="Delete item"
-                className="text-list-muted hover:text-destructive"
-              >
-                <Trash2 className="h-3.5 w-3.5" />
-              </button>
-            )}
-          </div>
+          <ChecklistItem
+            key={i.id}
+            item={i}
+            canEdit={canEdit}
+            onToggle={(done) => toggle.mutate({ id: i.id, done })}
+            onUpdateText={(text) => updateItem.mutate({ id: i.id, text })}
+            onUpdateDueDate={(due_date) => updateItem.mutate({ id: i.id, due_date })}
+            onDelete={async () => { if (await confirmDlg({ title: "Delete this item?", destructive: true, confirmText: "Delete" })) delItem.mutate(i.id); }}
+          />
         ))}
       </div>
       {canEdit && (
@@ -923,6 +760,110 @@ function ChecklistBlock({ boardId, cardId, canEdit, checklist, items, members }:
           )}
         </div>
       )}
+    </div>
+  );
+}
+
+function ChecklistItem({ item, canEdit, onToggle, onUpdateText, onUpdateDueDate, onDelete }: {
+  item: { id: string; text: string; done: boolean; due_date?: string | null };
+  canEdit: boolean;
+  onToggle: (done: boolean) => void;
+  onUpdateText: (text: string) => void;
+  onUpdateDueDate: (due_date: string | null) => void;
+  onDelete: () => void;
+}) {
+  const [editingText, setEditingText] = useState(false);
+  const [textDraft, setTextDraft] = useState(item.text);
+  const [showDatePicker, setShowDatePicker] = useState(false);
+  const dueDate = item.due_date ? new Date(item.due_date) : null;
+  const overdue = dueDate ? dueDate.getTime() < Date.now() : false;
+
+  return (
+    <div className="group rounded px-1 py-1 hover:bg-black/5">
+      <div className="flex items-start gap-2">
+        <Checkbox
+          checked={item.done}
+          onCheckedChange={(v) => onToggle(!!v)}
+          disabled={!canEdit}
+          className="mt-0.5"
+        />
+        <div className="flex-1 min-w-0">
+          {editingText && canEdit ? (
+            <input
+              autoFocus
+              value={textDraft}
+              onChange={(e) => setTextDraft(e.target.value)}
+              onBlur={() => {
+                const t = textDraft.trim();
+                if (t && t !== item.text) onUpdateText(t);
+                else setTextDraft(item.text);
+                setEditingText(false);
+              }}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") { e.preventDefault(); (e.target as HTMLInputElement).blur(); }
+                if (e.key === "Escape") { setTextDraft(item.text); setEditingText(false); }
+              }}
+              className="w-full rounded border border-primary/40 bg-tcard px-1.5 py-0.5 text-sm outline-none focus:ring-1 focus:ring-primary/40"
+            />
+          ) : (
+            <span
+              className={cn("text-sm cursor-pointer rounded px-0.5 hover:bg-black/5", item.done && "text-list-muted line-through")}
+              onClick={() => { if (canEdit) { setTextDraft(item.text); setEditingText(true); } }}
+              title={canEdit ? "Click to edit" : undefined}
+            >
+              {item.text}
+            </span>
+          )}
+          {dueDate && (
+            <div className={cn("mt-0.5 inline-flex items-center gap-1 rounded px-1.5 py-0.5 text-[11px]", overdue ? "bg-destructive/15 text-destructive" : "bg-tcard text-list-muted")}>
+              <Clock className="h-3 w-3" />
+              {dueDate.toLocaleDateString(undefined, { month: "short", day: "numeric" })}
+              {overdue && <span className="font-semibold">· overdue</span>}
+              {canEdit && (
+                <button onClick={() => onUpdateDueDate(null)} className="ml-1 hover:text-destructive">
+                  <X className="h-3 w-3" />
+                </button>
+              )}
+            </div>
+          )}
+        </div>
+        {canEdit && (
+          <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+            <Popover open={showDatePicker} onOpenChange={setShowDatePicker}>
+              <PopoverTrigger asChild>
+                <button title="Set deadline" className="text-list-muted hover:text-list-foreground">
+                  <Clock className="h-3.5 w-3.5" />
+                </button>
+              </PopoverTrigger>
+              <PopoverContent className="w-auto p-3" align="end">
+                <div className="text-sm font-medium mb-2">Item deadline</div>
+                <Calendar
+                  mode="single"
+                  selected={dueDate ?? undefined}
+                  onSelect={(d) => {
+                    onUpdateDueDate(d ? d.toISOString() : null);
+                    setShowDatePicker(false);
+                  }}
+                  initialFocus
+                  className="p-0 pointer-events-auto"
+                />
+                {dueDate && (
+                  <Button variant="ghost" size="sm" className="mt-2 w-full" onClick={() => { onUpdateDueDate(null); setShowDatePicker(false); }}>
+                    <X className="h-4 w-4" /> Remove deadline
+                  </Button>
+                )}
+              </PopoverContent>
+            </Popover>
+            <button
+              onClick={onDelete}
+              title="Delete item"
+              className="text-list-muted hover:text-destructive"
+            >
+              <Trash2 className="h-3.5 w-3.5" />
+            </button>
+          </div>
+        )}
+      </div>
     </div>
   );
 }
@@ -1582,42 +1523,5 @@ function OwnerPopover({ boardId, cardId, canEdit, members, ownerId }: {
         </div>
       </PopoverContent>
     </Popover>
-  );
-}
-
-// ── PM Agent helper components ────────────────────────────────────────────────
-
-function PriorityDots({ value, color }: { value: number; color: "violet" | "orange" }) {
-  const filled = color === "violet" ? "bg-violet-500" : "bg-orange-400";
-  const empty = "bg-muted";
-  return (
-    <span className="inline-flex items-center gap-0.5">
-      {Array.from({ length: 5 }, (_, i) => (
-        <span key={i} className={cn("inline-block h-2 w-2 rounded-full", i < value ? filled : empty)} />
-      ))}
-    </span>
-  );
-}
-
-function ScorePicker({ value, onChange, color }: { value: number; onChange: (v: number) => void; color: "violet" | "orange" }) {
-  const active = color === "violet"
-    ? "bg-violet-500 text-white border-violet-500"
-    : "bg-orange-400 text-white border-orange-400";
-  return (
-    <div className="flex gap-1">
-      {[1, 2, 3, 4, 5].map((n) => (
-        <button
-          key={n}
-          type="button"
-          onClick={() => onChange(n)}
-          className={cn(
-            "h-6 w-6 rounded border text-xs font-semibold transition-colors",
-            value === n ? active : "border-input bg-background text-foreground hover:bg-accent"
-          )}
-        >
-          {n}
-        </button>
-      ))}
-    </div>
   );
 }

@@ -10,7 +10,7 @@ import { Plus, Trash2, UserPlus, X, Clock, Bell, Filter, Link2, CalendarClock } 
 import {
   getBoard, createList, renameList, deleteList, moveList,
   createCard, updateCard, deleteCard, moveCard,
-  inviteMember, removeMember, searchProfiles, renameBoard, updateBoardBackground,
+  inviteMember, removeMember, searchProfiles, renameBoard, updateBoardBackground, updateBoardDescription,
 } from "@/lib/kanban.functions";
 import { createBoardInvite } from "@/lib/invites.functions";
 import { toast } from "sonner";
@@ -106,6 +106,7 @@ function BoardPage() {
   const deleteListFn = deleteList;
   const renameBoardFn = renameBoard;
   const updateBgFn = updateBoardBackground;
+  const updateDescFn = updateBoardDescription;
   const createCardFn = createCard;
   const updateCardFn = updateCard;
   const deleteCardFn = deleteCard;
@@ -220,6 +221,16 @@ function BoardPage() {
     },
     onError: (e, _v, ctx) => { if (ctx?.prev) qc.setQueryData(key, ctx.prev); toast.error(e.message); },
   });
+  const updateDescMut = useMutation({
+    mutationFn: (description: string | null) => updateDescFn({ id: boardId, description }),
+    onMutate: async (description) => {
+      await qc.cancelQueries({ queryKey: key });
+      const prev = qc.getQueryData<BoardData>(key);
+      patch((d) => ({ ...d, board: { ...d.board, description } as any }));
+      return { prev };
+    },
+    onError: (e, _v, ctx) => { if (ctx?.prev) qc.setQueryData(key, ctx.prev); toast.error(e.message); },
+  });
 
   const [newListTitle, setNewListTitle] = useState("");
   const [openCard, setOpenCard] = useState<string | null>(null);
@@ -309,7 +320,13 @@ function BoardPage() {
             onSave={(t) => renameBoardMut.mutate(t)}
             className="text-base font-semibold tracking-tight text-board-foreground"
           />
-          {data.board.description && <p className="text-xs text-board-foreground/70">{data.board.description}</p>}
+          <InlineRename
+            value={(data.board as any).description ?? ""}
+            disabled={!canEdit}
+            onSave={(v) => updateDescMut.mutate(v.trim() || null)}
+            placeholder={canEdit ? "Add a description…" : undefined}
+            className="text-xs text-board-foreground/70"
+          />
         </div>
         <div className="flex items-center gap-2">
           {canEdit && (
@@ -531,19 +548,28 @@ function CardFront({ card, data, canEdit: _canEdit, onOpen, isDragging }: {
   );
 }
 
-function InlineRename({ value, onSave, disabled, className }: { value: string; onSave: (v: string) => void; disabled?: boolean; className?: string }) {
+function InlineRename({ value, onSave, disabled, className, placeholder }: { value: string; onSave: (v: string) => void; disabled?: boolean; className?: string; placeholder?: string }) {
   const [editing, setEditing] = useState(false);
   const [v, setV] = useState(value);
   if (disabled || !editing) {
-    return <button disabled={disabled} onClick={() => { setV(value); setEditing(true); }} className={"text-left " + (className ?? "")}>{value}</button>;
+    return (
+      <button
+        disabled={disabled}
+        onClick={() => { setV(value); setEditing(true); }}
+        className={"text-left " + (className ?? "") + (!value && placeholder ? " opacity-50" : "")}
+      >
+        {value || placeholder || ""}
+      </button>
+    );
   }
   return (
     <input
       autoFocus
       value={v}
       onChange={(e) => setV(e.target.value)}
-      onBlur={() => { setEditing(false); if (v.trim() && v !== value) onSave(v.trim()); }}
-      onKeyDown={(e) => { if (e.key === "Enter") (e.target as HTMLInputElement).blur(); if (e.key === "Escape") setEditing(false); }}
+      onBlur={() => { setEditing(false); onSave(v); }}
+      onKeyDown={(e) => { if (e.key === "Enter") (e.target as HTMLInputElement).blur(); if (e.key === "Escape") { setV(value); setEditing(false); } }}
+      placeholder={placeholder}
       className={"rounded border border-transparent bg-transparent px-1 py-0.5 outline-none focus:outline-none " + (className ?? "")}
     />
   );
@@ -560,6 +586,7 @@ function NewCardForm({ onAdd }: { onAdd: (title: string) => void }) {
     );
   }
   const submit = () => { if (title.trim()) { onAdd(title.trim()); setTitle(""); setOpen(false); } };
+  const discard = () => { setOpen(false); setTitle(""); };
   return (
     <form
       onSubmit={(e) => { e.preventDefault(); submit(); }}
@@ -569,13 +596,14 @@ function NewCardForm({ onAdd }: { onAdd: (title: string) => void }) {
         autoFocus
         value={title}
         onChange={(e) => setTitle(e.target.value)}
-        onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); submit(); } if (e.key === "Escape") { setOpen(false); setTitle(""); } }}
+        onBlur={() => { if (!title.trim()) discard(); }}
+        onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); submit(); } if (e.key === "Escape") discard(); }}
         placeholder="Enter a title for this card…"
         className="min-h-[60px] bg-tcard text-tcard-foreground text-sm"
       />
       <div className="flex gap-2">
         <Button type="submit" size="sm">Add card</Button>
-        <Button type="button" variant="ghost" size="sm" onClick={() => { setOpen(false); setTitle(""); }}><X className="h-4 w-4" /></Button>
+        <Button type="button" variant="ghost" size="sm" onClick={discard}><X className="h-4 w-4" /></Button>
       </div>
     </form>
   );

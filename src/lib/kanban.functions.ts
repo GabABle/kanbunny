@@ -55,6 +55,12 @@ export async function renameBoard(data: { id: string; title: string }) {
   return { ok: true };
 }
 
+export async function updateBoardDescription(data: { id: string; description: string | null }) {
+  const { error } = await supabase.from("boards").update({ description: data.description }).eq("id", data.id);
+  if (error) throw new Error(error.message);
+  return { ok: true };
+}
+
 export async function updateBoardBackground(data: { id: string; background_gradient: string | null }) {
   const { error } = await supabase
     .from("boards")
@@ -295,6 +301,13 @@ export async function toggleChecklistItem(data: { id: string; done: boolean }) {
     const cardId = await cardIdFromChecklist(item.checklist_id);
     if (cardId) await logActivity(userId, cardId, data.done ? "checklist_item_done" : "checklist_item_undone", { text: item.text });
   }
+  return { ok: true };
+}
+
+export async function updateChecklistItem(data: { id: string; text?: string; due_date?: string | null }) {
+  const { id, ...rest } = data;
+  const { error } = await supabase.from("checklist_items").update(rest as any).eq("id", id);
+  if (error) throw new Error(error.message);
   return { ok: true };
 }
 
