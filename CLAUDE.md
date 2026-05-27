@@ -14,7 +14,7 @@ Flowjoe is a Kanban board app (think Trello). React SPA deployed to AWS via SST 
 - **Backend**: Supabase (Postgres + RLS + Auth) — direct from browser, no separate API server yet
 - **Infrastructure**: SST v4 → AWS S3 + CloudFront (ap-southeast-1)
 - **Package manager**: Bun
-- **CI/CD**: GitHub Actions (`.github/workflows/deploy.yml`) — deploys on push to `main` via AWS OIDC (`GitHubActionsDeployRole`)
+- **CI/CD**: GitHub Actions workflow exists but **does not work** (SST silently fails in CI despite AdminstratorAccess OIDC role — likely a Windows/Linux state path issue). **Deploy manually from your local machine instead.**
 
 ## Environment Variables
 Injected at build time by SST from GitHub Actions secrets:
@@ -77,11 +77,13 @@ Migrations live in `supabase/migrations/` — always add new migrations there, n
 - Email confirmations: enabled
 
 ## Deployment
-Push to `main` → GitHub Actions runs `bunx sst deploy --stage production` → builds with Vite → uploads to S3 → invalidates CloudFront. Takes ~1 min.
+**Deploy locally** (GitHub Actions CI is broken — SST silently fails in Linux CI):
+```bash
+bunx sst deploy --stage production
+```
+This builds with Vite, uploads to S3, and invalidates CloudFront. Takes ~1 min.
 
-**To deploy manually**: GitHub Actions → Deploy to AWS → Run workflow → main branch.
-
-**Do NOT** modify `sst.config.ts` or `.github/workflows/deploy.yml` without understanding the SST + OIDC setup. The AWS role `GitHubActionsDeployRole` is scoped to this repo.
+Workflow: make changes → commit + push to `main` (for git history) → run `bunx sst deploy --stage production` locally to go live.
 
 ## Local Dev
 ```bash
