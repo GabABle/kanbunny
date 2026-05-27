@@ -11,7 +11,7 @@ export default function AuthLayout() {
   return (
     <div className="flex min-h-screen flex-col bg-background text-foreground">
       <header className="border-b border-border/60">
-        <div className="mx-auto flex h-12 max-w-7xl items-center justify-between px-4">
+        <div className="flex h-12 w-full items-center justify-between px-4">
           <Link to="/boards" className="flex items-center gap-2">
             <img src={logo} alt="Flowjoe" className="h-6 w-6 rounded-md" />
             <span className="text-sm font-semibold tracking-tight">Flowjoe</span>
