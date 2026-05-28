@@ -510,6 +510,174 @@ export async function updateCardOwner(data: { cardId: string; userId: string }) 
   return { ok: true };
 }
 
+// ---------- Board export / import ----------
+
+export async function exportBoard(data: { id: string }) {
+  const boardRes = await supabase
+    .from("boards")
+    .select("id, title, description, background_gradient")
+    .eq("id", data.id)
+    .maybeSingle();
+  if (boardRes.error) throw new Error(boardRes.error.message);
+  if (!boardRes.data) throw new Error("Board not found");
+
+  const listsRes = await supabase
+    .from("lists")
+    .select("id, title, position")
+    .eq("board_id", data.id)
+    .order("position");
+  if (listsRes.error) throw new Error(listsRes.error.message);
+
+  const listIds = (listsRes.data ?? []).map((l) => l.id);
+
+  const [cardsRes, labelsRes] = await Promise.all([
+    listIds.length
+      ? supabase
+          .from("cards")
+          .select("id, list_id, title, description, position, due_date")
+          .in("list_id", listIds)
+          .order("position")
+      : { data: [], error: null as any },
+    supabase.from("labels").select("id, name, color").eq("board_id", data.id),
+  ]);
+  if (cardsRes.error) throw new Error(cardsRes.error.message);
+  if (labelsRes.error) throw new Error(labelsRes.error.message);
+
+  const cardIds = (cardsRes.data ?? []).map((c) => c.id);
+  const labelIds = (labelsRes.data ?? []).map((l) => l.id);
+
+  const [cardLabelsRes, checklistsRes] = await Promise.all([
+    cardIds.length && labelIds.length
+      ? supabase.from("card_labels").select("card_id, label_id").in("card_id", cardIds)
+      : { data: [], error: null as any },
+    cardIds.length
+      ? supabase.from("checklists").select("id, card_id, title, position").in("card_id", cardIds).order("position")
+      : { data: [], error: null as any },
+  ]);
+  if (cardLabelsRes.error) throw new Error(cardLabelsRes.error.message);
+  if (checklistsRes.error) throw new Error(checklistsRes.error.message);
+
+  const checklistIds = (checklistsRes.data ?? []).map((cl) => cl.id);
+  const itemsRes = checklistIds.length
+    ? await supabase
+        .from("checklist_items")
+        .select("id, checklist_id, text, done, position, due_date")
+        .in("checklist_id", checklistIds)
+        .order("position")
+    : { data: [], error: null as any };
+  if (itemsRes.error) throw new Error(itemsRes.error.message);
+
+  return {
+    exportVersion: 1,
+    exportedAt: new Date().toISOString(),
+    board: boardRes.data,
+    lists: listsRes.data ?? [],
+    cards: cardsRes.data ?? [],
+    labels: labelsRes.data ?? [],
+    cardLabels: cardLabelsRes.data ?? [],
+    checklists: checklistsRes.data ?? [],
+    checklistItems: itemsRes.data ?? [],
+  };
+}
+
+export async function importBoard(json: ReturnType<typeof exportBoard> extends Promise<infer T> ? T : never) {
+  const userId = await currentUserId();
+
+  // Create the board
+  const { data: newBoard, error: bErr } = await supabase
+    .from("boards")
+    .insert({
+      title: json.board.title,
+      description: json.board.description ?? null,
+      background_gradient: (json.board as any).background_gradient ?? null,
+      owner_id: userId,
+    })
+    .select()
+    .single();
+  if (bErr) throw new Error(bErr.message);
+
+  // Map old IDs → new IDs
+  const listIdMap = new Map<string, string>();
+  const cardIdMap = new Map<string, string>();
+  const labelIdMap = new Map<string, string>();
+  const checklistIdMap = new Map<string, string>();
+
+  // Insert lists
+  for (const list of json.lists) {
+    const { data: nl, error } = await supabase
+      .from("lists")
+      .insert({ board_id: newBoard.id, title: list.title, position: list.position })
+      .select()
+      .single();
+    if (error) throw new Error(error.message);
+    listIdMap.set(list.id, nl.id);
+  }
+
+  // Insert cards
+  for (const card of json.cards) {
+    const newListId = listIdMap.get(card.list_id);
+    if (!newListId) continue;
+    const { data: nc, error } = await supabase
+      .from("cards")
+      .insert({
+        list_id: newListId,
+        title: card.title,
+        description: card.description ?? null,
+        position: card.position,
+        due_date: card.due_date ?? null,
+        created_by: userId,
+      })
+      .select()
+      .single();
+    if (error) throw new Error(error.message);
+    cardIdMap.set(card.id, nc.id);
+  }
+
+  // Insert labels
+  for (const label of json.labels) {
+    const { data: nl, error } = await supabase
+      .from("labels")
+      .insert({ board_id: newBoard.id, name: label.name, color: label.color })
+      .select()
+      .single();
+    if (error) throw new Error(error.message);
+    labelIdMap.set(label.id, nl.id);
+  }
+
+  // Insert card-label associations
+  const cardLabelRows = (json.cardLabels ?? [])
+    .map((cl) => ({ card_id: cardIdMap.get(cl.card_id), label_id: labelIdMap.get(cl.label_id) }))
+    .filter((r): r is { card_id: string; label_id: string } => !!r.card_id && !!r.label_id);
+  if (cardLabelRows.length) await supabase.from("card_labels").insert(cardLabelRows);
+
+  // Insert checklists
+  for (const cl of json.checklists ?? []) {
+    const newCardId = cardIdMap.get(cl.card_id);
+    if (!newCardId) continue;
+    const { data: ncl, error } = await supabase
+      .from("checklists")
+      .insert({ card_id: newCardId, title: cl.title, position: cl.position })
+      .select()
+      .single();
+    if (error) throw new Error(error.message);
+    checklistIdMap.set(cl.id, ncl.id);
+  }
+
+  // Insert checklist items
+  const itemRows = (json.checklistItems ?? [])
+    .map((item) => ({
+      checklist_id: checklistIdMap.get(item.checklist_id),
+      text: item.text,
+      done: item.done,
+      position: item.position,
+      due_date: (item as any).due_date ?? null,
+    }))
+    .filter((r): r is typeof r & { checklist_id: string } => !!r.checklist_id);
+  if (itemRows.length) await supabase.from("checklist_items").insert(itemRows);
+
+  return newBoard;
+}
+
 // ---------- Profile search ----------
 export async function searchProfiles(data: { query?: string }) {
   const q = (data.query ?? "").trim();
